@@ -2,15 +2,20 @@ import { Navigate, Outlet } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import AuthService from './services/AuthService';
 
-const ProtectedRoute = ({ roles = [] }) => {
-  const userRoles = AuthService.getCurrentUser()?.roles;
-  const isAuthorized = !roles.length || roles.some((r) => userRoles.includes(r));
+export default function ProtectedRoute({ roles = [] }) {
+  const currentUser = AuthService.getCurrentUser();
+  const userRoles = Array.isArray(currentUser?.roles) ? currentUser.roles : [];
 
-  return isAuthorized ? <Outlet /> : <Navigate to="/unauthorized" replace />;
-};
+  const isAuthorized =
+    roles.length === 0 || roles.some((role) => userRoles.includes(role));
 
-ProtectedRoute.propTypes = {
-  roles: PropTypes.array,
+  return isAuthorized ? (
+    <Outlet />
+  ) : (
+    <Navigate to="/unauthorized" replace />
+  );
 }
 
-export default ProtectedRoute;
+ProtectedRoute.propTypes = {
+  roles: PropTypes.arrayOf(PropTypes.string),
+};

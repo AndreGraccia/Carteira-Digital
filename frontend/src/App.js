@@ -1,16 +1,22 @@
 import { Route, Routes } from 'react-router-dom';
+
 import DashboardLayout from './layouts/dashboard/DashboardLayout';
+import PrivateRoute from './PrivateRoute';
+import ProtectedRoute from './ProtectedRoute';
+
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Unauthorized from './pages/auth/Unauthorized';
+import NotFound from './pages/auth/NotFound';
+
 import Dashboard from './pages/dashboard/Dashboard';
 import Transaction from './pages/transaction/Transaction';
 import BasicTabs from './pages/transfer/BasicTabs';
 import AddFunds from './pages/wallet/AddFunds';
 import NewWallet from './pages/wallet/NewWallet';
 import Wallet from './pages/wallet/Wallet';
-import PrivateRoute from './PrivateRoute';
-import ProtectedRoute from './ProtectedRoute';
+
+const USER_ROLES = ['ROLE_USER', 'ROLE_ADMIN'];
 
 export default function App() {
   return (
@@ -18,43 +24,26 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
-      <Route path="unauthorized" element={<PrivateRoute />}>
-        <Route index element={<Unauthorized />} />
-      </Route>
+      <Route element={<PrivateRoute />}>
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
-      <Route path="/" element={<PrivateRoute />}>
-        <Route path="" element={<DashboardLayout />}>
-          <Route path="" element={<Dashboard />}>
-            <Route element={<ProtectedRoute roles={['ROLE_USER', 'ROLE_ADMIN']} />}>
-              <Route index element={<Dashboard />} />
-            </Route>
-          </Route>
+        <Route element={<ProtectedRoute roles={USER_ROLES} />}>
+          <Route element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
 
-          <Route path="wallets" element={<PrivateRoute />}>
-            <Route element={<ProtectedRoute roles={['ROLE_USER', 'ROLE_ADMIN']} />}>
+            <Route path="wallets">
               <Route index element={<Wallet />} />
-            </Route>
-            <Route element={<ProtectedRoute roles={['ROLE_USER', 'ROLE_ADMIN']} />}>
               <Route path="new" element={<NewWallet />} />
-            </Route>
-            <Route element={<ProtectedRoute roles={['ROLE_USER', 'ROLE_ADMIN']} />}>
               <Route path="addFunds" element={<AddFunds />} />
             </Route>
-          </Route>
 
-          <Route path="transfers" element={<PrivateRoute />}>
-            <Route element={<ProtectedRoute roles={['ROLE_USER', 'ROLE_ADMIN']} />}>
-              <Route index element={<BasicTabs />} />
-            </Route>
-          </Route>
-
-          <Route path="transactions" element={<PrivateRoute />}>
-            <Route element={<ProtectedRoute roles={['ROLE_USER', 'ROLE_ADMIN']} />}>
-              <Route index element={<Transaction />} />
-            </Route>
+            <Route path="transfers" element={<BasicTabs />} />
+            <Route path="transactions" element={<Transaction />} />
           </Route>
         </Route>
       </Route>
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

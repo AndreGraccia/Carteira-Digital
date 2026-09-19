@@ -183,7 +183,7 @@ public class WalletService {
     public CommandResponse addFunds(TransactionRequest request) {
         validateAmount(request.getAmount(), false);
         request.setFromWalletIban(request.getToWalletIban());
-        request.setTypeId(2L);
+        request.setTypeId(4L);
         var wallet = lockedWallet(request.getToWalletIban(), walletRepository.lockByIbans(List.of(request.getToWalletIban())));
         var replay = transactionService.replay(request);
         if (replay != null) return replay;
@@ -197,7 +197,7 @@ public class WalletService {
     public CommandResponse withdrawFunds(TransactionRequest request) {
         validateAmount(request.getAmount(), false);
         request.setToWalletIban(request.getFromWalletIban());
-        request.setTypeId(3L);
+        request.setTypeId(5L);
         var wallet = lockedWallet(request.getFromWalletIban(), walletRepository.lockByIbans(List.of(request.getFromWalletIban())));
         var replay = transactionService.replay(request);
         if (replay != null) return replay;

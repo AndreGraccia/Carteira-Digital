@@ -16,7 +16,7 @@ public interface WalletTransactionRequestMapper {
     @Mapping(target = "description", constant = "Initial balance")
     @Mapping(target = "fromWalletIban", source = "iban")
     @Mapping(target = "toWalletIban", source = "iban")
-    @Mapping(target = "typeId", constant = "4L")
+    @Mapping(target = "typeId", constant = "6L")
     TransactionRequest toTransactionRequest(WalletRequest entity);
 
     WalletRequest toWalletRequest(TransactionRequest dto);

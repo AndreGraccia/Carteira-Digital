@@ -115,7 +115,13 @@ public class WalletService {
      */
     @Transactional
     public CommandResponse create(WalletRequest request) {
-        validateAmount(request.getBalance(), true);
+
+        if (request.getBalance() == null ||
+                request.getBalance().compareTo(BigDecimal.ZERO) != 0) {
+            throw new WalletRuleException("INITIAL_BALANCE_NOT_ALLOWED");
+        }
+
+        request.setBalance(BigDecimal.ZERO);
         request.setName(request.getName().trim());
         if (request.getIban() == null || request.getIban().isBlank()) {
             String digits = String.format("%025d", new java.math.BigInteger(java.util.UUID.randomUUID().toString().replace("-", ""), 16).mod(java.math.BigInteger.TEN.pow(25)));
@@ -129,17 +135,24 @@ public class WalletService {
         if (walletRepository.existsByUserIdAndNameIgnoreCase(request.getUserId(), request.getName()))
             throw new ElementAlreadyExistsException(messageConfig.getMessage(ERROR_WALLET_NAME_EXISTS));
 
+
         final Wallet wallet = walletRequestMapper.toWallet(request);
+
         walletRepository.save(wallet);
-        log.info(messageConfig.getMessage(INFO_WALLET_CREATED, wallet.getIban(), wallet.getName(), wallet.getBalance()));
 
-        // add this initial amount to the transactions
-        if (request.getBalance().signum() > 0) {
-            transactionService.create(walletTransactionRequestMapper.toTransactionRequest(request));
+        log.info(
+                messageConfig.getMessage(
+                        INFO_WALLET_CREATED,
+                        wallet.getIban(),
+                        wallet.getName(),
+                        wallet.getBalance()
+                )
+        );
+
+        return CommandResponse.builder()
+                .id(wallet.getId())
+                .build();
         }
-
-        return CommandResponse.builder().id(wallet.getId()).build();
-    }
 
     /**
      * Transfer funds between wallets.

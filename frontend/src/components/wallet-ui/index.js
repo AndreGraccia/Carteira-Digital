@@ -1,0 +1,198 @@
+import { Alert, Box, Button, Card, CircularProgress, Stack, SvgIcon, Typography } from '@mui/material';
+import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
+import { useWallets } from '../../context/WalletContext';
+import { dateTime, directionFor, money } from '../../utils/wallet';
+
+const paths = {
+  wallet: 'M3 7h17v13H3V4h14v3M20 11h-5v5h5M16.5 13.5h.01',
+  home: 'm3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9',
+  history: 'M3 11a9 9 0 1 1 2 7M3 4v7h7M12 7v5l3 2',
+  send: 'm4 4 17 8-17 8 3-8-3-8Zm3 8h14',
+  plus: 'M12 5v14M5 12h14',
+  down: 'M12 4v16m-6-6 6 6 6-6',
+  up: 'M12 20V4m-6 6 6-6 6 6',
+  arrow: 'M5 12h14m-5-5 5 5-5 5',
+  back: 'M19 12H5m5-5-5 5 5 5',
+  check: 'm5 12 4 4L19 6',
+  user: 'M20 21v-2a6 6 0 0 0-6-6h-4a6 6 0 0 0-6 6v2M16 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
+  logout: 'M9 4H4v16h5m5-13 5 5-5 5M8 12h11',
+  eye: 'M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
+  info: 'M12 11v6m0-10h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',
+  copy: 'M9 9h12v12H9V9ZM15 9V3H3v12h6',
+  swap: 'M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4',
+};
+export function WalletIcon({ name, ...props }) {
+  return (
+    <SvgIcon {...props} viewBox="0 0 24 24">
+      <path
+        d={paths[name] || paths.wallet}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </SvgIcon>
+  );
+}
+WalletIcon.propTypes = { name: PropTypes.string };
+export function PageHeading({ title, description, action }) {
+  return (
+    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: { xs: 3, md: 4 } }}>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="h3" component="h1">
+          {title}
+        </Typography>
+        {description && (
+          <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+            {description}
+          </Typography>
+        )}
+      </Box>
+      {action}
+    </Stack>
+  );
+}
+PageHeading.propTypes = { title: PropTypes.string, description: PropTypes.string, action: PropTypes.node };
+export function EmptyState({ title, description, action, icon = 'wallet' }) {
+  return (
+    <Stack alignItems="center" spacing={2} sx={{ py: 6, px: 3, textAlign: 'center' }}>
+      <Box sx={{ p: 2, borderRadius: '22px', bgcolor: 'background.neutral', color: 'text.secondary' }}>
+        <WalletIcon name={icon} sx={{ fontSize: 34 }} />
+      </Box>
+      <Typography variant="h6">{title}</Typography>
+      <Typography color="text.secondary" variant="body2" sx={{ maxWidth: 340 }}>
+        {description}
+      </Typography>
+      {action}
+    </Stack>
+  );
+}
+EmptyState.propTypes = {
+  title: PropTypes.string,
+  description: PropTypes.string,
+  action: PropTypes.node,
+  icon: PropTypes.string,
+};
+export function DataState({ children }) {
+  const { t } = useTranslation();
+  const { loading, error, refresh } = useWallets();
+  if (loading)
+    return (
+      <Box role="status" sx={{ textAlign: 'center', py: 10 }}>
+        <CircularProgress size={28} />
+        <Typography sx={{ mt: 2 }} color="text.secondary">
+          {t('common.loading')}
+        </Typography>
+      </Box>
+    );
+  if (error)
+    return (
+      <Alert
+        severity="error"
+        action={
+          <Button color="inherit" onClick={refresh}>
+            {t('app.retry')}
+          </Button>
+        }
+      >
+        {t(error)}
+      </Alert>
+    );
+  return children;
+}
+DataState.propTypes = { children: PropTypes.node };
+export function ActivityList({ transactions, wallets, onSelect }) {
+  const { t, i18n } = useTranslation();
+  if (!transactions.length)
+    return <EmptyState icon="history" title={t('app.noActivity')} description={t('app.noActivityHelp')} />;
+  return (
+    <Box>
+      {transactions.map((item) => {
+        const direction = directionFor(item, wallets);
+        const success = item.status === 'SUCCESS';
+        const color = success && direction === 'incoming' ? 'success.dark' : 'text.primary';
+        const title = t(`app.types.${item.type?.name}`, { defaultValue: t('app.types.Transfer') });
+        return (
+          <Box
+            key={item.id}
+            component="button"
+            type="button"
+            onClick={() => onSelect(item)}
+            sx={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 1.5, sm: 2 },
+              py: 2,
+              px: { xs: 2, sm: 3 },
+              border: 0,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'transparent',
+              color: 'text.primary',
+              textAlign: 'left',
+              cursor: 'pointer',
+              '&:last-child': { borderBottom: 0 },
+              '&:hover': { bgcolor: 'action.hover' },
+              '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
+            }}
+          >
+            <Box
+              sx={{
+                width: 42,
+                height: 42,
+                flexShrink: 0,
+                borderRadius: '14px',
+                bgcolor: 'background.neutral',
+                display: 'grid',
+                placeItems: 'center',
+                color,
+              }}
+            >
+              <WalletIcon name={direction === 'incoming' ? 'down' : direction === 'outgoing' ? 'up' : 'swap'} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="subtitle2" noWrap>
+                {title}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {dateTime(item.createdAt, i18n.language)}
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right', minWidth: 0 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ color, fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}
+              >
+                {success && direction === 'outgoing' ? '− ' : success && direction === 'incoming' ? '+ ' : ''}
+                {money(item.amount, i18n.language)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {t(`transactions.status.${item.status}`, { defaultValue: item.status })}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+ActivityList.propTypes = {
+  transactions: PropTypes.array.isRequired,
+  wallets: PropTypes.array.isRequired,
+  onSelect: PropTypes.func.isRequired,
+};
+export function SectionCard({ title, action, children }) {
+  return (
+    <Card>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ p: 3, pb: 1.5 }}>
+        <Typography variant="h6">{title}</Typography>
+        {action}
+      </Stack>
+      {children}
+    </Card>
+  );
+}
+SectionCard.propTypes = { title: PropTypes.string, action: PropTypes.node, children: PropTypes.node };

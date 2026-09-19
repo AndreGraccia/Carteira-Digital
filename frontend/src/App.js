@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import DashboardLayout from './layouts/dashboard/DashboardLayout';
 import PrivateRoute from './PrivateRoute';
@@ -12,7 +12,7 @@ import NotFound from './pages/auth/NotFound';
 import Dashboard from './pages/dashboard/Dashboard';
 import Transaction from './pages/transaction/Transaction';
 import BasicTabs from './pages/transfer/BasicTabs';
-import AddFunds from './pages/wallet/AddFunds';
+import About from './pages/About';
 import NewWallet from './pages/wallet/NewWallet';
 import Wallet from './pages/wallet/Wallet';
 
@@ -34,11 +34,13 @@ export default function App() {
             <Route path="wallets">
               <Route index element={<Wallet />} />
               <Route path="new" element={<NewWallet />} />
-              <Route path="addFunds" element={<AddFunds />} />
+              <Route path="addFunds" element={<Navigate to="/transfers?mode=deposit" replace />} />
+              <Route path=":walletId" element={<Wallet />} />
             </Route>
 
             <Route path="transfers" element={<BasicTabs />} />
             <Route path="transactions" element={<Transaction />} />
+            <Route path="about" element={<About />} />
           </Route>
         </Route>
       </Route>

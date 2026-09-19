@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Box, Button, Container, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Helmet } from 'react-helmet-async';
@@ -16,31 +17,30 @@ const StyledContent = styled('div')(({ theme }) => ({
 }));
 
 export default function NotFound() {
+  const { t } = useTranslation();
   return (
     <>
       <Helmet>
-        <title>Página não encontrada | Carteira Digital</title>
+        <title>{t('errors.notFound.pageTitle')}</title>
       </Helmet>
 
       <Container>
         <StyledContent>
           <Typography variant="h3" paragraph>
-            Página não encontrada
+            {t('errors.notFound.title')}{' '}
           </Typography>
 
-          <Typography sx={{ color: 'text.secondary' }}>
-            O endereço informado não existe ou foi removido.
-          </Typography>
+          <Typography sx={{ color: 'text.secondary' }}>{t('errors.notFound.description')}</Typography>
 
           <Box
             component="img"
             src="/assets/illustrations/illustration_404.svg"
-            alt="Página não encontrada"
+            alt={t('errors.notFound.title')}
             sx={{ height: 260, mx: 'auto', my: { xs: 5, sm: 8 } }}
           />
 
           <Button to="/" size="large" variant="contained" component={RouterLink}>
-            Voltar para o início
+            {t('actions.goHome')}
           </Button>
         </StyledContent>
       </Container>

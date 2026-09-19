@@ -1,0 +1,16 @@
+﻿const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const i18next = require('./frontend/node_modules/i18next/dist/cjs/i18next.js');
+const i18n = i18next.createInstance();
+const source = fs.readFileSync('frontend/src/i18n.js', 'utf8').replace(/^import .*;\r?\n/gm, '').replace('export default i18n;', '');
+vm.runInNewContext(source, { i18n, initReactI18next: { type: '3rdParty', init() {} }, localStorage: { getItem() { return 'pt'; }, setItem() {} }, navigator: { language: 'pt-BR' }, document: { documentElement: {} } });
+assert.equal(i18n.t('wallet.card.clickToOpen'), 'Ver extrato');
+assert.equal(i18n.t('wallet.stack.walletCount', { count: 1 }), '1 carteira');
+assert.equal(i18n.t('wallet.stack.walletCount', { count: 2 }), '2 carteiras');
+i18n.changeLanguage('en');
+assert.equal(i18n.t('wallet.card.clickToOpen'), 'View statement');
+assert.equal(i18n.t('wallet.stack.walletCount', { count: 1 }), '1 wallet');
+assert.equal(i18n.t('wallet.stack.walletCount', { count: 2 }), '2 wallets');
+assert.equal(i18n.t('transactions.types.NewType', { defaultValue: 'NewType' }), 'NewType');
+console.log('PASS: real i18next language switching, card labels, plurals and unknown-type fallback.');

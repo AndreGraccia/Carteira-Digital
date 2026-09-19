@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -8,20 +9,21 @@ import account from '../../../_mock/account';
 
 const MENU_OPTIONS = [
   {
-    label: 'Home',
+    label: 'common.home',
     icon: 'eva:home-fill',
   },
   {
-    label: 'Profile',
+    label: 'common.profile',
     icon: 'eva:person-fill',
   },
   {
-    label: 'Settings',
+    label: 'common.settings',
     icon: 'eva:settings-2-fill',
   },
 ];
 
 export default function AccountPopover() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(null);
   const navigate = useNavigate();
   const currentUser = AuthService.getCurrentUser();
@@ -43,6 +45,7 @@ export default function AccountPopover() {
     <>
       <IconButton
         onClick={handleOpen}
+        aria-label={t('common.account')}
         sx={{
           p: 0,
           ...(open && {
@@ -58,7 +61,7 @@ export default function AccountPopover() {
           }),
         }}
       >
-        <Avatar src={account.photoURL} alt="photoURL" />
+        <Avatar src={account.photoURL} alt={t('common.account')} />
       </IconButton>
       <Popover
         open={Boolean(open)}
@@ -87,14 +90,14 @@ export default function AccountPopover() {
         <Divider sx={{ borderStyle: 'dashed' }} />
         <Stack sx={{ p: 1 }}>
           {MENU_OPTIONS.map((option) => (
-            <MenuItem key={option.label} onClick={handleClose} disabled>
-              {option.label}
+            <MenuItem key={t(option.label)} onClick={handleClose} disabled>
+              {t(option.label)}
             </MenuItem>
           ))}
         </Stack>
         <Divider sx={{ borderStyle: 'dashed' }} />
         <MenuItem onClick={handleLogout} sx={{ m: 1 }}>
-          Logout
+          {t('actions.logout')}{' '}
         </MenuItem>
       </Popover>
     </>

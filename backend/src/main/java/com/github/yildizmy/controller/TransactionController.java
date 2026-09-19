@@ -28,7 +28,7 @@ public class TransactionController {
      * @param id
      * @return TransactionResponse wrapped by ResponseEntity<T>
      */
-    @PreAuthorize("hasRole(T(com.github.yildizmy.domain.enums.RoleType).ROLE_USER)")
+    @PreAuthorize("@walletAccess.transaction(#id)")
     @GetMapping("/{id}")
     public ResponseEntity<TransactionResponse> findById(@PathVariable long id) {
         final TransactionResponse response = transactionService.findById(id);
@@ -41,7 +41,7 @@ public class TransactionController {
      * @param referenceNumber
      * @return TransactionResponse wrapped by ResponseEntity<T>
      */
-    @PreAuthorize("hasRole(T(com.github.yildizmy.domain.enums.RoleType).ROLE_USER)")
+    @PreAuthorize("@walletAccess.reference(#referenceNumber)")
     @GetMapping("/references/{referenceNumber}")
     public ResponseEntity<TransactionResponse> findByReferenceNumber(@PathVariable UUID referenceNumber) {
         final TransactionResponse response = transactionService.findByReferenceNumber(referenceNumber);
@@ -54,7 +54,7 @@ public class TransactionController {
      * @param userId
      * @return List of TransactionResponse wrapped by ResponseEntity<T>
      */
-    @PreAuthorize("hasRole(T(com.github.yildizmy.domain.enums.RoleType).ROLE_USER)")
+    @PreAuthorize("@walletAccess.user(#userId)")
     @GetMapping("/users/{userId}")
     public ResponseEntity<Page<TransactionResponse>> findAllByUserId(@PathVariable long userId) {
         final Page<TransactionResponse> response = new PageImpl<>(transactionService.findAllByUserId(userId));
@@ -67,7 +67,7 @@ public class TransactionController {
      * @param pageable
      * @return List of TransactionResponse wrapped by ResponseEntity<T>
      */
-    @PreAuthorize("hasRole(T(com.github.yildizmy.domain.enums.RoleType).ROLE_USER)")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<TransactionResponse>> findAll(Pageable pageable) {
         final Page<TransactionResponse> response = transactionService.findAll(pageable);

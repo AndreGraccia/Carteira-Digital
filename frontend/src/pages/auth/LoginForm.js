@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { LoadingButton } from '@mui/lab';
 import { IconButton, InputAdornment, Stack, TextField } from '@mui/material';
 import { useSnackbar } from 'notistack';
@@ -7,6 +8,7 @@ import Iconify from '../../components/iconify';
 import AuthService from '../../services/AuthService';
 
 export default function LoginForm() {
+  const { t } = useTranslation();
   const defaultValues = {
     username: 'johndoe',
     password: 'johnd@e',
@@ -48,7 +50,7 @@ export default function LoginForm() {
         <TextField
           id="username"
           name="username"
-          label="Username"
+          label={t('auth.login.username')}
           autoComplete="username"
           required
           autoFocus
@@ -58,7 +60,7 @@ export default function LoginForm() {
         <TextField
           id="password"
           name="password"
-          label="Password"
+          label={t('auth.login.password')}
           autoComplete="current-password"
           type={showPassword ? 'text' : 'password'}
           required
@@ -67,7 +69,11 @@ export default function LoginForm() {
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
-                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                <IconButton
+                  aria-label={t(showPassword ? 'common.hidePassword' : 'common.showPassword')}
+                  onClick={() => setShowPassword(!showPassword)}
+                  edge="end"
+                >
                   <Iconify icon={showPassword ? 'eva:eye-fill' : 'eva:eye-off-fill'} />
                 </IconButton>
               </InputAdornment>
@@ -79,7 +85,7 @@ export default function LoginForm() {
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ my: 2 }} />
 
       <LoadingButton fullWidth size="large" type="submit" variant="contained" onClick={handleSubmit}>
-        Log in
+        {t('auth.login.submit')}{' '}
       </LoadingButton>
     </>
   );

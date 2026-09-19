@@ -6,6 +6,10 @@ O objetivo do projeto é oferecer uma base segura e organizada para gestão de c
 
 > Este projeto está em desenvolvimento e não deve ser utilizado para movimentar dinheiro real.
 
+## Interface e regras da demonstração
+
+A experiência de carteiras, movimentações, rotas e traduções foi revisada. Consulte [design, regras implementadas e limites do protótipo](docs/wallet-design-and-rules.md), incluindo a migração V6 e as referências oficiais da Apple e do Banco Central.
+
 ## Funcionalidades atuais
 
 - Cadastro e autenticação de usuários com JWT.

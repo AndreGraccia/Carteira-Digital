@@ -1,153 +1,91 @@
-import {
-  Card,
-  Container,
-  IconButton,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TablePagination,
-  TableRow,
-  Typography,
-} from '@mui/material';
-import { sentenceCase } from 'change-case';
-import { enqueueSnackbar } from 'notistack';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Card, Container, MenuItem, Stack, TablePagination, TextField } from '@mui/material';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
-import Iconify from '../../components/iconify';
-import Label from '../../components/label';
-import Scrollbar from '../../components/scrollbar';
-import AuthService from '../../services/AuthService';
-import HttpService from '../../services/HttpService';
-import TransactionListHead from './TransactionListHead';
-
-const TABLE_HEAD = [
-  { id: 'id', label: 'Id', alignRight: false, firstColumn: true },
-  { id: 'fromWallet', label: 'Sender', alignRight: false },
-  { id: 'toWallet', label: 'Receiver', alignRight: false },
-  { id: 'amount', label: 'Amount', alignRight: true },
-  { id: 'description', label: 'Description', alignRight: false },
-  { id: 'createdAt', label: 'Time of Transaction', alignRight: false },
-  { id: 'type', label: 'Type', alignRight: false },
-  { id: 'status', label: 'Status', alignRight: false },
-  { id: '' },
-];
+import { useTranslation } from 'react-i18next';
+import { useWallets } from '../../context/WalletContext';
+import { ActivityList, DataState, PageHeading } from '../../components/wallet-ui';
+import TransactionDetail from '../../components/transaction-detail';
 
 export default function Transaction() {
-  const [open, setOpen] = useState(null);
+  const { t } = useTranslation();
+  const { wallets, transactions } = useWallets();
+  const [params, setParams] = useSearchParams();
+  const requestedWallet = params.get('wallet') || '';
+  const selected = wallets.some((wallet) => String(wallet.id) === requestedWallet) ? requestedWallet : '';
+  const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState([]);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [data, setData] = useState([]);
-  const navigate = useNavigate();
-
-  const handleOpenMenu = (event) => {
-    setOpen(event.currentTarget);
-  };
-
-  const handleCloseMenu = () => {
-    setOpen(null);
-  };
-
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setPage(0);
-    setRowsPerPage(parseInt(event.target.value, 10));
-  };
-
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = () => {
-    const userId = AuthService.getCurrentUser()?.id;
-    HttpService.getWithAuth(`/transactions/users/${userId}`)
-      .then((response) => {
-        setData(response.data.content);
-      })
-      .catch((error) => {
-        if (error?.response?.status === 401) {
-          navigate('/login');
-        } else if (error.response?.data?.errors) {
-          error.response?.data?.errors.map((e) => enqueueSnackbar(e.message, { variant: 'error' }));
-        } else if (error.response?.data?.message) {
-          enqueueSnackbar(error.response?.data?.message, { variant: 'error' });
-        } else {
-          enqueueSnackbar(error.message, { variant: 'error' });
-        }
-      });
-  };
-
+  const [detail, setDetail] = useState(null);
+  const visible = transactions.filter(
+    (item) =>
+      (!selected || String(item.fromWallet?.id) === selected || String(item.toWallet?.id) === selected) &&
+      [
+        item.description,
+        item.fromWallet?.name,
+        item.toWallet?.name,
+        t(`app.types.${item.type?.name}`, { defaultValue: '' }),
+      ]
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(query.toLocaleLowerCase())
+  );
+  const scope = selected ? wallets.filter((wallet) => String(wallet.id) === selected) : wallets;
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(visible.length / 10) - 1));
   return (
     <>
       <Helmet>
-        <title> Transactions | e-Transaction </title>
+        <title>{t('transactions.pageTitle')}</title>
       </Helmet>
-      <Container sx={{ minWidth: '100%' }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-          <Typography variant="h4" gutterBottom>
-            My Transactions
-          </Typography>
-        </Stack>
-        <Card>
-          <Scrollbar>
-            <TableContainer sx={{ minWidth: 800 }}>
-              <Table>
-                <TransactionListHead headLabel={TABLE_HEAD} />
-                <TableBody>
-                  {data &&
-                    data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, amount, description, createdAt, fromWallet, toWallet, type, status } = row;
-                      const selectedRecord = selected.indexOf(id) !== -1;
-                      return (
-                        <TableRow hover key={id} tabIndex={-1} role="checkbox" selected={selectedRecord}>
-                          <TableCell align="left" sx={{ paddingLeft: 5 }}>
-                            {id}
-                          </TableCell>
-                          <TableCell align="left">{`${fromWallet.user.firstName} ${fromWallet.user.lastName}`}</TableCell>
-                          <TableCell align="left">{`${toWallet.user.firstName} ${toWallet.user.lastName}`}</TableCell>
-                          <TableCell align="right">{amount}</TableCell>
-                          <TableCell align="left">{description}</TableCell>
-                          <TableCell align="left">{createdAt}</TableCell>
-                          <TableCell align="left">{type.name}</TableCell>
-                          <TableCell align="left">
-                            <Label color={status === 'SUCCESS' ? 'success' : 'warning'}>{sentenceCase(status)}</Label>
-                          </TableCell>
-                          <TableCell align="right" width="20">
-                            <IconButton size="large" color="inherit" onClick={handleOpenMenu}>
-                              <Iconify icon={'eva:more-vertical-fill'} />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  {emptyRows > 0 && (
-                    <TableRow style={{ height: 53 * emptyRows }}>
-                      <TableCell colSpan={6} />
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Scrollbar>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={data?.length > 0 ? data.length : 0}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </Card>
+      <Container maxWidth="lg">
+        <PageHeading title={t('transactions.heading')} description={t('app.activityHelp')} />
+        <DataState>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+            <TextField
+              label={t('common.search')}
+              placeholder={t('app.searchActivity')}
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(0);
+              }}
+              fullWidth
+            />
+            <TextField
+              select
+              label={t('transfer.wallet')}
+              value={wallets.some((wallet) => String(wallet.id) === selected) ? selected : ''}
+              onChange={(event) => {
+                setParams(event.target.value ? { wallet: event.target.value } : {});
+                setPage(0);
+              }}
+              sx={{ minWidth: 220 }}
+            >
+              <MenuItem value="">{t('app.allWallets')}</MenuItem>
+              {wallets.map((wallet) => (
+                <MenuItem value={String(wallet.id)} key={wallet.id}>
+                  {wallet.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
+          <Card>
+            <ActivityList
+              transactions={visible.slice(currentPage * 10, currentPage * 10 + 10)}
+              wallets={scope}
+              onSelect={setDetail}
+            />
+            <TablePagination
+              component="div"
+              count={visible.length}
+              rowsPerPage={10}
+              rowsPerPageOptions={[10]}
+              page={currentPage}
+              onPageChange={(_, value) => setPage(value)}
+            />
+          </Card>
+        </DataState>
       </Container>
+      <TransactionDetail transaction={detail} onClose={() => setDetail(null)} />
     </>
   );
 }

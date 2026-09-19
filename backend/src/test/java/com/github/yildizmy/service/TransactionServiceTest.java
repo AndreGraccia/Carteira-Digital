@@ -129,12 +129,12 @@ class TransactionServiceTest {
     }
 
     @Test
-    void findAllByUserId_shouldThrowExceptionWhenNoTransactionsFound() {
+    void findAllByUserId_shouldReturnEmptyHistory() {
         var userId = 1L;
 
         when(transactionRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
 
-        assertThrows(NoSuchElementFoundException.class, () -> transactionService.findAllByUserId(userId));
+        assertTrue(transactionService.findAllByUserId(userId).isEmpty());
 
         verify(transactionRepository).findAllByUserId(userId);
     }
@@ -193,4 +193,22 @@ class TransactionServiceTest {
         verify(transactionRequestMapper).toTransaction(request);
         verify(transactionRepository).save(testTransaction);
     }
+    @Test
+    void repeatedRequestReturnsOriginalResultAndRejectsChangedAmount() {
+        var request = new TransactionRequest();
+        var key = java.util.UUID.randomUUID();
+        request.setRequestId(key); request.setFromWalletIban("FROM"); request.setToWalletIban("TO");
+        request.setTypeId(1L); request.setAmount(new BigDecimal("10.00"));
+        var transaction = new Transaction(); transaction.setId(42L); transaction.setAmount(new BigDecimal("10.00"));
+        var from = new Wallet(); from.setIban("FROM");
+        var to = new Wallet(); to.setIban("TO");
+        var type = new com.github.yildizmy.domain.entity.Type(); type.setId(1L);
+        transaction.setFromWallet(from); transaction.setToWallet(to); transaction.setType(type);
+        when(transactionRepository.findByRequestId(key)).thenReturn(java.util.Optional.of(transaction));
+        assertEquals(42L, transactionService.replay(request).id());
+        request.setAmount(new BigDecimal("20.00"));
+        assertThrows(com.github.yildizmy.exception.WalletRuleException.class, () -> transactionService.replay(request));
+        verify(transactionRepository, never()).save(any());
+    }
+
 }

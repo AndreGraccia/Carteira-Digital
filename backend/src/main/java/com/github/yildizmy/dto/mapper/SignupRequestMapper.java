@@ -39,6 +39,7 @@ public abstract class SignupRequestMapper {
     @Mapping(target = "email", expression = "java(dto.getEmail().trim().toLowerCase())")
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "id", ignore = true)
     public abstract User toUser(SignupRequest dto);
 
     @AfterMapping

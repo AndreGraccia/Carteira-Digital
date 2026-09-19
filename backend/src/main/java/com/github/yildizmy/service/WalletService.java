@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.math.BigDecimal;
+import com.github.yildizmy.exception.WalletRuleException;
 
 import static com.github.yildizmy.common.MessageKeys.*;
 
@@ -113,19 +115,28 @@ public class WalletService {
      */
     @Transactional
     public CommandResponse create(WalletRequest request) {
+        validateAmount(request.getBalance(), true);
+        request.setName(request.getName().trim());
+        if (request.getIban() == null || request.getIban().isBlank()) {
+            String digits = String.format("%025d", new java.math.BigInteger(java.util.UUID.randomUUID().toString().replace("-", ""), 16).mod(java.math.BigInteger.TEN.pow(25)));
+            int checksum = 98 - new java.math.BigInteger(digits + "112700").mod(java.math.BigInteger.valueOf(97)).intValue();
+            request.setIban("BR" + String.format("%02d", checksum) + digits);
+        }
+        request.setIban(request.getIban().replaceAll("\\s", "").toUpperCase(java.util.Locale.ROOT));
+        if (!ibanValidator.isValid(request.getIban(), null)) throw new WalletRuleException("INVALID_WALLET");
         if (walletRepository.existsByIbanIgnoreCase(request.getIban()))
             throw new ElementAlreadyExistsException(messageConfig.getMessage(ERROR_WALLET_IBAN_EXISTS));
         if (walletRepository.existsByUserIdAndNameIgnoreCase(request.getUserId(), request.getName()))
             throw new ElementAlreadyExistsException(messageConfig.getMessage(ERROR_WALLET_NAME_EXISTS));
-
-        ibanValidator.isValid(request.getIban(), null);
 
         final Wallet wallet = walletRequestMapper.toWallet(request);
         walletRepository.save(wallet);
         log.info(messageConfig.getMessage(INFO_WALLET_CREATED, wallet.getIban(), wallet.getName(), wallet.getBalance()));
 
         // add this initial amount to the transactions
-        transactionService.create(walletTransactionRequestMapper.toTransactionRequest(request));
+        if (request.getBalance().signum() > 0) {
+            transactionService.create(walletTransactionRequestMapper.toTransactionRequest(request));
+        }
 
         return CommandResponse.builder().id(wallet.getId()).build();
     }
@@ -136,70 +147,65 @@ public class WalletService {
      * @param request
      * @return id of the transaction
      */
+    private void validateAmount(BigDecimal amount, boolean allowZero) {
+        if (amount == null || amount.signum() < 0 || (!allowZero && amount.signum() == 0) ||
+            amount.stripTrailingZeros().scale() > 2 || amount.compareTo(new BigDecimal("9999999999.99")) > 0) {
+            throw new WalletRuleException("INVALID_AMOUNT");
+        }
+    }
+
+    private Wallet lockedWallet(String iban, List<Wallet> wallets) {
+        return wallets.stream().filter(w -> w.getIban().equals(iban)).findFirst()
+            .orElseThrow(() -> new NoSuchElementFoundException(messageConfig.getMessage(ERROR_WALLET_NOT_FOUND)));
+    }
+
     @Transactional
     public CommandResponse transferFunds(TransactionRequest request) {
-        final Wallet toWallet = getByIban(request.getToWalletIban());
-        final Wallet fromWallet = getByIban(request.getFromWalletIban());
-
-        // check if the balance of sender wallet has equal or higher to/than transfer amount
-        if (fromWallet.getBalance().compareTo(request.getAmount()) < 0)
+        validateAmount(request.getAmount(), false);
+        if (request.getFromWalletIban().equals(request.getToWalletIban())) throw new WalletRuleException("SAME_WALLET");
+        request.setTypeId(1L);
+        var locked = walletRepository.lockByIbans(List.of(request.getFromWalletIban(), request.getToWalletIban()));
+        var from = lockedWallet(request.getFromWalletIban(), locked);
+        var to = lockedWallet(request.getToWalletIban(), locked);
+        var replay = transactionService.replay(request);
+        if (replay != null) return replay;
+        if (from.getBalance().compareTo(request.getAmount()) < 0)
             throw new InsufficientFundsException(messageConfig.getMessage(ERROR_INSUFFICIENT_FUNDS));
-
-        // update balance of the sender wallet
-        fromWallet.setBalance(fromWallet.getBalance().subtract(request.getAmount()));
-
-        // update balance of the receiver wallet
-        toWallet.setBalance(toWallet.getBalance().add(request.getAmount()));
-
-        walletRepository.save(toWallet);
-        log.info(messageConfig.getMessage(INFO_WALLET_BALANCES_UPDATED, fromWallet.getBalance(), toWallet.getBalance()));
-
-        final CommandResponse response = transactionService.create(request);
-        return CommandResponse.builder().id(response.id()).build();
+        validateAmount(to.getBalance().add(request.getAmount()), true);
+        from.setBalance(from.getBalance().subtract(request.getAmount()));
+        to.setBalance(to.getBalance().add(request.getAmount()));
+        walletRepository.save(from);
+        walletRepository.save(to);
+        return transactionService.create(request);
     }
 
-    /**
-     * Adds funds to the given wallet.
-     *
-     * @param request
-     * @return id of the transaction
-     */
     @Transactional
     public CommandResponse addFunds(TransactionRequest request) {
-        final Wallet toWallet = getByIban(request.getToWalletIban());
-
-        // update balance of the receiver wallet
-        toWallet.setBalance(toWallet.getBalance().add(request.getAmount()));
-
-        walletRepository.save(toWallet);
-        log.info(messageConfig.getMessage(INFO_WALLET_BALANCE_UPDATED, toWallet.getBalance()));
-
-        final CommandResponse response = transactionService.create(request);
-        return CommandResponse.builder().id(response.id()).build();
+        validateAmount(request.getAmount(), false);
+        request.setFromWalletIban(request.getToWalletIban());
+        request.setTypeId(2L);
+        var wallet = lockedWallet(request.getToWalletIban(), walletRepository.lockByIbans(List.of(request.getToWalletIban())));
+        var replay = transactionService.replay(request);
+        if (replay != null) return replay;
+        validateAmount(wallet.getBalance().add(request.getAmount()), true);
+        wallet.setBalance(wallet.getBalance().add(request.getAmount()));
+        walletRepository.save(wallet);
+        return transactionService.create(request);
     }
 
-    /**
-     * Withdraw funds from the given wallet.
-     *
-     * @param request
-     * @return id of the transaction
-     */
     @Transactional
     public CommandResponse withdrawFunds(TransactionRequest request) {
-        final Wallet fromWallet = getByIban(request.getFromWalletIban());
-
-        // check if the balance of sender wallet has equal or higher to/than transfer amount
-        if (fromWallet.getBalance().compareTo(request.getAmount()) < 0)
+        validateAmount(request.getAmount(), false);
+        request.setToWalletIban(request.getFromWalletIban());
+        request.setTypeId(3L);
+        var wallet = lockedWallet(request.getFromWalletIban(), walletRepository.lockByIbans(List.of(request.getFromWalletIban())));
+        var replay = transactionService.replay(request);
+        if (replay != null) return replay;
+        if (wallet.getBalance().compareTo(request.getAmount()) < 0)
             throw new InsufficientFundsException(messageConfig.getMessage(ERROR_INSUFFICIENT_FUNDS));
-
-        // update balance of the sender wallet
-        fromWallet.setBalance(fromWallet.getBalance().subtract(request.getAmount()));
-
-        walletRepository.save(fromWallet);
-        log.info(messageConfig.getMessage(INFO_WALLET_BALANCE_UPDATED, fromWallet.getBalance()));
-
-        final CommandResponse response = transactionService.create(request);
-        return CommandResponse.builder().id(response.id()).build();
+        wallet.setBalance(wallet.getBalance().subtract(request.getAmount()));
+        walletRepository.save(wallet);
+        return transactionService.create(request);
     }
 
     /**
@@ -208,23 +214,19 @@ public class WalletService {
      * @param request
      * @return id of the updated wallet
      */
+    @Transactional
     public CommandResponse update(long id, WalletRequest request) {
         final Wallet foundWallet = walletRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementFoundException(messageConfig.getMessage(ERROR_WALLET_NOT_FOUND)));
 
-        // check if the iban is changed and new iban is already exists
-        if (!request.getIban().equalsIgnoreCase(foundWallet.getIban()) &&
-                walletRepository.existsByIbanIgnoreCase(request.getIban()))
-            throw new ElementAlreadyExistsException(messageConfig.getMessage(ERROR_WALLET_IBAN_EXISTS));
-
-        // check if the name is changed and new name is already exists in user's wallets
-        if (!request.getName().equalsIgnoreCase(foundWallet.getName()) &&
-                walletRepository.existsByUserIdAndNameIgnoreCase(request.getUserId(), request.getName()))
+        if (!java.util.Objects.equals(request.getIban(), foundWallet.getIban()) ||
+            !java.util.Objects.equals(request.getUserId(), foundWallet.getUser().getId()) ||
+            request.getBalance().compareTo(foundWallet.getBalance()) != 0) throw new WalletRuleException("IMMUTABLE_WALLET");
+        String name = request.getName().trim();
+        if (!name.equalsIgnoreCase(foundWallet.getName()) && walletRepository.existsByUserIdAndNameIgnoreCase(request.getUserId(), name))
             throw new ElementAlreadyExistsException(messageConfig.getMessage(ERROR_WALLET_NAME_EXISTS));
-
-        ibanValidator.isValid(request.getIban(), null);
-
-        final Wallet wallet = walletRequestMapper.toWallet(request);
+        final Wallet wallet = foundWallet;
+        wallet.setName(name);
         walletRepository.save(wallet);
         log.info(messageConfig.getMessage(INFO_WALLET_UPDATED, wallet.getIban(), wallet.getName(), wallet.getBalance()));
         return CommandResponse.builder().id(id).build();
@@ -235,9 +237,11 @@ public class WalletService {
      *
      * @param id
      */
+    @Transactional
     public void deleteById(long id) {
         final Wallet wallet = walletRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementFoundException(messageConfig.getMessage(ERROR_WALLET_NOT_FOUND)));
+        if (wallet.getBalance().signum() != 0 || transactionService.hasHistory(id)) throw new WalletRuleException("IMMUTABLE_WALLET");
         walletRepository.delete(wallet);
         log.info(messageConfig.getMessage(INFO_WALLET_DELETED, wallet.getIban(), wallet.getName(), wallet.getBalance()));
     }

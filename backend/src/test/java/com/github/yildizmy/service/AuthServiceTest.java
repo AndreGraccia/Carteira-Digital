@@ -165,4 +165,14 @@ class AuthServiceTest {
         verify(signupRequestMapper, never()).toUser(any());
         verify(userRepository, never()).save(any());
     }
+    @Test
+    void signupIgnoresClientAdminRoleAndUserId() {
+        var request = new SignupRequest(99L, "Test", "User", "test", "test@example.com", "password", Set.of("ROLE_ADMIN"));
+        var user = new com.github.yildizmy.domain.entity.User(); user.setId(7L);
+        when(signupRequestMapper.toUser(request)).thenReturn(user);
+        authService.signup(request);
+        assertEquals(Set.of("ROLE_USER"), request.getRoles());
+        assertNull(request.getId());
+    }
+
 }

@@ -23,7 +23,11 @@ public class TransactionRequest {
     private Long id;
 
     @NotNull(message = "{validation.field.amount.required}")
+    @jakarta.validation.constraints.Positive
+    @jakarta.validation.constraints.Digits(integer = 10, fraction = 2)
     private BigDecimal amount;
+
+    private UUID requestId;
 
     @Size(max = 50, message = "{validation.field.description.length}")
     private String description;

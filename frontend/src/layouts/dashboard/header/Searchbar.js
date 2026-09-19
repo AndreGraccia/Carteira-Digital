@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { styled } from '@mui/material/styles';
 import { Input, Slide, Button, IconButton, InputAdornment, ClickAwayListener } from '@mui/material';
@@ -28,6 +29,7 @@ const StyledSearchbar = styled('div')(({ theme }) => ({
 // ----------------------------------------------------------------------
 
 export default function Searchbar() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const handleOpen = () => {
@@ -42,7 +44,7 @@ export default function Searchbar() {
     <ClickAwayListener onClickAway={handleClose}>
       <div>
         {!open && (
-          <IconButton onClick={handleOpen}>
+          <IconButton onClick={handleOpen} aria-label={t('common.search')}>
             <Iconify icon="eva:search-fill" />
           </IconButton>
         )}
@@ -53,7 +55,8 @@ export default function Searchbar() {
               autoFocus
               fullWidth
               disableUnderline
-              placeholder="Search…"
+              placeholder={t('common.searchPlaceholder')}
+              inputProps={{ 'aria-label': t('common.search') }}
               startAdornment={
                 <InputAdornment position="start">
                   <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled', width: 20, height: 20 }} />
@@ -62,7 +65,7 @@ export default function Searchbar() {
               sx={{ mr: 1, fontWeight: 'fontWeightBold' }}
             />
             <Button variant="contained" onClick={handleClose}>
-              Search
+              {t('common.search')}{' '}
             </Button>
           </StyledSearchbar>
         </Slide>

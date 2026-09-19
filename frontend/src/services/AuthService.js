@@ -16,7 +16,6 @@ const login = async (body) => {
   return user;
 };
 
-
 const signup = (body) => {
   const url = '/auth/signup';
   return axios.post(url, body).then((response) => response.data);
@@ -39,6 +38,11 @@ const getCurrentUser = () => {
       return null;
     }
 
+    const payload = JSON.parse(atob(user.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.exp || payload.exp * 1000 <= Date.now()) {
+      localStorage.removeItem('user');
+      return null;
+    }
     return user;
   } catch {
     localStorage.removeItem('user');

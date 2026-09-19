@@ -14,8 +14,11 @@ import java.util.UUID;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
     Optional<Transaction> findByReferenceNumber(UUID referenceNumber);
+    Optional<Transaction> findByRequestId(UUID requestId);
+    boolean existsByFromWalletIdOrToWalletId(Long fromWalletId, Long toWalletId);
 
-    @Query(value = "SELECT t " +
+
+    @Query(value = "SELECT DISTINCT t " +
             "FROM Transaction t " +
             "LEFT JOIN Wallet w ON w.id IN (t.fromWallet.id, t.toWallet.id) " +
             "WHERE w.user.id = :userId " +

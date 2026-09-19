@@ -20,85 +20,131 @@ export function responsiveFontSizes({ sm, md, lg }) {
   };
 }
 
-// ----------------------------------------------------------------------
-
-const FONT_PRIMARY = 'Public Sans, sans-serif'; // Google Font
-// const FONT_SECONDARY = 'CircularStd, sans-serif'; // Local Font
+const FONT_PRIMARY = [
+  '-apple-system',
+  'BlinkMacSystemFont',
+  '"SF Pro Display"',
+  '"SF Pro Text"',
+  '"Segoe UI"',
+  'Roboto',
+  'Helvetica',
+  'Arial',
+  'sans-serif',
+].join(',');
 
 const typography = {
   fontFamily: FONT_PRIMARY,
+
   fontWeightRegular: 400,
-  fontWeightMedium: 600,
+  fontWeightMedium: 500,
   fontWeightBold: 700,
+
   h1: {
-    fontWeight: 800,
-    lineHeight: 80 / 64,
+    fontWeight: 700,
+    lineHeight: 1.08,
+    letterSpacing: '-0.045em',
     fontSize: pxToRem(40),
-    ...responsiveFontSizes({ sm: 52, md: 58, lg: 64 }),
+    ...responsiveFontSizes({
+      sm: 48,
+      md: 56,
+      lg: 64,
+    }),
   },
+
   h2: {
-    fontWeight: 800,
-    lineHeight: 64 / 48,
-    fontSize: pxToRem(32),
-    ...responsiveFontSizes({ sm: 40, md: 44, lg: 48 }),
+    fontWeight: 700,
+    lineHeight: 1.12,
+    letterSpacing: '-0.04em',
+    fontSize: pxToRem(34),
+    ...responsiveFontSizes({
+      sm: 38,
+      md: 44,
+      lg: 48,
+    }),
   },
+
   h3: {
     fontWeight: 700,
-    lineHeight: 1.5,
-    fontSize: pxToRem(24),
-    ...responsiveFontSizes({ sm: 26, md: 30, lg: 32 }),
+    lineHeight: 1.18,
+    letterSpacing: '-0.035em',
+    fontSize: pxToRem(28),
+    ...responsiveFontSizes({
+      sm: 30,
+      md: 32,
+      lg: 34,
+    }),
   },
+
   h4: {
     fontWeight: 700,
-    lineHeight: 1.5,
-    fontSize: pxToRem(20),
-    ...responsiveFontSizes({ sm: 20, md: 24, lg: 24 }),
+    lineHeight: 1.22,
+    letterSpacing: '-0.03em',
+    fontSize: pxToRem(23),
+    ...responsiveFontSizes({
+      sm: 25,
+      md: 27,
+      lg: 28,
+    }),
   },
+
   h5: {
-    fontWeight: 700,
-    lineHeight: 1.5,
-    fontSize: pxToRem(18),
-    ...responsiveFontSizes({ sm: 19, md: 20, lg: 20 }),
+    fontWeight: 600,
+    lineHeight: 1.3,
+    letterSpacing: '-0.02em',
+    fontSize: pxToRem(20),
   },
+
   h6: {
-    fontWeight: 700,
-    lineHeight: 28 / 18,
-    fontSize: pxToRem(17),
-    ...responsiveFontSizes({ sm: 18, md: 18, lg: 18 }),
+    fontWeight: 600,
+    lineHeight: 1.35,
+    letterSpacing: '-0.015em',
+    fontSize: pxToRem(18),
   },
+
   subtitle1: {
     fontWeight: 600,
-    lineHeight: 1.5,
+    lineHeight: 1.45,
     fontSize: pxToRem(16),
   },
+
   subtitle2: {
     fontWeight: 600,
-    lineHeight: 22 / 14,
+    lineHeight: 1.45,
     fontSize: pxToRem(14),
   },
+
   body1: {
-    lineHeight: 1.5,
+    fontWeight: 400,
+    lineHeight: 1.55,
     fontSize: pxToRem(16),
   },
+
   body2: {
-    lineHeight: 22 / 14,
+    fontWeight: 400,
+    lineHeight: 1.5,
     fontSize: pxToRem(14),
   },
+
   caption: {
-    lineHeight: 1.5,
+    fontWeight: 400,
+    lineHeight: 1.45,
     fontSize: pxToRem(12),
   },
+
   overline: {
-    fontWeight: 700,
+    fontWeight: 600,
     lineHeight: 1.5,
-    fontSize: pxToRem(12),
+    letterSpacing: '0.1em',
+    fontSize: pxToRem(11),
     textTransform: 'uppercase',
   },
+
   button: {
-    fontWeight: 700,
-    lineHeight: 24 / 14,
+    fontWeight: 600,
+    lineHeight: 1.4,
     fontSize: pxToRem(14),
-    textTransform: 'capitalize',
+    letterSpacing: '-0.01em',
+    textTransform: 'none',
   },
 };
 

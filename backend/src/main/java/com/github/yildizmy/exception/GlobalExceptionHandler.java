@@ -31,6 +31,21 @@ import static com.github.yildizmy.common.MessageKeys.*;
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    @ExceptionHandler(WalletRuleException.class)
+    public ResponseEntity<Object> handleWalletRule(WalletRuleException ex) {
+        return ResponseEntity.badRequest().body(java.util.Map.of("code", ex.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(java.util.Map.of("code", "FORBIDDEN"));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Object> handleConflict() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of("code", "CONFLICT"));
+    }
+
 
     private final MessageSourceConfig messageConfig;
 

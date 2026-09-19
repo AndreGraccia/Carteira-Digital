@@ -4,7 +4,8 @@ export default function Card(theme) {
       styleOverrides: {
         root: {
           boxShadow: theme.customShadows.card,
-          borderRadius: Number(theme.shape.borderRadius) * 2,
+          borderRadius: 24,
+          border: `1px solid ${theme.palette.divider}`,
           position: 'relative',
           zIndex: 0, // Fix Safari overflow: hidden with border radius
         },

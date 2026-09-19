@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import './i18n';
 import ScrollToTop from './components/scroll-to-top';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorker from './serviceWorker';

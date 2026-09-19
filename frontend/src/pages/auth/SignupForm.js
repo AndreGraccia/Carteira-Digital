@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { LoadingButton } from '@mui/lab';
 import { IconButton, InputAdornment, Stack, TextField } from '@mui/material';
 import { useSnackbar } from 'notistack';
@@ -7,6 +8,7 @@ import Iconify from '../../components/iconify';
 import AuthService from '../../services/AuthService';
 
 export default function SignupForm() {
+  const { t } = useTranslation();
   const defaultValues = {
     firstName: '',
     lastName: '',
@@ -33,7 +35,7 @@ export default function SignupForm() {
     event.preventDefault();
     AuthService.signup(formValues)
       .then((response) => {
-        enqueueSnackbar('Signed up successfully', { variant: 'success' });
+        enqueueSnackbar(t('auth.signup.success'), { variant: 'success' });
         navigate('/login');
       })
       .catch((error) => {
@@ -53,7 +55,7 @@ export default function SignupForm() {
         <TextField
           id="firstName"
           name="firstName"
-          label="First Name"
+          label={t('auth.signup.firstName')}
           autoComplete="given-name"
           autoFocus
           required
@@ -63,7 +65,7 @@ export default function SignupForm() {
         <TextField
           id="lastName"
           name="lastName"
-          label="Last Name"
+          label={t('auth.signup.lastName')}
           autoComplete="lastName"
           required
           value={formValues.lastName}
@@ -72,7 +74,7 @@ export default function SignupForm() {
         <TextField
           id="username"
           name="username"
-          label="Username"
+          label={t('auth.signup.username')}
           autoComplete="username"
           required
           value={formValues.username}
@@ -81,7 +83,7 @@ export default function SignupForm() {
         <TextField
           id="email"
           name="email"
-          label="email"
+          label={t('auth.signup.email')}
           autoComplete="email"
           required
           value={formValues.email}
@@ -90,7 +92,7 @@ export default function SignupForm() {
         <TextField
           id="password"
           name="password"
-          label="Password"
+          label={t('auth.signup.password')}
           autoComplete="current-password"
           type={showPassword ? 'text' : 'password'}
           required
@@ -99,7 +101,11 @@ export default function SignupForm() {
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
-                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                <IconButton
+                  aria-label={t(showPassword ? 'common.hidePassword' : 'common.showPassword')}
+                  onClick={() => setShowPassword(!showPassword)}
+                  edge="end"
+                >
                   <Iconify icon={showPassword ? 'eva:eye-fill' : 'eva:eye-off-fill'} />
                 </IconButton>
               </InputAdornment>
@@ -109,7 +115,7 @@ export default function SignupForm() {
       </Stack>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ my: 2 }} />
       <LoadingButton fullWidth size="large" type="submit" variant="contained" onClick={handleSubmit}>
-        Sign up
+        {t('auth.signup.submit')}{' '}
       </LoadingButton>
     </>
   );

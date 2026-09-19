@@ -40,6 +40,9 @@ public class Transaction {
     @Column(nullable = false, unique = true)
     private UUID referenceNumber;
 
+    @Column(unique = true)
+    private UUID requestId;
+
     @Column(length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;

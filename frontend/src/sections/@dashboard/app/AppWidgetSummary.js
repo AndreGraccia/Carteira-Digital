@@ -1,23 +1,18 @@
-import PropTypes from 'prop-types';
-import { alpha, styled } from '@mui/material/styles';
 import { Card, Typography } from '@mui/material';
-import { fShortenNumber } from '../../../utils/formatNumber';
+import { alpha, styled } from '@mui/material/styles';
+import PropTypes from 'prop-types';
 import Iconify from '../../../components/iconify';
-
-// ----------------------------------------------------------------------
+import { fShortenNumber } from '../../../utils/formatNumber';
 
 const StyledIcon = styled('div')(({ theme }) => ({
-  margin: 'auto',
+  width: 48,
+  height: 48,
   display: 'flex',
-  borderRadius: '50%',
+  borderRadius: 14,
   alignItems: 'center',
-  width: theme.spacing(8),
-  height: theme.spacing(8),
   justifyContent: 'center',
   marginBottom: theme.spacing(3),
 }));
-
-// ----------------------------------------------------------------------
 
 AppWidgetSummary.propTypes = {
   color: PropTypes.string,
@@ -27,35 +22,57 @@ AppWidgetSummary.propTypes = {
   sx: PropTypes.object,
 };
 
-export default function AppWidgetSummary({ title, total, icon, color = 'primary', sx, ...other }) {
+export default function AppWidgetSummary({
+  title,
+  total,
+  icon,
+  color = 'primary',
+  sx,
+  ...other
+}) {
   return (
     <Card
       sx={{
-        py: 5,
-        boxShadow: 0,
-        textAlign: 'center',
-        color: (theme) => theme.palette[color].darker,
-        bgcolor: (theme) => theme.palette[color].lighter,
+        p: 3,
+        minHeight: 190,
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: '24px',
+        color: 'text.primary',
+        bgcolor: 'background.paper',
+        fontVariantNumeric: 'tabular-nums',
+
         ...sx,
       }}
       {...other}
     >
       <StyledIcon
         sx={{
-          color: (theme) => theme.palette[color].dark,
-          backgroundImage: (theme) =>
-            `linear-gradient(135deg, ${alpha(theme.palette[color].dark, 0)} 0%, ${alpha(
-              theme.palette[color].dark,
-              0.24
-            )} 100%)`,
+          color: (theme) => theme.palette[color].main,
+          bgcolor: (theme) => alpha(theme.palette[color].main, 0.12),
         }}
       >
-        <Iconify icon={icon} width={24} height={24} />
+        <Iconify icon={icon} width={25} height={25} />
       </StyledIcon>
 
-      <Typography variant="h3">{fShortenNumber(total)}</Typography>
+      <Typography
+        variant="h3"
+        sx={{
+          mb: 0.75,
+          fontWeight: 700,
+          letterSpacing: '-0.04em',
+        }}
+      >
+        {fShortenNumber(total)}
+      </Typography>
 
-      <Typography variant="subtitle2" sx={{ opacity: 0.72 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{
+          color: 'text.secondary',
+          fontWeight: 500,
+        }}
+      >
         {title}
       </Typography>
     </Card>

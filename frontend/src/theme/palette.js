@@ -1,75 +1,78 @@
 import { alpha } from '@mui/material/styles';
 
-// SETUP COLORS
 const GREY = {
   0: '#FFFFFF',
-  100: '#F9FAFB',
-  200: '#F4F6F8',
-  300: '#DFE3E8',
-  400: '#C4CDD5',
-  500: '#919EAB',
-  600: '#637381',
-  700: '#454F5B',
-  800: '#212B36',
-  900: '#161C24',
+  100: '#FAFAFC',
+  200: '#F2F2F7',
+  300: '#E5E5EA',
+  400: '#D1D1D6',
+  500: '#8E8E93',
+  600: '#636366',
+  700: '#48484A',
+  800: '#1D1D1F',
+  900: '#0A0A0B',
 };
 
 const PRIMARY = {
-  lighter: '#D1E9FC',
-  light: '#76B0F1',
-  main: '#2065D1',
-  dark: '#103996',
-  darker: '#061B64',
-  contrastText: '#fff',
+  lighter: '#EAF4FF',
+  light: '#64B5FF',
+  main: '#0071E3',
+  dark: '#0062CC',
+  darker: '#003E80',
+  contrastText: '#FFFFFF',
 };
 
 const SECONDARY = {
-  lighter: '#D6E4FF',
-  light: '#84A9FF',
-  main: '#3366FF',
-  dark: '#1939B7',
-  darker: '#091A7A',
-  contrastText: '#fff',
+  lighter: '#F3EAFF',
+  light: '#BF8CFF',
+  main: '#AF52DE',
+  dark: '#8944AB',
+  darker: '#572A70',
+  contrastText: '#FFFFFF',
 };
 
 const INFO = {
-  lighter: '#D0F2FF',
-  light: '#74CAFF',
-  main: '#1890FF',
-  dark: '#0C53B7',
-  darker: '#04297A',
-  contrastText: '#fff',
+  lighter: '#E8F8FF',
+  light: '#70D7FF',
+  main: '#32ADE6',
+  dark: '#1683B4',
+  darker: '#0B4F6C',
+  contrastText: '#FFFFFF',
 };
 
 const SUCCESS = {
-  lighter: '#E9FCD4',
-  light: '#AAF27F',
-  main: '#54D62C',
-  dark: '#229A16',
-  darker: '#08660D',
-  contrastText: GREY[800],
+  lighter: '#EAF9EE',
+  light: '#67D982',
+  main: '#34C759',
+  dark: '#248A3D',
+  darker: '#145523',
+  contrastText: '#FFFFFF',
 };
 
 const WARNING = {
-  lighter: '#FFF7CD',
-  light: '#FFE16A',
-  main: '#FFC107',
-  dark: '#B78103',
-  darker: '#7A4F01',
-  contrastText: GREY[800],
+  lighter: '#FFF5E6',
+  light: '#FFBD66',
+  main: '#FF9F0A',
+  dark: '#C77800',
+  darker: '#754700',
+  contrastText: GREY[900],
 };
 
 const ERROR = {
-  lighter: '#FFE7D9',
-  light: '#FFA48D',
-  main: '#FF4842',
-  dark: '#B72136',
-  darker: '#7A0C2E',
-  contrastText: '#fff',
+  lighter: '#FFF0EF',
+  light: '#FF7B73',
+  main: '#FF3B30',
+  dark: '#D70015',
+  darker: '#8A0010',
+  contrastText: '#FFFFFF',
 };
 
 const palette = {
-  common: { black: '#000', white: '#fff' },
+  common: {
+    black: '#000000',
+    white: '#FFFFFF',
+  },
+
   primary: PRIMARY,
   secondary: SECONDARY,
   info: INFO,
@@ -77,25 +80,29 @@ const palette = {
   warning: WARNING,
   error: ERROR,
   grey: GREY,
-  divider: alpha(GREY[500], 0.24),
+
+  divider: alpha(GREY[500], 0.18),
+
   text: {
     primary: GREY[800],
     secondary: GREY[600],
-    disabled: GREY[500],
+    disabled: alpha(GREY[600], 0.5),
   },
+
   background: {
-    paper: '#fff',
-    default: GREY[100],
+    paper: GREY[0],
+    default: '#F5F5F7',
     neutral: GREY[200],
   },
+
   action: {
-    active: GREY[600],
-    hover: alpha(GREY[500], 0.08),
-    selected: alpha(GREY[500], 0.16),
-    disabled: alpha(GREY[500], 0.8),
-    disabledBackground: alpha(GREY[500], 0.24),
-    focus: alpha(GREY[500], 0.24),
-    hoverOpacity: 0.08,
+    active: GREY[700],
+    hover: alpha(GREY[800], 0.05),
+    selected: alpha(PRIMARY.main, 0.11),
+    disabled: alpha(GREY[600], 0.42),
+    disabledBackground: alpha(GREY[500], 0.14),
+    focus: alpha(PRIMARY.main, 0.16),
+    hoverOpacity: 0.05,
     disabledOpacity: 0.48,
   },
 };

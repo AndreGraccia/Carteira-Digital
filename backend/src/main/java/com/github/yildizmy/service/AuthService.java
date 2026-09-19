@@ -73,6 +73,8 @@ public class AuthService {
      * @return id of the registered user
      */
     public CommandResponse signup(SignupRequest request) {
+        request.setId(null);
+        request.setRoles(java.util.Set.of("ROLE_USER"));
         if (userRepository.existsByUsernameIgnoreCase(request.getUsername().trim()))
             throw new ElementAlreadyExistsException(messageConfig.getMessage(ERROR_USERNAME_EXISTS));
         if (userRepository.existsByEmailIgnoreCase(request.getEmail().trim()))

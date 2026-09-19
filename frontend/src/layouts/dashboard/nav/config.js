@@ -1,28 +1,36 @@
+import { useTranslation } from 'react-i18next';
 import SvgColor from '../../../components/svg-color';
 
-const icon = (name) => <SvgColor src={`/assets/icons/navbar/${name}.svg`} sx={{ width: 1, height: 1 }} />;
+const icon = (name) => (
+  <SvgColor
+    src={`/assets/icons/navbar/${name}.svg`}
+    sx={{ width: 1, height: 1 }}
+  />
+);
 
-const navConfig = [
-  {
-    title: 'dashboard',
-    path: '/',
-    icon: icon('ic_analytics'),
-  },
-  {
-    title: 'wallets',
-    path: '/wallets',
-    icon: icon('ic_wallet'),
-  },
-  {
-    title: 'transfers',
-    path: '/transfers',
-    icon: icon('ic_transfer'),
-  },
-  {
-    title: 'transactions',
-    path: '/transactions',
-    icon: icon('ic_transaction'),
-  }
-];
+export default function useNavConfig() {
+  const { t } = useTranslation();
 
-export default navConfig;
+  return [
+    {
+      title: t('navigation.dashboard'),
+      path: '/',
+      icon: icon('ic_analytics'),
+    },
+    {
+      title: t('navigation.wallets'),
+      path: '/wallets',
+      icon: icon('ic_wallet'),
+    },
+    {
+      title: t('navigation.transfers'),
+      path: '/transfers',
+      icon: icon('ic_transfer'),
+    },
+    {
+      title: t('navigation.transactions'),
+      path: '/transactions',
+      icon: icon('ic_transaction'),
+    },
+  ];
+}

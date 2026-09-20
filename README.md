@@ -228,7 +228,7 @@ docker compose --env-file .env.properties ps
 Teste a disponibilidade do banco:
 
 ```powershell
-docker compose --env-file .env.properties exec db pg_isready -U ewallet -d ewallet
+docker compose --env-file .env.properties exec db sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
 O resultado esperado deve conter:

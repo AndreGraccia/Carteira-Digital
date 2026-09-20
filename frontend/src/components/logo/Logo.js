@@ -1,15 +1,16 @@
- import PropTypes from 'prop-types';
+import PropTypes from 'prop-types';
 import { forwardRef } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Link } from '@mui/material';
 
 const Logo = forwardRef(({ disabledLink = false, sx, ...other }, ref) => {
-
   const logo = (
     <Box
+      ref={ref}
       component="img"
       src={`${process.env.PUBLIC_URL}/logo.png`}
       sx={{ width: 60, height: 60, cursor: 'pointer', ...sx }}
+      {...other}
     />
   );
 

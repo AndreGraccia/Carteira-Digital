@@ -34,7 +34,7 @@ export default function SignupForm() {
   const handleSubmit = (event) => {
     event.preventDefault();
     AuthService.signup(formValues)
-      .then((response) => {
+      .then(() => {
         enqueueSnackbar(t('auth.signup.success'), { variant: 'success' });
         navigate('/login');
       })

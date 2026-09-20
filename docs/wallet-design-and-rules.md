@@ -1,6 +1,6 @@
 ﻿# Carteira de demonstração: design e regras
 
-Atualizado em 18/09/2026. Escopo confirmado: demonstração acadêmica, sem dinheiro real.
+Atualizado em 20/09/2026. Escopo confirmado: demonstração acadêmica, sem dinheiro real.
 
 ## Interface
 
@@ -48,7 +48,7 @@ Os links diretos protegidos voltam à rota solicitada após o login. O servidor 
 
 ## Banco de dados e execução
 
-A migração Flyway `V6__wallet_operation_types.sql` adiciona os tipos de operação e a chave de reenvio. Ela é aplicada ao iniciar a versão atualizada do backend. Não foi aplicada manualmente ao banco durante esta alteração.
+As migrações Flyway `V6__wallet_operation_types.sql` e `V7__financial_value_constraints.sql` adicionam os tipos de operação, a chave de reenvio e limites financeiros para novas gravações. Elas são aplicadas ao iniciar a versão atualizada do backend; a versão 7 foi validada com PostgreSQL 14.6.
 
 Registros antigos de saldo inicial, identificados pela descrição original, recebem o tipo correto. Outras operações antigas entre a mesma carteira não são reclassificadas por suposição: o modelo anterior não registrava se eram depósito ou retirada. Os resumos históricos podem, por isso, não reconstruir entradas e saídas anteriores à migração. As restrições de saldo não negativo são adicionadas como `NOT VALID` para não apagar nem corrigir dados antigos silenciosamente; valem para novas gravações.
 

@@ -1,6 +1,6 @@
 {
-  "short_name": "Minimal App",
-  "name": "React Material Minimal UI Kit",
+  "short_name": "e-wallet",
+  "name": "e-wallet — Carteira de demonstração",
   "icons": [
     {
       "src": "favicon/android-chrome-192x192.png",
@@ -15,6 +15,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#f5f5f7",
+  "background_color": "#f5f5f7"
 }

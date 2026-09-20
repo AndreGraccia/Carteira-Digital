@@ -30,7 +30,7 @@ export default function LoginForm() {
   const handleSubmit = (event) => {
     event.preventDefault();
     AuthService.login(formValues)
-      .then((response) => {
+      .then(() => {
         navigate('/');
       })
       .catch((error) => {

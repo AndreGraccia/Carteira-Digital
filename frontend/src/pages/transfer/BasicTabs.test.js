@@ -16,8 +16,11 @@ let container;
 let root;
 let refresh;
 beforeEach(() => {
-  global.IS_REACT_ACT_ENVIRONMENT = true;
-  Object.defineProperty(window.crypto, 'randomUUID', { configurable: true, value: () => 'f0a58f88-01a1-4e60-a5bb-876c6b5237e3' });
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value: { randomUUID: () => 'f0a58f88-01a1-4e60-a5bb-876c6b5237e3' },
+  });
   container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
   refresh = jest.fn().mockResolvedValue(undefined);
   useWallets.mockReturnValue({ wallets: [wallet], transactions: [], refresh, loading: false, error: null });

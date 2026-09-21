@@ -5,7 +5,6 @@ import com.github.yildizmy.domain.entity.Wallet;
 import com.github.yildizmy.domain.enums.WalletSource;
 import com.github.yildizmy.dto.mapper.WalletRequestMapper;
 import com.github.yildizmy.dto.mapper.WalletResponseMapper;
-import com.github.yildizmy.dto.mapper.WalletTransactionRequestMapper;
 import com.github.yildizmy.dto.request.TransactionRequest;
 import com.github.yildizmy.dto.request.WalletRequest;
 import com.github.yildizmy.dto.response.CommandResponse;
@@ -41,7 +40,6 @@ public class WalletService {
     private final TransactionService transactionService;
     private final WalletRequestMapper walletRequestMapper;
     private final WalletResponseMapper walletResponseMapper;
-    private final WalletTransactionRequestMapper walletTransactionRequestMapper;
     private final IbanValidator ibanValidator;
 
     /**

@@ -48,6 +48,7 @@ spring:
           auth: ${mail_auth:false}
           starttls:
             enable: ${mail_starttls:false}
+            required: ${mail_starttls:false}
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000

@@ -54,4 +54,10 @@ public class OpenFinanceEmailChallenge {
 
     @Column(name = "consumed_at")
     private Instant consumedAt;
+
+    @Column(name = "verified_at")
+    private Instant verifiedAt;
+
+    @Column(name = "verified_email", length = 50)
+    private String verifiedEmail;
 }

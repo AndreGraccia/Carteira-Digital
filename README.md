@@ -417,3 +417,7 @@ A licença e os créditos do projeto original são preservados no arquivo [LICEN
 ## Licença
 
 Este projeto é distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para conhecer os termos.
+
+### Conex?o Open Finance com c?digo por e-mail
+
+Consulte [dados e roteiro de teste](docs/open-finance-email-tests.md) para iniciar o Mailpit, cadastrar duas contas e testar confirma??o, reenvio e isolamento de dados.

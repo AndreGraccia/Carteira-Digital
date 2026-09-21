@@ -23,6 +23,7 @@ services:
     env_file: ./.env.properties
     restart: always
     environment:
+      SPRING_MAIL_HOST: ${mail_host:-mailpit}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${db_name}
       SPRING_DATASOURCE_USERNAME: ${db_username}
       SPRING_DATASOURCE_PASSWORD: ${db_password}

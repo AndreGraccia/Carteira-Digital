@@ -9,6 +9,7 @@ import com.github.yildizmy.dto.response.OpenFinanceSyncResponse;
 import com.github.yildizmy.exception.OpenFinanceVerificationException;
 import com.github.yildizmy.repository.OpenFinanceConnectionRepository;
 import com.github.yildizmy.repository.WalletRepository;
+import com.github.yildizmy.repository.UserRepository;
 import com.github.yildizmy.service.openfinance.OpenFinanceGateway;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class OpenFinanceService {
     private final WalletRepository walletRepository;
     private final OpenFinanceEmailVerificationService verificationService;
     private final Clock clock;
+    private final UserRepository userRepository;
 
     public OpenFinanceService(
             OpenFinanceGateway gateway,
@@ -40,6 +42,7 @@ public class OpenFinanceService {
             OpenFinanceConnectionRepository connectionRepository,
             WalletRepository walletRepository,
             OpenFinanceEmailVerificationService verificationService,
+            UserRepository userRepository,
             Clock clock) {
         this.gateway = gateway;
         this.importService = importService;
@@ -47,11 +50,14 @@ public class OpenFinanceService {
         this.walletRepository = walletRepository;
         this.verificationService = verificationService;
         this.clock = clock;
+        this.userRepository = userRepository;
     }
 
+    @Transactional
     public OpenFinanceChallengeResponse requestConnectionCode(long userId) {
+        userRepository.findByIdForUpdate(userId);
         if (connectionRepository.findFirstByUserIdOrderByLastSyncedAtDesc(userId)
-                .filter(connection -> isActive(connection, clock.instant()))
+                .filter(connection -> isActive(connection, clock.instant(), userId))
                 .isPresent()) {
             throw new OpenFinanceVerificationException(
                     "OPEN_FINANCE_ALREADY_CONNECTED",
@@ -61,9 +67,11 @@ public class OpenFinanceService {
         return verificationService.request(userId);
     }
 
+    @Transactional(noRollbackFor = OpenFinanceVerificationException.class)
     public OpenFinanceSyncResponse confirmConnection(long userId, String code) {
+        userRepository.findByIdForUpdate(userId);
         if (connectionRepository.findFirstByUserIdOrderByLastSyncedAtDesc(userId)
-                .filter(connection -> isActive(connection, clock.instant()))
+                .filter(connection -> isActive(connection, clock.instant(), userId))
                 .isPresent()) {
             throw new OpenFinanceVerificationException(
                     "OPEN_FINANCE_ALREADY_CONNECTED",
@@ -74,9 +82,11 @@ public class OpenFinanceService {
         return importFromGateway(userId);
     }
 
+    @Transactional
     public OpenFinanceSyncResponse sync(long userId) {
+        userRepository.findByIdForUpdate(userId);
         connectionRepository.findFirstByUserIdOrderByLastSyncedAtDesc(userId)
-                .filter(connection -> isActive(connection, clock.instant()))
+                .filter(connection -> isActive(connection, clock.instant(), userId))
                 .orElseThrow(() -> new OpenFinanceVerificationException(
                         "OPEN_FINANCE_VERIFICATION_REQUIRED",
                         HttpStatus.PRECONDITION_REQUIRED
@@ -95,7 +105,7 @@ public class OpenFinanceService {
                 .map(item -> new OpenFinanceStatusResponse(
                         gateway.mode(),
                         gateway.simulated(),
-                        statusOf(item, verification.pending(), now),
+                        statusOf(item, verification.pending(), now, userId),
                         item.getInstitutionName(),
                         item.getLastSyncedAt(),
                         item.getExpiresAt(),
@@ -120,6 +130,7 @@ public class OpenFinanceService {
 
     @Transactional
     public void revoke(long userId) {
+        userRepository.findByIdForUpdate(userId);
         connectionRepository.findFirstByUserIdOrderByLastSyncedAtDesc(userId).ifPresent(connection -> {
             connection.setStatus(OpenFinanceConnectionStatus.REVOKED);
             connectionRepository.save(connection);
@@ -143,15 +154,16 @@ public class OpenFinanceService {
     private String statusOf(
             OpenFinanceConnection connection,
             boolean verificationPending,
-            Instant now) {
-        if (isActive(connection, now)) return OpenFinanceConnectionStatus.AUTHORISED.name();
+            Instant now, long userId) {
+        if (isActive(connection, now, userId)) return OpenFinanceConnectionStatus.AUTHORISED.name();
         if (verificationPending) return "PENDING_EMAIL_VERIFICATION";
         if (connection.getStatus() == OpenFinanceConnectionStatus.AUTHORISED) return "EXPIRED";
         return connection.getStatus().name();
     }
 
-    private boolean isActive(OpenFinanceConnection connection, Instant now) {
+    private boolean isActive(OpenFinanceConnection connection, Instant now, long userId) {
         return connection.getStatus() == OpenFinanceConnectionStatus.AUTHORISED
+                && verificationService.isVerified(userId)
                 && (connection.getExpiresAt() == null || connection.getExpiresAt().isAfter(now));
     }
 

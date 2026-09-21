@@ -74,9 +74,21 @@ export function errorKey(error) {
   if (code === 'INSIGHT_RATE_LIMIT') return 'app.errors.insightRateLimit';
   if (code === 'OPEN_FINANCE_UNAVAILABLE') return 'app.errors.openFinance';
   if (
-    ['INVALID_AMOUNT', 'SAME_WALLET', 'INVALID_WALLET', 'IMMUTABLE_WALLET', 'IDEMPOTENCY_CONFLICT', 'OPEN_FINANCE_READ_ONLY'].includes(
-      code
-    )
+    [
+      'INVALID_AMOUNT',
+      'SAME_WALLET',
+      'INVALID_WALLET',
+      'IMMUTABLE_WALLET',
+      'IDEMPOTENCY_CONFLICT',
+      'OPEN_FINANCE_READ_ONLY',
+      'OPEN_FINANCE_CODE_RESEND_WAIT',
+      'OPEN_FINANCE_VERIFICATION_REQUIRED',
+      'OPEN_FINANCE_CODE_EXPIRED',
+      'OPEN_FINANCE_CODE_ATTEMPTS_EXCEEDED',
+      'OPEN_FINANCE_CODE_INVALID',
+      'OPEN_FINANCE_EMAIL_UNAVAILABLE',
+      'OPEN_FINANCE_ALREADY_CONNECTED',
+    ].includes(code)
   )
     return `app.errors.${code}`;
   const status = error.response?.status;

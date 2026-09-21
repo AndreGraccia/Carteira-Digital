@@ -71,7 +71,7 @@ public class OpenFinanceImportService {
                     .orElseGet(Wallet::new);
             if (wallet.getId() == null) {
                 wallet.setUser(userService.getReferenceById(userId));
-                wallet.setIban(syntheticIban(snapshot.institutionId(), account.accountId()));
+                wallet.setIban(syntheticIban(userId + ":" + snapshot.institutionId(), account.accountId()));
                 wallet.setExternalAccountId(account.accountId());
                 wallet.setSource(WalletSource.OPEN_FINANCE);
             }
@@ -82,7 +82,7 @@ public class OpenFinanceImportService {
             walletRepository.save(wallet);
 
             for (OpenFinanceSnapshot.Entry entry : account.transactions()) {
-                String externalId = snapshot.institutionId() + ":" + account.accountId() + ":" + entry.transactionId();
+                String externalId = userId + ":" + snapshot.institutionId() + ":" + account.accountId() + ":" + entry.transactionId();
                 if (transactionRepository.existsByExternalId(externalId)) continue;
                 validateEntry(entry);
 

@@ -59,9 +59,12 @@ public class OpenFinanceEmailVerificationService {
     @Transactional
     public OpenFinanceChallengeResponse request(long userId) {
         Instant now = clock.instant();
+        var user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new OpenFinanceVerificationException(
+                        "OPEN_FINANCE_VERIFICATION_REQUIRED", HttpStatus.PRECONDITION_REQUIRED));
         OpenFinanceEmailChallenge challenge = challengeRepository.findByUserIdForUpdate(userId).orElse(null);
 
-        if (challenge != null && challenge.getConsumedAt() == null
+        if (challenge != null
                 && now.isBefore(challenge.getResendAvailableAt())) {
             throw new OpenFinanceVerificationException(
                     "OPEN_FINANCE_CODE_RESEND_WAIT",
@@ -69,12 +72,6 @@ public class OpenFinanceEmailVerificationService {
                     secondsUntil(now, challenge.getResendAvailableAt())
             );
         }
-
-        var user = userRepository.findById(userId)
-                .orElseThrow(() -> new OpenFinanceVerificationException(
-                        "OPEN_FINANCE_VERIFICATION_REQUIRED",
-                        HttpStatus.PRECONDITION_REQUIRED
-                ));
 
         String code = String.valueOf(secureRandom.nextInt(CODE_RANGE) + CODE_FLOOR);
         if (challenge == null) {
@@ -88,6 +85,9 @@ public class OpenFinanceEmailVerificationService {
         challenge.setAttemptCount(0);
         challenge.setMaxAttempts(maxAttempts);
         challenge.setConsumedAt(null);
+        challenge.setVerifiedAt(null);
+        // Bind this challenge to the registered address that actually receives it.
+        challenge.setVerifiedEmail(user.getEmail());
         challengeRepository.saveAndFlush(challenge);
 
         mailSender.sendCode(user.getEmail(), user.getFirstName(), code, codeTtlMinutes);
@@ -97,13 +97,16 @@ public class OpenFinanceEmailVerificationService {
     @Transactional(noRollbackFor = OpenFinanceVerificationException.class)
     public void verify(long userId, String code) {
         Instant now = clock.instant();
+        var user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new OpenFinanceVerificationException(
+                        "OPEN_FINANCE_VERIFICATION_REQUIRED", HttpStatus.PRECONDITION_REQUIRED));
         OpenFinanceEmailChallenge challenge = challengeRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new OpenFinanceVerificationException(
                         "OPEN_FINANCE_VERIFICATION_REQUIRED",
                         HttpStatus.PRECONDITION_REQUIRED
                 ));
 
-        if (challenge.getConsumedAt() != null) {
+        if (challenge.getConsumedAt() != null || !user.getEmail().equals(challenge.getVerifiedEmail())) {
             throw new OpenFinanceVerificationException(
                     "OPEN_FINANCE_VERIFICATION_REQUIRED",
                     HttpStatus.PRECONDITION_REQUIRED
@@ -132,6 +135,7 @@ public class OpenFinanceEmailVerificationService {
             challenge.setAttemptCount(attempts);
             if (attempts >= challenge.getMaxAttempts()) {
                 challenge.setConsumedAt(now);
+                challenge.setResendAvailableAt(challenge.getExpiresAt());
             }
             challengeRepository.save(challenge);
             throw new OpenFinanceVerificationException(
@@ -145,7 +149,17 @@ public class OpenFinanceEmailVerificationService {
         }
 
         challenge.setConsumedAt(now);
+        challenge.setVerifiedAt(now);
         challengeRepository.save(challenge);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isVerified(long userId) {
+        return challengeRepository.findByUserId(userId)
+                .filter(challenge -> challenge.getVerifiedAt() != null)
+                .filter(challenge -> challenge.getVerifiedAt().plus(90, ChronoUnit.DAYS).isAfter(clock.instant()))
+                .filter(challenge -> challenge.getUser().getEmail().equals(challenge.getVerifiedEmail()))
+                .isPresent();
     }
 
     @Transactional(readOnly = true)
@@ -166,11 +180,11 @@ public class OpenFinanceEmailVerificationService {
 
     @Transactional
     public void invalidate(long userId) {
+        userRepository.findByIdForUpdate(userId);
         challengeRepository.findByUserIdForUpdate(userId).ifPresent(challenge -> {
-            if (challenge.getConsumedAt() == null) {
-                challenge.setConsumedAt(clock.instant());
-                challengeRepository.save(challenge);
-            }
+            challenge.setVerifiedAt(null);
+            challenge.setConsumedAt(clock.instant());
+            challengeRepository.save(challenge);
         });
     }
 

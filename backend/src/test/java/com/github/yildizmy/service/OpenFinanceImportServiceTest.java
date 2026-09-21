@@ -60,7 +60,7 @@ class OpenFinanceImportServiceTest {
         when(wallets.findByUserIdAndSourceAndExternalAccountId(7L, WalletSource.OPEN_FINANCE, "account-1"))
                 .thenReturn(Optional.empty());
         when(wallets.save(any(Wallet.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(transactions.existsByExternalId("institution-1:account-1:transaction-1")).thenReturn(false);
+        when(transactions.existsByExternalId("7:institution-1:account-1:transaction-1")).thenReturn(false);
         when(types.getReferenceById(4L)).thenReturn(deposit);
 
         var result = service.importSnapshot(7L, snapshot("CREDITO", now), now);
@@ -76,7 +76,7 @@ class OpenFinanceImportServiceTest {
         ArgumentCaptor<Transaction> transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
         verify(transactions).save(transactionCaptor.capture());
         assertEquals(TransactionSource.OPEN_FINANCE, transactionCaptor.getValue().getSource());
-        assertEquals("institution-1:account-1:transaction-1", transactionCaptor.getValue().getExternalId());
+        assertEquals("7:institution-1:account-1:transaction-1", transactionCaptor.getValue().getExternalId());
         assertEquals(4L, transactionCaptor.getValue().getType().getId());
     }
 
@@ -90,10 +90,32 @@ class OpenFinanceImportServiceTest {
         when(wallets.findByUserIdAndSourceAndExternalAccountId(7L, WalletSource.OPEN_FINANCE, "account-1"))
                 .thenReturn(Optional.empty());
         when(wallets.save(any(Wallet.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(transactions.existsByExternalId("institution-1:account-1:transaction-1")).thenReturn(false);
+        when(transactions.existsByExternalId("7:institution-1:account-1:transaction-1")).thenReturn(false);
 
         assertThrows(OpenFinanceUnavailableException.class, () -> service.importSnapshot(7L, snapshot("OTHER", now), now));
         verify(transactions, never()).save(any());
+    }
+
+    @Test
+    void sharedProviderIdsAreIsolatedBetweenUsers() {
+        Instant now = Instant.parse("2026-09-20T12:00:00Z");
+        Type deposit = new Type();
+        deposit.setId(4L);
+        when(types.getReferenceById(4L)).thenReturn(deposit);
+        for (long id : new long[] {7L, 8L}) {
+            User user = new User();
+            user.setId(id);
+            when(users.getReferenceById(id)).thenReturn(user);
+            service.importSnapshot(id, snapshot("CREDITO", now), now);
+        }
+        var walletCaptor = ArgumentCaptor.forClass(Wallet.class);
+        verify(wallets, org.mockito.Mockito.times(2)).save(walletCaptor.capture());
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                walletCaptor.getAllValues().get(0).getIban(), walletCaptor.getAllValues().get(1).getIban());
+        var transactionCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactions, org.mockito.Mockito.times(2)).save(transactionCaptor.capture());
+        assertEquals("7:institution-1:account-1:transaction-1", transactionCaptor.getAllValues().get(0).getExternalId());
+        assertEquals("8:institution-1:account-1:transaction-1", transactionCaptor.getAllValues().get(1).getExternalId());
     }
 
     private OpenFinanceSnapshot snapshot(String direction, Instant now) {

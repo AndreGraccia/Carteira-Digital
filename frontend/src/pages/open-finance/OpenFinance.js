@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -35,6 +35,7 @@ export default function OpenFinance() {
   const [clock, setClock] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [error, setError] = useState(null);
   const [verificationError, setVerificationError] = useState(null);
 
@@ -57,16 +58,18 @@ export default function OpenFinance() {
   }, [load]);
 
   useEffect(() => {
-    if (!dialogOpen) return undefined;
+    if (!dialogOpen && !verification?.pending) return undefined;
     setClock(Date.now());
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [dialogOpen]);
+  }, [dialogOpen, verification?.pending]);
 
   const resendSeconds = useMemo(() => {
     if (!verification?.resendAvailableAt) return 0;
     return Math.max(0, Math.ceil((new Date(verification.resendAvailableAt).getTime() - clock) / 1000));
   }, [clock, verification]);
+
+  const verificationActive = verification?.pending && new Date(verification.expiresAt).getTime() > clock;
 
   const notifySync = (result) => {
     enqueueSnackbar(
@@ -79,6 +82,8 @@ export default function OpenFinance() {
   };
 
   const sync = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -86,18 +91,22 @@ export default function OpenFinance() {
       await Promise.all([load(), refresh()]);
       notifySync(result);
     } catch (failure) {
+      await load();
       setError(errorKey(failure));
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
   const requestCode = async () => {
-    if (verification?.pending) {
+    if (busyRef.current) return;
+    if (verification?.pending && new Date(verification.expiresAt).getTime() > Date.now()) {
       setVerificationError(null);
       setDialogOpen(true);
       return;
     }
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -109,13 +118,17 @@ export default function OpenFinance() {
       enqueueSnackbar(t('openFinance.verification.sent'), { variant: 'success' });
       await load();
     } catch (failure) {
+      await load();
       setError(errorKey(failure));
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
   const resendCode = async () => {
+    if (busyRef.current || resendSeconds > 0) return;
+    busyRef.current = true;
     setBusy(true);
     setVerificationError(null);
     try {
@@ -124,14 +137,31 @@ export default function OpenFinance() {
       setCode('');
       setClock(Date.now());
       enqueueSnackbar(t('openFinance.verification.resent'), { variant: 'success' });
+      await load();
     } catch (failure) {
       setVerificationError(errorKey(failure));
+      await load();
+      applyRetryDelay(failure);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
+  const applyRetryDelay = (failure) => {
+    const seconds = Number(failure.response?.headers?.['retry-after']);
+    if (seconds > 0) {
+      setClock(Date.now());
+      setVerification((current) => ({
+        ...current,
+        resendAvailableAt: new Date(Date.now() + seconds * 1000).toISOString(),
+      }));
+    }
+  };
+
   const confirmConnection = async () => {
+    if (busyRef.current || !/^\d{8}$/.test(code) || !verificationActive) return;
+    busyRef.current = true;
     setBusy(true);
     setVerificationError(null);
     try {
@@ -143,12 +173,17 @@ export default function OpenFinance() {
       notifySync(result);
     } catch (failure) {
       setVerificationError(errorKey(failure));
+      await load();
+      applyRetryDelay(failure);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
   const disconnect = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -158,14 +193,19 @@ export default function OpenFinance() {
       await load();
       enqueueSnackbar(t('openFinance.revoked'), { variant: 'success' });
     } catch (failure) {
+      await load();
       setError(errorKey(failure));
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
   const connected = status?.status === 'AUTHORISED';
-  const pending = status?.status === 'PENDING_EMAIL_VERIFICATION';
+  const pending = !connected && verificationActive;
+  const connectionStatus = pending
+    ? 'PENDING_EMAIL_VERIFICATION'
+    : status?.status === 'PENDING_EMAIL_VERIFICATION' ? 'DISCONNECTED' : status?.status || 'DISCONNECTED';
   const statusColor = connected ? 'success' : pending ? 'warning' : 'default';
 
   return (
@@ -211,7 +251,7 @@ export default function OpenFinance() {
                   </Box>
                   <Chip
                     color={statusColor}
-                    label={t('openFinance.status.' + (status?.status || 'DISCONNECTED'))}
+                    label={t(`openFinance.status.${connectionStatus}`)}
                   />
                 </Stack>
                 <Box>
@@ -272,7 +312,7 @@ export default function OpenFinance() {
                 </Typography>
                 <Stack direction="row" gap={1} flexWrap="wrap">
                   {(status?.permissions || []).map((permission) => (
-                    <Chip key={permission} size="small" label={t('openFinance.permissions.' + permission)} />
+                    <Chip key={permission} size="small" label={t(`openFinance.permissions.${permission}`)} />
                   ))}
                 </Stack>
               </Card>
@@ -307,11 +347,18 @@ export default function OpenFinance() {
               {t('openFinance.verification.sentTo', { email: verification?.maskedEmail || '' })}
             </Typography>
             {verificationError && <Alert severity="error">{t(verificationError)}</Alert>}
+            {!verificationActive && !verificationError && (
+              <Alert severity="warning">{t('app.errors.OPEN_FINANCE_CODE_EXPIRED')}</Alert>
+            )}
             <TextField
               autoFocus
               fullWidth
               label={t('openFinance.verification.code')}
               value={code}
+              disabled={busy || !verificationActive}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') confirmConnection();
+              }}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))}
               autoComplete="one-time-code"
               inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', maxLength: 8 }}
@@ -341,7 +388,7 @@ export default function OpenFinance() {
             </Button>
             <LoadingButton
               loading={busy}
-              disabled={code.length !== 8}
+              disabled={code.length !== 8 || !verificationActive}
               variant="contained"
               onClick={confirmConnection}
             >

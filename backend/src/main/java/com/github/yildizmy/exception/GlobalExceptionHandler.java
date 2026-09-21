@@ -101,7 +101,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errorResponse.addValidationError(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        log.error(messageConfig.getMessage(ERROR_METHOD_ARGUMENT, ex));
+        log.warn("Request validation failed");
         return ResponseEntity.unprocessableEntity().body(errorResponse);
     }
 
@@ -143,7 +143,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InsufficientFundsException.class)
     @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
     public ResponseEntity<Object> handleInsufficientFundsException(InsufficientFundsException ex, WebRequest request) {
-        log.error(messageConfig.getMessage(ERROR_METHOD_ARGUMENT, ex));
+        log.warn("Request validation failed");
         return buildErrorResponse(ex, HttpStatus.PRECONDITION_FAILED, request);
     }
 

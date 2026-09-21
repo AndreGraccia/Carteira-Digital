@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -6,9 +6,14 @@ import {
   Card,
   Chip,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Grid,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
@@ -24,14 +29,21 @@ export default function OpenFinance() {
   const { t, i18n } = useTranslation();
   const { refresh } = useWallets();
   const [status, setStatus] = useState(null);
+  const [verification, setVerification] = useState(null);
+  const [code, setCode] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [clock, setClock] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [verificationError, setVerificationError] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setStatus(await HttpService.getWithAuth('/open-finance/status'));
+      const nextStatus = await HttpService.getWithAuth('/open-finance/status');
+      setStatus(nextStatus);
+      setVerification(nextStatus.verification?.pending ? nextStatus.verification : null);
       setError(null);
     } catch (failure) {
       setError(errorKey(failure));
@@ -44,18 +56,93 @@ export default function OpenFinance() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!dialogOpen) return undefined;
+    setClock(Date.now());
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [dialogOpen]);
+
+  const resendSeconds = useMemo(() => {
+    if (!verification?.resendAvailableAt) return 0;
+    return Math.max(0, Math.ceil((new Date(verification.resendAvailableAt).getTime() - clock) / 1000));
+  }, [clock, verification]);
+
+  const notifySync = (result) => {
+    enqueueSnackbar(
+      t('openFinance.syncSuccess', {
+        accounts: result.accountsSynced,
+        transactions: result.newTransactions,
+      }),
+      { variant: 'success' }
+    );
+  };
+
   const sync = async () => {
     setBusy(true);
     setError(null);
     try {
       const result = await HttpService.postWithAuth('/open-finance/sync', {});
       await Promise.all([load(), refresh()]);
-      enqueueSnackbar(
-        t('openFinance.syncSuccess', { accounts: result.accountsSynced, transactions: result.newTransactions }),
-        { variant: 'success' }
-      );
+      notifySync(result);
     } catch (failure) {
       setError(errorKey(failure));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestCode = async () => {
+    if (verification?.pending) {
+      setVerificationError(null);
+      setDialogOpen(true);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const challenge = await HttpService.postWithAuth('/open-finance/connection/challenge', {});
+      setVerification({ ...challenge, pending: true });
+      setCode('');
+      setVerificationError(null);
+      setDialogOpen(true);
+      enqueueSnackbar(t('openFinance.verification.sent'), { variant: 'success' });
+      await load();
+    } catch (failure) {
+      setError(errorKey(failure));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendCode = async () => {
+    setBusy(true);
+    setVerificationError(null);
+    try {
+      const challenge = await HttpService.postWithAuth('/open-finance/connection/challenge', {});
+      setVerification({ ...challenge, pending: true });
+      setCode('');
+      setClock(Date.now());
+      enqueueSnackbar(t('openFinance.verification.resent'), { variant: 'success' });
+    } catch (failure) {
+      setVerificationError(errorKey(failure));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmConnection = async () => {
+    setBusy(true);
+    setVerificationError(null);
+    try {
+      const result = await HttpService.postWithAuth('/open-finance/connection/confirm', { code });
+      setDialogOpen(false);
+      setVerification(null);
+      setCode('');
+      await Promise.all([load(), refresh()]);
+      notifySync(result);
+    } catch (failure) {
+      setVerificationError(errorKey(failure));
     } finally {
       setBusy(false);
     }
@@ -66,6 +153,8 @@ export default function OpenFinance() {
     setError(null);
     try {
       await HttpService.deleteWithAuth('/open-finance/connection');
+      setVerification(null);
+      setDialogOpen(false);
       await load();
       enqueueSnackbar(t('openFinance.revoked'), { variant: 'success' });
     } catch (failure) {
@@ -76,6 +165,9 @@ export default function OpenFinance() {
   };
 
   const connected = status?.status === 'AUTHORISED';
+  const pending = status?.status === 'PENDING_EMAIL_VERIFICATION';
+  const statusColor = connected ? 'success' : pending ? 'warning' : 'default';
+
   return (
     <>
       <Helmet>
@@ -118,8 +210,8 @@ export default function OpenFinance() {
                     <WalletIcon name="bank" />
                   </Box>
                   <Chip
-                    color={connected ? 'success' : 'default'}
-                    label={t(`openFinance.status.${status?.status || 'DISCONNECTED'}`)}
+                    color={statusColor}
+                    label={t('openFinance.status.' + (status?.status || 'DISCONNECTED'))}
                   />
                 </Stack>
                 <Box>
@@ -134,7 +226,11 @@ export default function OpenFinance() {
                   </Typography>
                 </Box>
                 {connected && (
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} divider={<Divider orientation="vertical" flexItem />}>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={3}
+                    divider={<Divider orientation="vertical" flexItem />}
+                  >
                     <Box>
                       <Typography variant="caption" color="text.secondary">
                         {t('openFinance.accounts')}
@@ -150,8 +246,13 @@ export default function OpenFinance() {
                   </Stack>
                 )}
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                  <LoadingButton loading={busy || loading} variant="contained" onClick={sync} startIcon={<WalletIcon name="sync" />}>
-                    {t(connected ? 'openFinance.sync' : 'openFinance.connect')}
+                  <LoadingButton
+                    loading={busy || loading}
+                    variant="contained"
+                    onClick={connected ? sync : requestCode}
+                    startIcon={<WalletIcon name={connected ? 'sync' : 'shield'} />}
+                  >
+                    {t(connected ? 'openFinance.sync' : pending ? 'openFinance.verification.enterCode' : 'openFinance.connect')}
                   </LoadingButton>
                   {connected && (
                     <Button color="inherit" disabled={busy} onClick={disconnect}>
@@ -171,7 +272,7 @@ export default function OpenFinance() {
                 </Typography>
                 <Stack direction="row" gap={1} flexWrap="wrap">
                   {(status?.permissions || []).map((permission) => (
-                    <Chip key={permission} size="small" label={t(`openFinance.permissions.${permission}`)} />
+                    <Chip key={permission} size="small" label={t('openFinance.permissions.' + permission)} />
                   ))}
                 </Stack>
               </Card>
@@ -191,6 +292,64 @@ export default function OpenFinance() {
           </Grid>
         </Grid>
       </Container>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={busy ? undefined : () => setDialogOpen(false)}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{ sx: { borderRadius: 4, p: 1 } }}
+      >
+        <DialogTitle>{t('openFinance.verification.title')}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2.5} sx={{ pt: 1 }}>
+            <Typography color="text.secondary">
+              {t('openFinance.verification.sentTo', { email: verification?.maskedEmail || '' })}
+            </Typography>
+            {verificationError && <Alert severity="error">{t(verificationError)}</Alert>}
+            <TextField
+              autoFocus
+              fullWidth
+              label={t('openFinance.verification.code')}
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))}
+              autoComplete="one-time-code"
+              inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', maxLength: 8 }}
+              helperText={t('openFinance.verification.codeHelp')}
+            />
+            <Alert severity="warning" icon={<WalletIcon name="shield" />}>
+              {t('openFinance.verification.safety')}
+            </Alert>
+            {verification?.expiresAt && (
+              <Typography variant="caption" color="text.secondary">
+                {t('openFinance.verification.expires', {
+                  date: dateTime(verification.expiresAt, i18n.language),
+                })}
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'space-between' }}>
+          <Button disabled={busy || resendSeconds > 0} onClick={resendCode}>
+            {resendSeconds > 0
+              ? t('openFinance.verification.resendIn', { seconds: resendSeconds })
+              : t('openFinance.verification.resend')}
+          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button color="inherit" disabled={busy} onClick={() => setDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <LoadingButton
+              loading={busy}
+              disabled={code.length !== 8}
+              variant="contained"
+              onClick={confirmConnection}
+            >
+              {t('openFinance.verification.confirm')}
+            </LoadingButton>
+          </Stack>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

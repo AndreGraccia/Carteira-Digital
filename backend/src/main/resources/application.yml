@@ -37,6 +37,20 @@ spring:
     multipart:
       max-file-size: 1MB
       max-request-size: 10MB
+  mail:
+    host: ${mail_host:localhost}
+    port: ${mail_port:1025}
+    username: ${mail_username:}
+    password: ${mail_password:}
+    properties:
+      mail:
+        smtp:
+          auth: ${mail_auth:false}
+          starttls:
+            enable: ${mail_starttls:false}
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 logging:
   file:
@@ -85,3 +99,8 @@ app:
     institution-id: ${open_finance_institution_id:participant-sandbox}
     key-store-path: ${open_finance_key_store_path:}
     key-store-password: ${open_finance_key_store_password:}
+    verification:
+      code-ttl-minutes: ${open_finance_code_ttl_minutes:10}
+      resend-cooldown-seconds: ${open_finance_resend_cooldown_seconds:60}
+      max-attempts: ${open_finance_code_max_attempts:5}
+      mail-from: ${mail_from:no-reply@e-wallet.local}

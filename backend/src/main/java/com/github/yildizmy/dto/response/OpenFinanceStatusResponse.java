@@ -12,5 +12,6 @@ public record OpenFinanceStatusResponse(
         Instant expiresAt,
         long accountCount,
         List<String> permissions,
-        String notice
+        String notice,
+        OpenFinanceVerificationStatus verification
 ) {}

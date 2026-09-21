@@ -1,6 +1,7 @@
 package com.github.yildizmy.dto.response;
 
 import com.github.yildizmy.domain.enums.Status;
+import com.github.yildizmy.domain.enums.TransactionSource;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ public class TransactionResponse {
     private String createdAt;
     private UUID referenceNumber;
     private Status status;
+    private TransactionSource source;
     private WalletResponse fromWallet;
     private WalletResponse toWallet;
     private TypeResponse type;

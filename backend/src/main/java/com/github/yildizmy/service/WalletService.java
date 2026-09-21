@@ -2,6 +2,7 @@ package com.github.yildizmy.service;
 
 import com.github.yildizmy.config.MessageSourceConfig;
 import com.github.yildizmy.domain.entity.Wallet;
+import com.github.yildizmy.domain.enums.WalletSource;
 import com.github.yildizmy.dto.mapper.WalletRequestMapper;
 import com.github.yildizmy.dto.mapper.WalletResponseMapper;
 import com.github.yildizmy.dto.mapper.WalletTransactionRequestMapper;
@@ -180,6 +181,8 @@ public class WalletService {
         var locked = walletRepository.lockByIbans(List.of(request.getFromWalletIban(), request.getToWalletIban()));
         var from = lockedWallet(request.getFromWalletIban(), locked);
         var to = lockedWallet(request.getToWalletIban(), locked);
+        assertLocal(from);
+        assertLocal(to);
         var replay = transactionService.replay(request);
         if (replay != null) return replay;
         if (from.getBalance().compareTo(request.getAmount()) < 0)
@@ -193,25 +196,12 @@ public class WalletService {
     }
 
     @Transactional
-    public CommandResponse addFunds(TransactionRequest request) {
-        validateAmount(request.getAmount(), false);
-        request.setFromWalletIban(request.getToWalletIban());
-        request.setTypeId(4L);
-        var wallet = lockedWallet(request.getToWalletIban(), walletRepository.lockByIbans(List.of(request.getToWalletIban())));
-        var replay = transactionService.replay(request);
-        if (replay != null) return replay;
-        validateAmount(wallet.getBalance().add(request.getAmount()), true);
-        wallet.setBalance(wallet.getBalance().add(request.getAmount()));
-        walletRepository.save(wallet);
-        return transactionService.create(request);
-    }
-
-    @Transactional
     public CommandResponse withdrawFunds(TransactionRequest request) {
         validateAmount(request.getAmount(), false);
         request.setToWalletIban(request.getFromWalletIban());
         request.setTypeId(5L);
         var wallet = lockedWallet(request.getFromWalletIban(), walletRepository.lockByIbans(List.of(request.getFromWalletIban())));
+        assertLocal(wallet);
         var replay = transactionService.replay(request);
         if (replay != null) return replay;
         if (wallet.getBalance().compareTo(request.getAmount()) < 0)
@@ -231,6 +221,8 @@ public class WalletService {
     public CommandResponse update(long id, WalletRequest request) {
         final Wallet foundWallet = walletRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementFoundException(messageConfig.getMessage(ERROR_WALLET_NOT_FOUND)));
+
+        assertLocal(foundWallet);
 
         if (!java.util.Objects.equals(request.getIban(), foundWallet.getIban()) ||
             !java.util.Objects.equals(request.getUserId(), foundWallet.getUser().getId()) ||
@@ -254,8 +246,15 @@ public class WalletService {
     public void deleteById(long id) {
         final Wallet wallet = walletRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementFoundException(messageConfig.getMessage(ERROR_WALLET_NOT_FOUND)));
+        assertLocal(wallet);
         if (wallet.getBalance().signum() != 0 || transactionService.hasHistory(id)) throw new WalletRuleException("IMMUTABLE_WALLET");
         walletRepository.delete(wallet);
         log.info(messageConfig.getMessage(INFO_WALLET_DELETED, wallet.getIban(), wallet.getName(), wallet.getBalance()));
+    }
+
+    private void assertLocal(Wallet wallet) {
+        if (wallet.getSource() == WalletSource.OPEN_FINANCE) {
+            throw new WalletRuleException("OPEN_FINANCE_READ_ONLY");
+        }
     }
 }

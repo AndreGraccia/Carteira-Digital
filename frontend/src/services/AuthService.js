@@ -1,8 +1,9 @@
 import axios from './axios';
 
 const login = async (body) => {
-  // Limpa uma possível sessão anterior.
+  // O token dura apenas durante a sessão da aba/navegador.
   localStorage.removeItem('user');
+  sessionStorage.removeItem('user');
 
   const response = await axios.post('/auth/login', body);
   const user = response.data;
@@ -11,7 +12,7 @@ const login = async (body) => {
     throw new Error('O servidor não retornou um token válido.');
   }
 
-  localStorage.setItem('user', JSON.stringify(user));
+  sessionStorage.setItem('user', JSON.stringify(user));
 
   return user;
 };
@@ -22,11 +23,15 @@ const signup = (body) => {
 };
 
 const logout = () => {
+  sessionStorage.removeItem('user');
   localStorage.removeItem('user');
 };
 
 const getCurrentUser = () => {
-  const storedUser = localStorage.getItem('user');
+  const storedUser = sessionStorage.getItem('user');
+
+  // Remove tokens persistidos por versões anteriores.
+  localStorage.removeItem('user');
 
   if (!storedUser) return null;
 
@@ -34,18 +39,18 @@ const getCurrentUser = () => {
     const user = JSON.parse(storedUser);
 
     if (typeof user?.token !== 'string' || !user.token.trim()) {
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
       return null;
     }
 
     const payload = JSON.parse(atob(user.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
     if (!payload.exp || payload.exp * 1000 <= Date.now()) {
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
       return null;
     }
     return user;
   } catch {
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
     return null;
   }
 };

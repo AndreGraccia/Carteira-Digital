@@ -1,0 +1,122 @@
+package com.github.yildizmy.service;
+
+import com.github.yildizmy.domain.entity.Transaction;
+import com.github.yildizmy.domain.entity.Type;
+import com.github.yildizmy.domain.entity.Wallet;
+import com.github.yildizmy.domain.enums.Status;
+import com.github.yildizmy.repository.TransactionRepository;
+import com.github.yildizmy.repository.WalletRepository;
+import com.github.yildizmy.service.insight.GeneratedNarrative;
+import com.github.yildizmy.service.insight.InsightNarrativeGenerator;
+import com.github.yildizmy.service.insight.InsightRateLimiter;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class InsightsServiceTest {
+    @Mock private TransactionRepository transactionRepository;
+    @Mock private WalletRepository walletRepository;
+    @Mock private InsightNarrativeGenerator narrativeGenerator;
+    @Mock private InsightRateLimiter rateLimiter;
+
+    private InsightsService service;
+    private Wallet primary;
+    private Wallet reserve;
+
+    @BeforeEach
+    void setUp() {
+        Clock clock = Clock.fixed(Instant.parse("2026-09-20T12:00:00Z"), ZoneOffset.UTC);
+        service = new InsightsService(transactionRepository, walletRepository, narrativeGenerator, rateLimiter, clock);
+        primary = wallet(1L);
+        reserve = wallet(2L);
+        when(walletRepository.findByUserId(7L)).thenReturn(List.of(primary, reserve));
+    }
+
+    @Test
+    void aggregatesCashFlowWithoutCountingInternalTransfersAsIncomeOrSpending() {
+        when(narrativeGenerator.isEnabled()).thenReturn(false);
+        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of(
+                transaction("100.00", "Deposit", primary, primary, "2026-07-03T10:00:00Z", Status.SUCCESS),
+                transaction("25.00", "Withdrawal", primary, primary, "2026-08-04T10:00:00Z", Status.SUCCESS),
+                transaction("10.00", "Transfer", primary, reserve, "2026-09-05T10:00:00Z", Status.SUCCESS),
+                transaction("50.00", "Deposit", primary, primary, "2026-09-05T10:00:00Z", Status.ERROR),
+                transaction("90.00", "Deposit", primary, primary, "2026-06-30T23:59:59Z", Status.SUCCESS)
+        ));
+
+        var report = service.generate(7L, 3, "pt-BR");
+
+        assertEquals("LOCAL", report.provider());
+        assertEquals(new BigDecimal("100.00"), report.metrics().inflow());
+        assertEquals(new BigDecimal("25.00"), report.metrics().outflow());
+        assertEquals(new BigDecimal("10.00"), report.metrics().internalTransfers());
+        assertEquals(new BigDecimal("75.00"), report.metrics().netFlow());
+        assertEquals(3, report.metrics().transactionCount());
+        assertEquals(List.of("2026-07", "2026-08", "2026-09"),
+                report.monthlyFlow().stream().map(item -> item.month()).toList());
+        verify(rateLimiter, never()).check(any());
+    }
+
+    @Test
+    void usesAiNarrativeWhenConfiguredButKeepsServerCalculatedMetricsAndReferences() {
+        when(narrativeGenerator.isEnabled()).thenReturn(true);
+        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of());
+        var generated = new GeneratedNarrative(
+                "Leitura personalizada",
+                "Resumo seguro.",
+                List.of(new GeneratedNarrative.NarrativeItem("Observação", "Texto", "neutral", List.of("BCB_EDUCACAO"))),
+                List.of());
+        when(narrativeGenerator.generate(any(), eq("pt-BR"), any(Map.class))).thenReturn(Optional.of(generated));
+
+        var report = service.generate(7L, 1, "pt-BR");
+
+        assertEquals("GEMINI", report.provider());
+        assertEquals("Leitura personalizada", report.headline());
+        assertEquals(6, report.references().size());
+        verify(rateLimiter).check(7L);
+    }
+
+    private Wallet wallet(Long id) {
+        Wallet wallet = new Wallet();
+        wallet.setId(id);
+        wallet.setIban("BR0000000000000" + id);
+        return wallet;
+    }
+
+    private Transaction transaction(
+            String amount,
+            String typeName,
+            Wallet from,
+            Wallet to,
+            String createdAt,
+            Status status
+    ) {
+        Type type = new Type();
+        type.setName(typeName);
+        Transaction transaction = new Transaction();
+        transaction.setAmount(new BigDecimal(amount));
+        transaction.setType(type);
+        transaction.setFromWallet(from);
+        transaction.setToWallet(to);
+        transaction.setCreatedAt(Instant.parse(createdAt));
+        transaction.setStatus(status);
+        return transaction;
+    }
+}

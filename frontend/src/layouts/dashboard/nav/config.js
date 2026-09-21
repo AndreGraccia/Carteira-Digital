@@ -32,5 +32,15 @@ export default function useNavConfig() {
       path: '/transactions',
       icon: icon('ic_transaction'),
     },
+    {
+      title: t('navigation.openFinance'),
+      path: '/open-finance',
+      icon: icon('ic_wallet'),
+    },
+    {
+      title: t('navigation.insights'),
+      path: '/insights',
+      icon: icon('ic_analytics'),
+    },
   ];
 }

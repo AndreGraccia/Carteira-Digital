@@ -97,25 +97,35 @@ export default function Wallet() {
                     </Button>
                   </Stack>
                   <Typography variant="caption" color="text.secondary">
-                    {t('app.codeHelp')}
+                    {t(selected.source === 'OPEN_FINANCE' ? 'openFinance.readOnlyAccount' : 'app.codeHelp')}
                   </Typography>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 3 }}>
-                    {[
-                      ['transfer', 'send', 'app.send'],
-                      ['deposit', 'plus', 'app.add'],
-                      ['withdraw', 'up', 'app.withdraw'],
-                    ].map(([mode, icon, label]) => (
-                      <Button
-                        key={mode}
-                        component={RouterLink}
-                        to={`/transfers?mode=${mode}&wallet=${selected.id}`}
-                        variant={mode === 'transfer' ? 'contained' : 'outlined'}
-                        fullWidth
-                        startIcon={<WalletIcon name={icon} />}
-                      >
-                        {t(label)}
-                      </Button>
-                    ))}
+                    {selected.source === 'OPEN_FINANCE' ? (
+                      <>
+                        <Button component={RouterLink} to="/open-finance" variant="contained" fullWidth startIcon={<WalletIcon name="sync" />}>
+                          {t('openFinance.sync')}
+                        </Button>
+                        <Button component={RouterLink} to="/insights" variant="outlined" fullWidth startIcon={<WalletIcon name="insights" />}>
+                          {t('navigation.insights')}
+                        </Button>
+                      </>
+                    ) : (
+                      [
+                        ['transfer', 'send', 'app.send'],
+                        ['withdraw', 'up', 'app.withdraw'],
+                      ].map(([mode, icon, label]) => (
+                        <Button
+                          key={mode}
+                          component={RouterLink}
+                          to={`/transfers?mode=${mode}&wallet=${selected.id}`}
+                          variant={mode === 'transfer' ? 'contained' : 'outlined'}
+                          fullWidth
+                          startIcon={<WalletIcon name={icon} />}
+                        >
+                          {t(label)}
+                        </Button>
+                      ))
+                    )}
                   </Stack>
                 </Card>
                 <SectionCard title={t('wallet.statement.title')}>

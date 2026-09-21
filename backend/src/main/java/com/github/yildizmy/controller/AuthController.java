@@ -5,7 +5,9 @@ import com.github.yildizmy.dto.request.SignupRequest;
 import com.github.yildizmy.dto.response.CommandResponse;
 import com.github.yildizmy.dto.response.JwtResponse;
 import com.github.yildizmy.service.AuthService;
+import com.github.yildizmy.security.AuthenticationRateLimiter;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.AuthenticationException;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final AuthenticationRateLimiter authenticationRateLimiter;
 
     /**
      * Authenticates users by their credentials.
@@ -28,9 +32,17 @@ public class AuthController {
      * @return JwtResponse
      */
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
-        final JwtResponse response = authService.login(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+        String remoteAddress = servletRequest.getRemoteAddr();
+        authenticationRateLimiter.check(request.getUsername(), remoteAddress);
+        try {
+            final JwtResponse response = authService.login(request);
+            authenticationRateLimiter.succeeded(request.getUsername(), remoteAddress);
+            return ResponseEntity.ok(response);
+        } catch (AuthenticationException exception) {
+            authenticationRateLimiter.failed(request.getUsername(), remoteAddress);
+            throw exception;
+        }
     }
 
     /**

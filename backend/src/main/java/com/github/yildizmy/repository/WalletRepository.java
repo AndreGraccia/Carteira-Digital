@@ -1,6 +1,7 @@
 package com.github.yildizmy.repository;
 
 import com.github.yildizmy.domain.entity.Wallet;
+import com.github.yildizmy.domain.enums.WalletSource;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +21,10 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     boolean existsByIbanAndUserId(String iban, Long userId);
 
     List<Wallet> findByUserId(Long userId);
+
+    Optional<Wallet> findByUserIdAndSourceAndExternalAccountId(Long userId, WalletSource source, String externalAccountId);
+
+    long countByUserIdAndSource(Long userId, WalletSource source);
 
     boolean existsByIbanIgnoreCase(String iban);
 

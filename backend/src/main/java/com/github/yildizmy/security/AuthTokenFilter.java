@@ -51,7 +51,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
-            log.error(messageConfig.getMessage(ERROR_AUTH_SETUP, e));
+            log.warn(messageConfig.getMessage(ERROR_AUTH_SETUP, "authentication rejected"));
         }
         filterChain.doFilter(request, response);
     }

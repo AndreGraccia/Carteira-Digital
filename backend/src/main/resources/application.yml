@@ -5,6 +5,8 @@ spring:
     name: e-wallet
   main:
     banner-mode: console
+  devtools:
+    add-properties: false
   banner:
     location: classpath:/banner.txt
   output:
@@ -49,7 +51,7 @@ logging:
     console: '%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){blue} %clr(%-5p) %clr(${PID}){faint} %clr(---){faint} %clr([%8.15t]){faint} %clr(%-40.40logger{0}){cyan} %clr(:){faint} %clr(%m){faint}%n'
     file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
   level:
-    com.github.yildizmy: debug
+    com.github.yildizmy: info
     org.springframework: warn
     org.hibernate: error
     org.springframework.security: error
@@ -57,9 +59,9 @@ logging:
 server:
   port: 8080
   error:
-    include-message: always
-    include-binding-errors: always
-    include-stacktrace: on_param
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
     include-exception: false
 
 exception:
@@ -69,3 +71,17 @@ app:
   security:
     jwtSecret: ${jwt_secret}
     jwtExpirationMs: 3600000
+    allowedOrigin: ${frontend_origin:http://localhost:3000}
+  ai:
+    geminiApiKey: ${gemini_api_key:}
+    geminiModel: ${gemini_model:gemini-3.8-flash}
+    searchGroundingEnabled: ${gemini_search_grounding:true}
+    endpoint: https://generativelanguage.googleapis.com/v1beta/interactions
+  open-finance:
+    mode: ${open_finance_mode:contract-sandbox}
+    base-url: ${open_finance_base_url:}
+    access-token: ${open_finance_access_token:}
+    consent-id: ${open_finance_consent_id:}
+    institution-id: ${open_finance_institution_id:participant-sandbox}
+    key-store-path: ${open_finance_key_store_path:}
+    key-store-password: ${open_finance_key_store_password:}

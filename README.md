@@ -1,8 +1,8 @@
-# Carteira Digital
+# e-wallet
 
-Sistema de carteira digital para demonstração e aprendizado, desenvolvido com React, Spring Boot e PostgreSQL.
+Plataforma de gestão financeira em ambiente simulado, desenvolvida com React, Spring Boot e PostgreSQL.
 
-O objetivo do projeto é oferecer uma base segura e organizada para gestão de carteiras, movimentações financeiras, relatórios parametrizados e, futuramente, análises por inteligência artificial.
+O projeto oferece uma base organizada para carteiras, movimentações, fluxo de caixa e relatórios explicados em linguagem natural, com uma integração opcional à API Gemini.
 
 > Este projeto está em desenvolvimento e não deve ser utilizado para movimentar dinheiro real.
 
@@ -20,6 +20,10 @@ A experiência de carteiras, movimentações, rotas e traduções foi revisada. 
 - Validação de IBAN.
 - Documentação interativa da API com Swagger.
 - Persistência de dados em PostgreSQL.
+- Relatório de entradas, saídas, saldo do período e transferências internas.
+- Análise financeira local ou com Gemini, sem enviar o extrato bruto ao provedor.
+- Leituras com referências fixas e verificáveis.
+- Limite de tentativas de login e de relatórios com IA.
 
 ## Funcionalidades planejadas
 
@@ -193,6 +197,10 @@ db_name=ewallet
 db_username=ewallet
 db_password=SUBSTITUA_PELA_SENHA_LOCAL
 jwt_secret=SUBSTITUA_POR_UM_SEGREDO_ALEATORIO
+frontend_origin=http://localhost:3000
+gemini_api_key=
+gemini_model=gemini-3.8-flash
+gemini_search_grounding=true
 ```
 
 Para gerar um segredo JWT no PowerShell:
@@ -209,11 +217,15 @@ Copie o resultado para `jwt_secret`.
 
 O arquivo `.env.properties` contém informações locais e está ignorado pelo Git. Nunca publique esse arquivo.
 
+`gemini_api_key` é opcional. Com o campo vazio, a tela **Análise** continua funcionando com regras locais determinísticas. Para habilitar a Gemini, crie uma chave no Google AI Studio, salve-a somente nesse arquivo e reinicie o backend. A chave nunca deve usar o prefixo `REACT_APP_` nem ser colocada no frontend.
+
+O relatório envia apenas totais mensais, direção das operações e contagem de movimentações. Nomes, e-mails, códigos de carteira, descrições e identificadores não são enviados. Consulte [segurança e relatórios com IA](docs/security-and-ai-reports.md) para entender o fluxo, os limites e as referências.
+
 ## Executando o PostgreSQL
 
 Abra o Docker Desktop e aguarde o mecanismo iniciar.
 
-Na raiz do projeto, execute:
+Na raiz do projeto, abra o primeiro PowerShell e execute:
 
 ```powershell
 docker compose --env-file .env.properties up -d db
@@ -239,11 +251,14 @@ accepting connections
 
 ## Executando o backend
 
-Na raiz do projeto:
+Abra um segundo PowerShell, entre na pasta do backend e inicie o Spring Boot:
 
 ```powershell
-mvn -f backend/pom.xml spring-boot:run
+cd backend
+mvn spring-boot:run
 ```
+
+Se você já iniciou `EWalletApplication` pelo VS Code, pule esse comando. Apenas uma instância pode usar a porta `8080` ao mesmo tempo.
 
 Aguarde a mensagem indicando que a aplicação foi iniciada.
 
@@ -263,7 +278,7 @@ Mantenha esse terminal aberto enquanto estiver usando a aplicação.
 
 ## Executando o frontend
 
-Abra outro PowerShell e entre na pasta do frontend:
+Abra um terceiro PowerShell a partir da raiz do projeto e entre na pasta do frontend:
 
 ```powershell
 cd frontend
@@ -288,6 +303,16 @@ http://localhost:3000
 ```
 
 Mantenha esse terminal aberto enquanto estiver usando a aplicação.
+
+## Executando tudo com Docker
+
+Como alternativa aos três terminais, execute na raiz do projeto:
+
+```powershell
+docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml up --build
+```
+
+Esse comando inicia PostgreSQL, backend e frontend. Não mantenha as versões locais nas portas `3000` e `8080` enquanto executar a pilha completa em containers.
 
 ## Encerrando a aplicação
 

@@ -31,6 +31,7 @@ export default function DashboardLayout() {
     { path: '/wallets', label: 'navigation.wallets', icon: 'wallet' },
     { path: '/transfers', label: 'navigation.transfers', icon: 'send' },
     { path: '/transactions', label: 'navigation.transactions', icon: 'history' },
+    { path: '/insights', label: 'navigation.insights', icon: 'insights' },
   ];
   const current =
     items.find((item) => (item.path === '/' ? pathname === '/' : pathname.startsWith(item.path)))?.path || false;

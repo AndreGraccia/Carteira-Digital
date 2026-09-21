@@ -70,12 +70,12 @@ export default function Dashboard() {
                   </Button>
                   <Button
                     component={RouterLink}
-                    to="/transfers?mode=deposit"
+                    to="/open-finance"
                     variant="outlined"
                     fullWidth
-                    startIcon={<WalletIcon name="plus" />}
+                    startIcon={<WalletIcon name="bank" />}
                   >
-                    {t('app.add')}
+                    {t('openFinance.connectShort')}
                   </Button>
                 </Stack>
                 <Stack
@@ -143,16 +143,30 @@ export default function Dashboard() {
               >
                 <ActivityList transactions={transactions.slice(0, 6)} wallets={wallets} onSelect={setDetail} />
               </SectionCard>
-              <Card sx={{ mt: 3, p: 3, bgcolor: '#EDEDF2', boxShadow: 'none', border: 0 }}>
+              <Card
+                sx={{
+                  mt: 3,
+                  p: 3,
+                  color: 'white',
+                  background: 'linear-gradient(135deg, #252527, #34343A 60%, #244E73)',
+                  boxShadow: 'none',
+                  border: 0,
+                }}
+              >
                 <Stack direction="row" spacing={2}>
-                  <WalletIcon name="info" sx={{ color: 'text.secondary' }} />
+                  <WalletIcon name="insights" />
                   <Box>
-                    <Typography variant="subtitle2">{t('app.learnTitle')}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1 }}>
-                      {t('app.demoNotice')}
+                    <Typography variant="subtitle2">{t('insights.dashboardTitle')}</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5, mb: 1, color: 'rgba(255,255,255,.7)' }}>
+                      {t('insights.dashboardDescription')}
                     </Typography>
-                    <Button component={RouterLink} to="/about" size="small" sx={{ p: 0, minHeight: 32 }}>
-                      {t('app.learnMore')}
+                    <Button
+                      component={RouterLink}
+                      to="/insights"
+                      size="small"
+                      sx={{ p: 0, minHeight: 32, color: 'white' }}
+                    >
+                      {t('insights.dashboardAction')}
                     </Button>
                   </Box>
                 </Stack>

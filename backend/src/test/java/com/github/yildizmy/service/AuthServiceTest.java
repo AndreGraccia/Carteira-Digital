@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.mockito.ArgumentCaptor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -88,6 +89,23 @@ class AuthServiceTest {
 
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(jwtUtils).generateJwtToken(authentication);
+    }
+
+    @Test
+    void loginPreservesPasswordWhitespace() {
+        loginRequest.setUsername("  testuser  ");
+        loginRequest.setPassword(" password with spaces ");
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+        when(jwtUtils.generateJwtToken(authentication)).thenReturn("test.jwt.token");
+
+        authService.login(loginRequest);
+
+        ArgumentCaptor<UsernamePasswordAuthenticationToken> captor =
+                ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
+        verify(authenticationManager).authenticate(captor.capture());
+        assertEquals("testuser", captor.getValue().getPrincipal());
+        assertEquals(" password with spaces ", captor.getValue().getCredentials());
     }
 
     @Test

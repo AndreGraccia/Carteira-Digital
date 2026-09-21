@@ -31,6 +31,24 @@ import static com.github.yildizmy.common.MessageKeys.*;
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    @ExceptionHandler(AuthenticationRateLimitException.class)
+    public ResponseEntity<Object> handleAuthenticationRateLimit() {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(java.util.Map.of("code", "AUTH_RATE_LIMIT"));
+    }
+
+    @ExceptionHandler(InsightRateLimitException.class)
+    public ResponseEntity<Object> handleInsightRateLimit() {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(java.util.Map.of("code", "INSIGHT_RATE_LIMIT"));
+    }
+
+    @ExceptionHandler(OpenFinanceUnavailableException.class)
+    public ResponseEntity<Object> handleOpenFinanceUnavailable() {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(java.util.Map.of("code", "OPEN_FINANCE_UNAVAILABLE"));
+    }
+
     @ExceptionHandler(WalletRuleException.class)
     public ResponseEntity<Object> handleWalletRule(WalletRuleException ex) {
         return ResponseEntity.badRequest().body(java.util.Map.of("code", ex.getMessage()));
@@ -131,8 +149,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
-        log.error(messageConfig.getMessage(ERROR_UNAUTHORIZED_DETAILS, ex));
-        return buildErrorResponse(ex, HttpStatus.UNAUTHORIZED, request);
+        log.warn(messageConfig.getMessage(ERROR_UNAUTHORIZED_DETAILS, "credentials rejected"));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(java.util.Map.of("code", "UNAUTHORIZED"));
     }
 
     /**
@@ -159,8 +178,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<Object> handleAllUncaughtException(Exception ex, WebRequest request) {
-        log.error(messageConfig.getMessage(ex.getMessage(), ex));
-        return buildErrorResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR, request);
+        log.error("Unhandled request error: {}", ex.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(java.util.Map.of("code", "INTERNAL_ERROR"));
     }
 
     /**
@@ -181,7 +201,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatusCode statusCode,
             WebRequest request) {
 
-        return buildErrorResponse(ex, statusCode, request);
+        if (statusCode.is5xxServerError()) {
+            return ResponseEntity.status(statusCode)
+                    .body(java.util.Map.of("code", "INTERNAL_ERROR"));
+        }
+        return super.handleExceptionInternal(ex, body, headers, statusCode, request);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.github.yildizmy.domain.entity;
 
 import com.github.yildizmy.domain.enums.Status;
+import com.github.yildizmy.domain.enums.TransactionSource;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,7 +32,7 @@ public class Transaction {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(length = 50)
+    @Column(length = 200)
     private String description;
 
     @Column(nullable = false)
@@ -46,6 +47,13 @@ public class Transaction {
     @Column(length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    @Column(length = 30, nullable = false)
+    @Enumerated(EnumType.STRING)
+    private TransactionSource source = TransactionSource.LOCAL;
+
+    @Column(length = 255, unique = true)
+    private String externalId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "from_wallet_id", referencedColumnName = "id", nullable = false)

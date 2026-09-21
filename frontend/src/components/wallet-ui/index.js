@@ -21,6 +21,11 @@ const paths = {
   info: 'M12 11v6m0-10h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',
   copy: 'M9 9h12v12H9V9ZM15 9V3H3v12h6',
   swap: 'M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4',
+  insights: 'M4 19V9m5 10V5m5 14v-7m5 7V3M3 19h18M17 7l2-2 2 2M19 5v6',
+  shield: 'M12 3 5 6v5c0 4.6 2.9 8.8 7 10 4.1-1.2 7-5.4 7-10V6l-7-3Zm-3 9 2 2 4-5',
+  book: 'M4 5a3 3 0 0 1 3-2h5v17H7a3 3 0 0 0-3 3V5Zm8-2h5a3 3 0 0 1 3 3v17a3 3 0 0 0-3-3h-5',
+  bank: 'M3 9h18L12 3 3 9Zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18',
+  sync: 'M20 7h-6V1m6 6-3-3a8 8 0 0 0-13 3m0 10h6v6m-6-6 3 3a8 8 0 0 0 13-3',
 };
 export function WalletIcon({ name, ...props }) {
   return (

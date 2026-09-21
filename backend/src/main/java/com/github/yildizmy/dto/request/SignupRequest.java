@@ -36,7 +36,7 @@ public class SignupRequest {
     @NotBlank(message = "{validation.user.email.required}")
     private String email;
 
-    @Size(min = 6, max = 100, message = "{validation.user.password.length}")
+    @Size(min = 10, max = 100, message = "{validation.user.password.length}")
     @NotBlank(message = "{validation.user.password.required}")
     private String password;
 

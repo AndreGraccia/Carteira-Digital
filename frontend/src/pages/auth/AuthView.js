@@ -161,7 +161,7 @@ export default function AuthView({ signup = false }) {
                     }
                     type={field === 'password' ? (visible ? 'text' : 'password') : field === 'email' ? 'email' : 'text'}
                     inputProps={{
-                      minLength: signup ? (field === 'password' || field === 'email' ? 6 : 3) : 1,
+                      minLength: signup ? (field === 'password' ? 10 : field === 'email' ? 6 : 3) : 1,
                       maxLength: field === 'password' ? 100 : field === 'username' ? 20 : 50,
                     }}
                     helperText={signup && field === 'password' ? t('app.passwordHelp') : undefined}

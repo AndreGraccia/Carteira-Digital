@@ -12,6 +12,9 @@ import java.net.UnknownHostException;
 public class EWalletApplication {
 
 	public static void main(String[] args) {
+		// A generic DEBUG environment variable is commonly set by development tools.
+		// Do not let it enable Spring's verbose request and SQL-adjacent diagnostics.
+		System.setProperty("debug", System.getProperty("debug", "false"));
 		SpringApplication app = new SpringApplication(EWalletApplication.class);
 		Environment env = app.run(args).getEnvironment();
 		logApplicationStartup(env);

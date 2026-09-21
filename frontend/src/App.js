@@ -15,6 +15,8 @@ import BasicTabs from './pages/transfer/BasicTabs';
 import About from './pages/About';
 import NewWallet from './pages/wallet/NewWallet';
 import Wallet from './pages/wallet/Wallet';
+import Insights from './pages/insights/Insights';
+import OpenFinance from './pages/open-finance/OpenFinance';
 
 const USER_ROLES = ['ROLE_USER', 'ROLE_ADMIN'];
 
@@ -34,12 +36,14 @@ export default function App() {
             <Route path="wallets">
               <Route index element={<Wallet />} />
               <Route path="new" element={<NewWallet />} />
-              <Route path="addFunds" element={<Navigate to="/transfers?mode=deposit" replace />} />
+              <Route path="addFunds" element={<Navigate to="/open-finance" replace />} />
               <Route path=":walletId" element={<Wallet />} />
             </Route>
 
             <Route path="transfers" element={<BasicTabs />} />
             <Route path="transactions" element={<Transaction />} />
+            <Route path="insights" element={<Insights />} />
+            <Route path="open-finance" element={<OpenFinance />} />
             <Route path="about" element={<About />} />
           </Route>
         </Route>

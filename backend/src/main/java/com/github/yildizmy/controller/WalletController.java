@@ -102,19 +102,6 @@ public class WalletController {
     }
 
     /**
-     * Adds funds to the given wallet.
-     *
-     * @param request
-     * @return id of the created transaction wrapped by ResponseEntity<T>
-     */
-    @PreAuthorize("@walletAccess.iban(#request.toWalletIban)")
-    @PostMapping("/addFunds")
-    public ResponseEntity<CommandResponse> addFunds(@Valid @RequestBody TransactionRequest request) {
-        final CommandResponse response = walletService.addFunds(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    /**
      * Withdraw funds from the given wallet.
      *
      * @param request

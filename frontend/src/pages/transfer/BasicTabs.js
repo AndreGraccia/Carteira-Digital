@@ -29,12 +29,12 @@ import { errorKey, money, parseAmount } from '../../utils/wallet';
 
 const modes = {
   transfer: { endpoint: 'transfer', label: 'app.send' },
-  deposit: { endpoint: 'addFunds', label: 'app.add' },
   withdraw: { endpoint: 'withdrawFunds', label: 'app.withdraw' },
 };
 export default function BasicTabs() {
   const { t, i18n } = useTranslation();
-  const { wallets, refresh } = useWallets();
+  const { wallets: allWallets, refresh } = useWallets();
+  const wallets = allWallets.filter((item) => item.source !== 'OPEN_FINANCE');
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const mode = modes[params.get('mode')] ? params.get('mode') : 'transfer';
@@ -65,7 +65,7 @@ export default function BasicTabs() {
       setError('app.errors.INVALID_AMOUNT');
       return;
     }
-    if (mode !== 'deposit' && cents > Math.round(Number(wallet.balance) * 100)) {
+    if (cents > Math.round(Number(wallet.balance) * 100)) {
       setError('app.errors.balance');
       return;
     }
@@ -156,7 +156,7 @@ export default function BasicTabs() {
                   <TextField
                     select
                     fullWidth
-                    label={t(mode === 'deposit' ? 'transfer.receiverWallet' : 'transfer.senderWallet')}
+                    label={t('transfer.senderWallet')}
                     value={wallet ? String(wallet.id) : ''}
                     onChange={(event) => {
                       setParams({ mode, wallet: event.target.value });
@@ -271,7 +271,7 @@ export default function BasicTabs() {
               </Typography>
               <Typography>
                 {money(
-                  Number(wallet?.balance || 0) + ((mode === 'deposit' ? 1 : -1) * (cents || 0)) / 100,
+                  Number(wallet?.balance || 0) - (cents || 0) / 100,
                   i18n.language
                 )}
               </Typography>

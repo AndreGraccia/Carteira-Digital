@@ -82,7 +82,7 @@ export default function WalletCard({ wallet, index = 0, selected = false, onClic
           </Box>
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="caption" sx={{ color: '#FFFFFFB8' }}>
-              {t('app.demo')}
+              {wallet.source === 'OPEN_FINANCE' ? wallet.institutionName : t('app.demo')}
             </Typography>
             <Typography variant="caption" sx={{ letterSpacing: '0.12em' }}>
               •••• {wallet.iban?.slice(-4)}

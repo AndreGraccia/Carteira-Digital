@@ -14,6 +14,29 @@ export function parseAmount(value) {
   const cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
   return Number.isSafeInteger(cents) ? cents : null;
 }
+export function projectRegularDeposits(monthlyAmount, years, annualRatePercent) {
+  const contribution = Number(String(monthlyAmount).replace(',', '.'));
+  const duration = Number(years);
+  const rate = Number(String(annualRatePercent).replace(',', '.')) / 100;
+  const months = duration * 12;
+  if (
+    !Number.isFinite(contribution) ||
+    contribution < 0 ||
+    !Number.isInteger(months) ||
+    months <= 0 ||
+    !Number.isFinite(rate) ||
+    rate < 0 ||
+    rate > 1
+  )
+    return { contributed: 0, earnings: 0, futureValue: 0 };
+  const monthlyRate = (1 + rate) ** (1 / 12) - 1;
+  const futureValue =
+    monthlyRate === 0
+      ? contribution * months
+      : contribution * (1 + monthlyRate) * (((1 + monthlyRate) ** months - 1) / monthlyRate);
+  const contributed = contribution * months;
+  return { contributed, earnings: futureValue - contributed, futureValue };
+}
 export function directionFor(transaction, wallets) {
   const owned = new Set(wallets.map((wallet) => wallet.iban));
   const from = owned.has(transaction.fromWallet?.iban);
@@ -47,7 +70,14 @@ export function normalizeTransactions(response) {
 }
 export function errorKey(error) {
   const code = error.response?.data?.code;
-  if (['INVALID_AMOUNT', 'SAME_WALLET', 'INVALID_WALLET', 'IMMUTABLE_WALLET', 'IDEMPOTENCY_CONFLICT'].includes(code))
+  if (code === 'AUTH_RATE_LIMIT') return 'app.errors.authRateLimit';
+  if (code === 'INSIGHT_RATE_LIMIT') return 'app.errors.insightRateLimit';
+  if (code === 'OPEN_FINANCE_UNAVAILABLE') return 'app.errors.openFinance';
+  if (
+    ['INVALID_AMOUNT', 'SAME_WALLET', 'INVALID_WALLET', 'IMMUTABLE_WALLET', 'IDEMPOTENCY_CONFLICT', 'OPEN_FINANCE_READ_ONLY'].includes(
+      code
+    )
+  )
     return `app.errors.${code}`;
   const status = error.response?.status;
   if (status === 401) return 'app.errors.session';
@@ -55,6 +85,7 @@ export function errorKey(error) {
   if (status === 404) return 'app.errors.notFound';
   if (status === 409) return 'app.errors.conflict';
   if (status === 412) return 'app.errors.balance';
+  if (status === 429) return 'app.errors.rateLimit';
   if (status === 400 || status === 422) return 'app.errors.validation';
   return error.response ? 'app.errors.server' : 'app.errors.network';
 }

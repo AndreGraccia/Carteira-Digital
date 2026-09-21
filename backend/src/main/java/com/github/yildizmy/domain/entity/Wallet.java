@@ -1,11 +1,13 @@
 package com.github.yildizmy.domain.entity;
 
+import com.github.yildizmy.domain.enums.WalletSource;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -39,6 +41,18 @@ public class Wallet {
 
     @Column(nullable = false)
     private BigDecimal balance;
+
+    @Column(length = 30, nullable = false)
+    @Enumerated(EnumType.STRING)
+    private WalletSource source = WalletSource.LOCAL;
+
+    @Column(length = 100)
+    private String institutionName;
+
+    @Column(length = 100)
+    private String externalAccountId;
+
+    private Instant lastSyncedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)

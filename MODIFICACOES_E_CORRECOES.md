@@ -157,6 +157,7 @@ Escopo: alterações realizadas desde a base `main` (`9e83117`) até a branch at
 | Código do Open Finance limitado a 10 envios por conta em 24 h (V12). | Uma conta cadastrada com o e-mail de outra pessoa podia mandar a ela um código por minuto. |
 | Teto global de 200 relatórios Gemini por hora, com volta para a análise local. | O custo da chave de API não tinha limite total. |
 | Remoção do `frontend/yarn.lock`. | Dois lockfiles divergentes; o projeto e o Dockerfile usam npm. |
+| V13: `wallet_local_nonnegative_balance`, saldo não negativo só para carteiras `LOCAL`. | A V8 removeu `wallet_nonnegative_balance` para aceitar contas do Open Finance negativas, e desde então o banco aceitava saldo negativo também em carteira local (`UPDATE wallet SET balance = -1` passava). |
 
 | Validação | Resultado |
 | --- | --- |

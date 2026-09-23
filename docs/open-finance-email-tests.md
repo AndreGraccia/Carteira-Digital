@@ -19,7 +19,7 @@ cd frontend
 npm.cmd start
 ```
 
-O backend aplica as migrações (até a V11) sozinho. Rodando o backend em container, o Compose já usa o host SMTP `mailpit`.
+O backend aplica as migrações (até a V13) sozinho. Rodando o backend em container, o Compose já usa o host SMTP `mailpit`.
 
 ## Dados para cadastrar
 

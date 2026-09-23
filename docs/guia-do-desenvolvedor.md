@@ -42,7 +42,7 @@ Frontend React  ----- axios, REACT_APP_API_URL ----->  API Spring Boot  (porta 8
 | Frontend | Telas, rotas, traduções PT/EN. Guarda o token JWT no navegador e manda em cada chamada. | `frontend/` | 3000 |
 | Backend | Regras de negócio, segurança, motor de projeção, sandbox Open Finance. | `backend/` | 8080 |
 | PostgreSQL | Usuários, carteiras, transações, dados importados, respostas sobre recorrências. | container `wallia-db` | 5432 |
-| Flyway | Cria e atualiza as tabelas quando o backend sobe (V1 a V11). | `backend/src/main/resources/db/migration/` | - |
+| Flyway | Cria e atualiza as tabelas quando o backend sobe (V1 a V13). | `backend/src/main/resources/db/migration/` | - |
 | Mailpit | Recebe o código de 8 dígitos da conexão Open Finance. Nenhum e-mail sai da máquina. | container `wallia-mailpit` | 1025 (SMTP) e 8025 (web) |
 | Sandbox Open Finance | Gera contas, cartão, faturas e empréstimo de teste a partir da data de hoje. | `backend/.../service/openfinance/ContractSandboxOpenFinanceGateway.java` | - |
 | Gemini | Só escreve o texto do relatório da tela Análise. Sem chave, uma análise local faz o mesmo papel. | `backend/.../service/InsightsService.java` | - |
@@ -296,14 +296,14 @@ Erros seguem outro caminho: exceções de regra (`WalletRuleException` e parecid
 5. Teste do service em `backend/src/test/java/...`, com Mockito, como `TransactionServiceTest`. Cubra pelo menos o caso de outro usuário tentando acessar.
 6. Confira no Swagger.
 
-### 11.2 Mudança no banco (migração V12)
+### 11.2 Mudança no banco (migração V14)
 
-1. Crie `backend/src/main/resources/db/migration/V12__descricao_curta.sql`. Dois sublinhados depois do número.
+1. Crie `backend/src/main/resources/db/migration/V14__descricao_curta.sql`. Dois sublinhados depois do número.
 2. Escreva SQL que funcione em banco com dados: `ALTER TABLE ... ADD COLUMN ... DEFAULT ...`, nunca `DROP` sem plano.
 3. Coloque restrições no banco quando a regra for de dinheiro (`CHECK (amount > 0)`, como a V7).
 4. Suba o backend. O Flyway aplica sozinho e registra em `flyway_schema_history`.
 5. Atualize a entidade em `domain/entity`. O Hibernate não cria tabela (`ddl-auto: none`); o Flyway é a única fonte do esquema.
-6. Nunca edite V1 a V11. Errou na V12 antes de ela chegar ao `main`? Apague o banco local de teste e rode de novo. Depois de chegar ao `main`, corrija com V13.
+6. Nunca edite V1 a V13. Errou na V14 antes de ela chegar ao `main`? Apague o banco local de teste e rode de novo. Depois de chegar ao `main`, corrija com V15.
 
 ### 11.3 Tela nova com rota e menu
 

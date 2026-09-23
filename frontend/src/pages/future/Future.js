@@ -24,7 +24,7 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import ProjectionChart from '../../components/projection-chart';
-import { EventRow, StatBlock } from '../../components/future-ui';
+import { DailyLimitCard, EventRow, StatBlock } from '../../components/future-ui';
 import { EmptyState, PageHeading, SectionCard, WalletIcon } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money } from '../../utils/wallet';
 import Questions from './Questions';
@@ -144,6 +144,14 @@ export default function Future() {
 
         {overview && (
           <Stack spacing={3}>
+            {/* The one answer people open this page for; the numbers below explain it. */}
+            {overview.spendingLimit && overview.sources.confirmedRecurrences > 0 && (
+              <DailyLimitCard
+                limit={overview.spendingLimit}
+                risk={projection.riskWindows[0]}
+                onWhy={setWhy}
+              />
+            )}
             <Card sx={{ p: { xs: 3, md: 4 } }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
@@ -196,6 +204,8 @@ export default function Future() {
                   amount: money(Math.abs(Number(risk.lowestBalance)), lang),
                 })}{' '}
                 {t('future.riskReason')}
+                {Number(risk.overdraftCostCap) > 0 &&
+                  ` ${t('future.limit.cost', { amount: money(risk.overdraftCostCap, lang) })}`}
               </Alert>
             ))}
             {!projection.riskWindows.length && overview.sources.confirmedRecurrences > 0 && (
@@ -317,7 +327,7 @@ export default function Future() {
               </Grid>
             </Box>
 
-            <Questions recurrences={recurrences} onAnswered={load} />
+            <Questions recurrences={recurrences} dailySpending={overview.dailySpending} onAnswered={load} />
             <Simulator incomes={incomes} hasCard={overview.sources.cards > 0} />
           </Stack>
         )}

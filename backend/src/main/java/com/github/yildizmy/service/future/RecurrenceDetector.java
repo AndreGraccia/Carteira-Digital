@@ -34,7 +34,8 @@ public final class RecurrenceDetector {
     // ponytail: keyword heuristics for the suggestion only; the user's answer is what counts.
     private static final Pattern RENT = Pattern.compile("aluguel|imobiliari|condominio");
     // Card bills and loan instalments already come from card/loan data; counting them here would double them.
-    private static final Pattern COVERED_ELSEWHERE = Pattern.compile("fatura|parcela emprestimo|emprestimo pessoal|financiamento");
+    private static final Pattern COVERED_ELSEWHERE = Pattern.compile(
+            "fatura|pagamento (do |de )?cartao|cartao de credito|emprestimo|financiamento|consorcio");
     private static final Pattern NOISE = Pattern.compile("[^a-z0-9 ]");
 
     private RecurrenceDetector() {

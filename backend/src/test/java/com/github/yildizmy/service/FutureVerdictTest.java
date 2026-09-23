@@ -24,8 +24,14 @@ class FutureVerdictTest {
     }
 
     @Test
-    void daysThatWereAlreadyNegativeKeepItTight() {
-        assertEquals("TIGHT", FutureService.verdict(result(summary("-50", 2), summary("-60", 2)), limit(null)));
+    void deepeningAnExistingHoleIsARiskEvenWhenNegativeDaysCannotGrow() {
+        // The whole horizon was already negative: days stay 91, the hole gets deeper.
+        assertEquals("RISK", FutureService.verdict(result(summary("-50", 91), summary("-10050", 91)), limit(null)));
+    }
+
+    @Test
+    void negativeDaysThatDoNotChangeKeepItTight() {
+        assertEquals("TIGHT", FutureService.verdict(result(summary("-50", 2), summary("-50", 2)), limit(null)));
     }
 
     @Test

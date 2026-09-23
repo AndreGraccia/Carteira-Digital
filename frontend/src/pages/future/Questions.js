@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Button, Chip, Collapse, Stack, Typography } from '@mui/material';
+import { Box, Button, Chip, Collapse, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useSnackbar } from 'notistack';
 import HttpService from '../../services/HttpService';
 import { SectionCard, WalletIcon } from '../../components/wallet-ui';
-import { dayLabel, errorKey, money } from '../../utils/wallet';
+import { dayLabel, errorKey, money, parseAmount } from '../../utils/wallet';
 
 // Alternative answer offered next to the suggestion ("é outra renda", "é outra conta fixa").
 const ALTERNATIVE = {
@@ -135,15 +135,149 @@ function Question({ item, onAnswered }) {
 }
 Question.propTypes = { item: PropTypes.object.isRequired, onAnswered: PropTypes.func.isRequired };
 
-export default function Questions({ recurrences, onAnswered }) {
+/**
+ * Everyday spending asked like a recurrence: the estimate and where the money went, then the
+ * user's answer. The user may also type their own daily value.
+ */
+function DailySpendingQuestion({ data, onAnswered }) {
+  const { t, i18n } = useTranslation();
+  const { enqueueSnackbar } = useSnackbar();
+  const lang = i18n.language;
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(!data.suggestedDaily && data.status === 'PENDING');
+  const [value, setValue] = useState('');
+  const [open, setOpen] = useState(false);
+  const cents = parseAmount(value);
+  const invalid = value !== '' && (cents === null || cents > 10000000);
+  const pending = data.status === 'PENDING';
+
+  const answer = async (status, dailyAmount) => {
+    setBusy(true);
+    try {
+      await HttpService.putWithAuth('/future/daily-spending', { status, dailyAmount });
+      enqueueSnackbar(t('future.saved'), { variant: 'success' });
+      setEditing(false);
+      onAnswered();
+    } catch (failure) {
+      enqueueSnackbar(t(errorKey(failure)), { variant: 'error' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  let title = t('future.daily.question', { amount: money(data.suggestedDaily, lang) });
+  if (!data.suggestedDaily) title = t('future.daily.noHistory');
+  if (data.status === 'CONFIRMED') title = t('future.daily.confirmed', { amount: money(data.appliedDaily, lang) });
+  if (data.status === 'REJECTED') title = t('future.daily.rejected');
+
+  return (
+    <Box sx={{ px: 3, py: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between">
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="overline" color="text.secondary" component="p">
+            {t('future.daily.title')}
+          </Typography>
+          <Typography variant="subtitle1" component="h3">
+            {title}
+          </Typography>
+          {data.suggestedDaily && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {t('future.daily.evidence', {
+                total: money(data.total, lang),
+                times: data.movements,
+                days: data.days,
+              })}
+            </Typography>
+          )}
+        </Box>
+        <Stack direction="row" flexWrap="wrap" alignItems="flex-start" sx={{ flexShrink: 0, gap: 1 }}>
+          {pending && !editing && (
+            <>
+              <Button variant="contained" disabled={busy} onClick={() => answer('CONFIRMED', null)}>
+                {t('future.daily.yes')}
+              </Button>
+              <Button variant="outlined" disabled={busy} onClick={() => setEditing(true)}>
+                {t('future.daily.own')}
+              </Button>
+              <Button color="inherit" disabled={busy} onClick={() => answer('REJECTED', null)}>
+                {t('future.daily.no')}
+              </Button>
+            </>
+          )}
+          {!pending && (
+            <Button color="inherit" disabled={busy} onClick={() => answer('PENDING', null)}>
+              {t('future.answers.undo')}
+            </Button>
+          )}
+        </Stack>
+      </Stack>
+      {editing && (
+        <Stack
+          component="form"
+          direction="row"
+          alignItems="flex-start"
+          sx={{ mt: 2, gap: 1 }}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (cents !== null && !invalid) answer('CONFIRMED', cents / 100);
+          }}
+        >
+          <TextField
+            size="small"
+            label={t('future.daily.ownLabel')}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            inputProps={{ inputMode: 'decimal', 'aria-invalid': invalid }}
+            error={invalid}
+            helperText={invalid ? t('app.errors.INVALID_AMOUNT') : ' '}
+            sx={{ width: 180 }}
+          />
+          <Button type="submit" variant="contained" disabled={busy || cents === null || invalid}>
+            {t('future.daily.save')}
+          </Button>
+        </Stack>
+      )}
+      {data.top.length > 0 && (
+        <>
+          <Button
+            size="small"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            startIcon={<WalletIcon name="history" sx={{ fontSize: 18 }} />}
+            sx={{ mt: 1, px: 0, color: 'text.secondary' }}
+          >
+            {t(open ? 'future.hideHistory' : 'future.daily.where')}
+          </Button>
+          <Collapse in={open} unmountOnExit>
+            <Box component="ul" sx={{ m: 0, mt: 1, pl: 2.5 }}>
+              {data.top.map((item) => (
+                <Typography component="li" variant="body2" key={item.counterparty} sx={{ py: 0.25 }}>
+                  {t('future.daily.whereItem', {
+                    name: item.counterparty,
+                    amount: money(item.total, lang),
+                    times: item.count,
+                  })}
+                </Typography>
+              ))}
+            </Box>
+          </Collapse>
+        </>
+      )}
+    </Box>
+  );
+}
+DailySpendingQuestion.propTypes = { data: PropTypes.object.isRequired, onAnswered: PropTypes.func.isRequired };
+
+export default function Questions({ recurrences, dailySpending, onAnswered }) {
   const { t } = useTranslation();
   const pending = recurrences.filter((item) => item.status === 'PENDING');
   const answered = recurrences.filter((item) => item.status !== 'PENDING');
   return (
     <SectionCard title={t('future.questionsTitle')}>
       <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 2 }}>
-        {pending.length ? t('future.questionsHelp') : t('future.noQuestions')}
+        {pending.length || dailySpending?.status === 'PENDING' ? t('future.questionsHelp') : t('future.noQuestions')}
       </Typography>
+      {dailySpending && <DailySpendingQuestion data={dailySpending} onAnswered={onAnswered} />}
       {pending.map((item) => (
         <Question key={item.key} item={item} onAnswered={onAnswered} />
       ))}
@@ -165,4 +299,8 @@ export default function Questions({ recurrences, onAnswered }) {
     </SectionCard>
   );
 }
-Questions.propTypes = { recurrences: PropTypes.array.isRequired, onAnswered: PropTypes.func.isRequired };
+Questions.propTypes = {
+  recurrences: PropTypes.array.isRequired,
+  dailySpending: PropTypes.object,
+  onAnswered: PropTypes.func.isRequired,
+};

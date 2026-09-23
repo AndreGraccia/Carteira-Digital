@@ -37,12 +37,13 @@ public final class CashEventPlanner {
     public static final String DAILY_SPENDING = "DAILY_SPENDING";
 
     /**
-     * One estimated outflow per day, today included, for the everyday spending the user confirmed.
+     * One estimated outflow per day, from tomorrow on, for the everyday spending the user confirmed.
+     * Today is left out because the current balance already reflects what was spent today.
      */
     public static List<CashEvent> dailySpending(BigDecimal daily, LocalDate today, LocalDate end, String origin) {
         List<CashEvent> events = new ArrayList<>();
         if (daily == null || daily.signum() <= 0) return events;
-        for (LocalDate day = today; !day.isAfter(end); day = day.plusDays(1)) {
+        for (LocalDate day = today.plusDays(1); !day.isAfter(end); day = day.plusDays(1)) {
             events.add(new CashEvent(day, daily.negate(), "Gastos do dia a dia", Kind.DAILY_SPENDING,
                     DAILY_SPENDING, Certainty.ESTIMATED, origin, "daily-spending"));
         }

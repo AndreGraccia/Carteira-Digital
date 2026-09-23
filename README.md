@@ -20,17 +20,23 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 1. **Dados vêm do Open Finance.** Contas, saldos, transações, cartões, faturas, parcelas e empréstimos (sandbox local com estrutura próxima das APIs reais).
 2. **O sistema pergunta em vez de supor.** Uma entrada de R$ 4.200 da Concentrix S.A. todo dia 5 vira a pergunta "isso é seu salário?", com o histórico que levou à suspeita. Só o que o usuário confirma entra nas contas.
-3. **Java calcula, a IA explica, o usuário decide.** O motor de projeção é determinístico e testado; nenhum valor é inventado por modelo de linguagem. Decisão registrada em [ADR 0001](docs/adr/0001-motor-futuro-deterministico.md).
+3. **Java calcula, a IA explica, o usuário decide.** O motor de projeção é determinístico e testado; nenhum valor é inventado por modelo de linguagem. Decisão registrada em [ADR 0001](docs/adr/0001-motor-futuro-deterministico.md) e [ADR 0002](docs/adr/0002-limite-diario-e-perguntas.md).
 
 ## Funcionalidades
 
 **Futuro**
 
+- **Limite diário:** quanto dá para gastar por dia até a próxima renda sem nenhum dia negativo, ou quanto falta quando só as contas já não cabem. Com o ritmo do dia a dia confirmado, diz quanto sobra ou quanto cortar por dia.
+- **Gastos do dia a dia como pergunta:** a média de mercado, transporte e farmácia dos últimos 90 dias, com a evidência. Só entra na projeção se o usuário confirmar (ou informar o próprio valor).
 - Saldo agora, quanto já tem destino (separando confirmado de estimado) e margem livre.
 - Saldo projetado dia a dia em 30, 60 ou 90 dias, com o menor saldo marcado.
-- Alerta de janela negativa ("entre 03/10 e 04/10 seu saldo pode ficar em -R$ 324,87") e "ver por quê", que lista as contas que causam o buraco e a entrada que o fecha.
+- Alerta de janela negativa ("entre 03/10 e 04/10 seu saldo pode ficar em -R$ 324,87") e "ver por quê", que lista as contas que causam o buraco e a entrada que o fecha, com o custo máximo do cheque especial no período (teto legal de 8% ao mês).
 - Perguntas rápidas sobre recorrências detectadas, com evidência (valor, dia, vezes, conta de origem) e resposta em um toque.
 - Modo Futuro: simula compra à vista ou parcelada, guardar todo mês ou perder uma renda, sem gravar nada.
+
+**Pergunte ao Wall.ia**
+
+- "Posso comprar um notebook de R$ 4.000 em 10x?", "Quanto posso gastar por dia?", "Por que meu saldo fica negativo?". A resposta vem do motor, com os números e a origem. Nenhum modelo de linguagem define valores, e pergunta fora do que o motor sabe responder recebe "ainda não sei".
 
 **Cartões e dívidas**
 
@@ -49,13 +55,14 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 ## Próximos passos
 
-Em ordem de valor para o usuário:
+A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Em ordem:
 
-1. **Assistente somente leitura.** Chat que chama o motor como ferramenta ("posso comprar um notebook de R$ 4.000?") e responde com os números do backend. Não movimenta dinheiro. Tela de privacidade dizendo o que ele vê e o que não vê.
-2. **Ledger de dupla entrada.** Todo débito com crédito correspondente, carteira encerrada sem apagar histórico, correção por estorno.
-3. **Papéis administrativos.** Usuário, suporte, operações, auditoria e administrador, com trilha de auditoria. Administrador não movimenta dinheiro de cliente.
-4. **Metas** entrando na projeção como compromisso.
-5. **Categorias controladas** para gastos variáveis (mercado, transporte), hoje fora da projeção.
+1. **Gasto variável no cartão**, estimado como o dia a dia, para as faturas futuras deixarem de ser otimistas.
+2. **Plano de saída do buraco:** para cada janela negativa, até três ações calculadas (usar a reserva, reduzir o ritmo, adiar uma conta flexível).
+3. **Alertas proativos** por e-mail quando surge uma janela negativa nova.
+4. **Medir o Pergunte ao Wall.ia** antes de pensar em um classificador com LLM.
+5. **Metas** entrando na projeção como compromisso.
+6. **Ledger de dupla entrada** e **papéis administrativos** com trilha de auditoria, antes de qualquer dinheiro real.
 
 ## Tecnologias
 
@@ -125,7 +132,7 @@ Carteira-Digital/
 │       ├── pages/             # future/, commitments/, open-finance/...
 │       ├── services/
 │       └── theme/
-├── docs/                      # guia do desenvolvedor, pesquisa, ADR, roteiros de teste
+├── docs/                      # guia do desenvolvedor, estratégia, pesquisa, ADRs, roteiros de teste
 ├── docker-compose.yml
 ├── docker-compose.prod.yml
 ├── .env.example.properties

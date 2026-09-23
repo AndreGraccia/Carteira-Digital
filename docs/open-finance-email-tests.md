@@ -19,7 +19,7 @@ cd frontend
 npm.cmd start
 ```
 
-O backend aplica as migrações (até a V13) sozinho. Rodando o backend em container, o Compose já usa o host SMTP `mailpit`.
+O backend aplica as migrações (todas as da pasta `db/migration`) sozinho. Rodando o backend em container, o Compose já usa o host SMTP `mailpit`.
 
 ## Dados para cadastrar
 
@@ -44,8 +44,11 @@ Esses dados são só locais. Nenhum código é fixo.
 5. Sincronize de novo: devem aparecer 0 novas movimentações.
 6. Abra **Futuro**. Devem aparecer 8 perguntas (salário da Concentrix S.A., aluguel, escola, luz, internet, academia, Netflix e uma renda eventual de Marina Souza).
 7. Confirme todas as sugestões. A projeção passa a mostrar saldo abaixo de zero entre 03/10 e 04/10, com mínimo de -R$ 324,87, e o botão "ver por quê" lista empréstimo, aluguel e fatura como causa e o salário do dia 5 como alívio.
-8. Repita com a segunda conta: ela recebe os próprios dados, sem compartilhamento com a primeira.
-9. Revogue a conexão. Reconectar exige outro código.
+8. No topo do Futuro, o cartão do limite diário diz "Faltam R$ 324,87 mesmo sem gastar nada", com o dia 03/10 como o mais apertado e o custo máximo do cheque especial (até R$ 1,67).
+9. Nas perguntas aparece "Gastos do dia a dia": R$ 28,46 por dia, R$ 2.561,75 em 12 compras nos últimos 90 dias (Mercado Bairro). Confirme. O ponto mais baixo passa a -R$ 637,93 em 04/10 e o custo máximo, a R$ 3,20.
+10. Abra **Perguntar** e toque nas sugestões. "Posso comprar um notebook de R$ 4.000 em 10x?" responde "Melhor não agora", com mais dias abaixo de zero e a parcela de R$ 400 no Aurora Card. "Qual a previsão do tempo?" responde que ainda não sabe.
+11. Repita com a segunda conta: ela recebe os próprios dados, sem compartilhamento com a primeira.
+12. Revogue a conexão. Reconectar exige outro código.
 
 Números conferidos em 23/09/2026 com o roteiro de API contra o backend local. A massa é gerada a partir da data atual (`Clock`), então meses e valores do buraco mudam conforme o dia em que o teste roda. O cenário de 22/09/2026 está travado em `ContractSandboxOpenFinanceGatewayTest`.
 

@@ -92,6 +92,7 @@ export function errorKey(error) {
       'RECURRENCE_NOT_FOUND',
       'RECURRENCE_CATEGORY_MISMATCH',
       'SCENARIO_NO_CONFIRMED_INCOME',
+      'DAILY_SPENDING_NO_HISTORY',
       'INVALID_HORIZON',
     ].includes(code)
   )

@@ -82,13 +82,25 @@ class DailySpendingAndLimitTest {
 
         SpendingLimit.Limit limit = SpendingLimit.compute(TODAY, new BigDecimal("1000.00"), events);
 
-        // 400 left after rent, spread over the 10 days before the salary.
-        assertEquals(new BigDecimal("40.00"), limit.daily());
+        // 400 left after rent, spread over the 9 spending days (tomorrow to the day before the salary).
+        assertEquals(new BigDecimal("44.44"), limit.daily());
         assertEquals(TODAY.plusDays(10), limit.until());
         assertTrue(limit.untilIncome());
-        assertEquals(10, limit.days());
+        assertEquals(9, limit.days());
         assertEquals(TODAY.plusDays(9), limit.bindingDate());
         assertEquals(0, limit.shortfall().signum());
+    }
+
+    @Test
+    void theShortfallPointsToTheDayTheMoneyRunsOutTheMost() {
+        // -900 on day 2, -1,000 on day 20: the card must say "1,000 short" and point to day 20.
+        SpendingLimit.Limit limit = SpendingLimit.compute(TODAY, new BigDecimal("100.00"), List.of(
+                event(TODAY.plusDays(2), "-1000.00"),
+                event(TODAY.plusDays(20), "-100.00"),
+                event(TODAY.plusDays(25), "4000.00")));
+
+        assertEquals(new BigDecimal("1000.00"), limit.shortfall());
+        assertEquals(TODAY.plusDays(20), limit.bindingDate());
     }
 
     @Test
@@ -112,8 +124,8 @@ class DailySpendingAndLimitTest {
 
         SpendingLimit.Limit limit = SpendingLimit.compute(TODAY, new BigDecimal("500.00"), events);
 
-        // After tomorrow 50 are left and then 10 more leave: 40 for 20 days.
-        assertEquals(new BigDecimal("2.00"), limit.daily());
+        // After tomorrow 50 are left and then 10 more leave: 40 for 19 spending days.
+        assertEquals(new BigDecimal("2.10"), limit.daily());
         assertEquals(TODAY.plusDays(19), limit.bindingDate());
     }
 
@@ -122,7 +134,8 @@ class DailySpendingAndLimitTest {
         SpendingLimit.Limit limit = SpendingLimit.compute(TODAY, new BigDecimal("-50.00"),
                 List.of(event(TODAY.plusDays(5), "2000.00")));
 
-        assertEquals(new BigDecimal("0.00").compareTo(limit.daily()), 0);
+        assertEquals(0, limit.daily().signum());
+        assertEquals(new BigDecimal("50.00"), limit.shortfall());
         assertEquals(TODAY, limit.bindingDate());
     }
 
@@ -132,14 +145,16 @@ class DailySpendingAndLimitTest {
 
         assertFalse(limit.untilIncome());
         assertEquals(TODAY.plusDays(30), limit.until());
-        assertEquals(new BigDecimal("10.00"), limit.daily());
+        assertEquals(new BigDecimal("10.34"), limit.daily());
     }
 
     @Test
     void confirmedEverydaySpendingBecomesOneEstimatedEventPerDay() {
         List<CashEvent> events = CashEventPlanner.dailySpending(new BigDecimal("25.00"), TODAY, TODAY.plusDays(2), "média");
 
-        assertEquals(3, events.size());
+        // Tomorrow and the day after: today's spending is already in the balance.
+        assertEquals(2, events.size());
+        assertEquals(TODAY.plusDays(1), events.get(0).date());
         assertTrue(events.stream().allMatch(item -> item.certainty() == Certainty.ESTIMATED
                 && item.kind() == Kind.DAILY_SPENDING
                 && item.amount().compareTo(new BigDecimal("-25.00")) == 0));

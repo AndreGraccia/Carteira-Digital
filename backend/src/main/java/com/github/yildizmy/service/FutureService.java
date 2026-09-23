@@ -102,7 +102,8 @@ public class FutureService {
         LocalDate committedUntil = context.today().plusDays(COMMITTED_WINDOW_DAYS);
         SpendingLimit.Limit limit = SpendingLimit.compute(context.today(), context.balance(),
                 context.planFixed(context.today().plusDays(SpendingLimit.MAX_DAYS)));
-        List<CashEvent> committedEvents = context.plan(committedUntil).stream()
+        // "Already has a destination" is bills, invoices and instalments; future groceries are not committed yet.
+        List<CashEvent> committedEvents = context.planFixed(committedUntil).stream()
                 .filter(event -> !event.isInflow())
                 .sorted(Comparator.comparing(CashEvent::date))
                 .toList();
@@ -164,9 +165,11 @@ public class FutureService {
     private FutureResponses.DailySpending dailySpending(Context context) {
         RecurrenceDecision decision = context.decisions().get(DAILY_SPENDING_KEY);
         Optional<DailySpending.Estimate> estimate = context.dailyEstimate();
-        if (estimate.isEmpty() && decision == null) return null;
+        String status = decision == null ? "PENDING" : decision.getStatus().name();
+        // Confirmed "use the estimate", but there is no estimate any more (e.g. 90 days without movements).
+        if ("CONFIRMED".equals(status) && context.dailyAmount() == null) status = "PENDING";
         return new FutureResponses.DailySpending(
-                decision == null ? "PENDING" : decision.getStatus().name(),
+                status,
                 estimate.map(DailySpending.Estimate::daily).orElse(null),
                 context.dailyAmount(),
                 decision == null ? null : decision.getAmount(),
@@ -316,6 +319,9 @@ public class FutureService {
                 if (parsed.amount() == null) {
                     yield answer(intent, parsed, method, "NEED_AMOUNT", overview, null, null, null, null, null, null, null);
                 }
+                if (parsed.installments() < 1 || parsed.installments() > QuestionParser.MAX_INSTALLMENTS) {
+                    yield answer(intent, parsed, method, "INVALID_INSTALLMENTS", overview, null, null, null, null, null, null, null);
+                }
                 FutureResponses.ScenarioResult result = simulate(userId, new FutureRequests.Scenario(
                         "PURCHASE", parsed.amount(), parsed.installments(), method, null, null, null, null, "Pergunta"));
                 yield answer(intent, parsed, method, verdict(result, overview.spendingLimit()), overview,
@@ -335,13 +341,15 @@ public class FutureService {
     }
 
     /**
-     * RISK when the purchase adds negative days; TIGHT when it adds none but leaves the lowest point below
-     * a week of everyday spending (or keeps days that were already negative); SAFE otherwise.
+     * RISK when the purchase adds negative days or deepens a hole that already exists; TIGHT when it leaves
+     * the lowest point below a week of everyday spending (or keeps existing negative days as they are); SAFE otherwise.
      */
     static String verdict(FutureResponses.ScenarioResult result, FutureResponses.SpendingLimit limit) {
         FutureResponses.ScenarioSummary before = result.baseline();
         FutureResponses.ScenarioSummary after = result.scenario();
         if (after.negativeDays() > before.negativeDays()) return "RISK";
+        // Negative days saturate when the whole horizon is already below zero: a deeper hole is still a risk.
+        if (before.negativeDays() > 0 && after.minBalance90().compareTo(before.minBalance90()) < 0) return "RISK";
         BigDecimal weekBuffer = limit == null || limit.pace() == null
                 ? BigDecimal.ZERO
                 : limit.pace().multiply(BigDecimal.valueOf(7));

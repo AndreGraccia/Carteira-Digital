@@ -32,6 +32,7 @@ export default function DashboardLayout() {
   const items = [
     { path: '/', label: 'navigation.dashboard', icon: 'home', mobile: true },
     { path: '/future', label: 'navigation.future', icon: 'future', mobile: true },
+    { path: '/ask', label: 'navigation.ask', icon: 'ask' },
     { path: '/wallets', label: 'navigation.wallets', icon: 'wallet', mobile: true },
     { path: '/commitments', label: 'navigation.commitments', icon: 'card' },
     { path: '/transfers', label: 'navigation.transfers', icon: 'send', mobile: true },

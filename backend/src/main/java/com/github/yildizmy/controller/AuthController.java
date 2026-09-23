@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.core.AuthenticationException;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -34,15 +33,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
         String remoteAddress = servletRequest.getRemoteAddr();
-        authenticationRateLimiter.check(request.getUsername(), remoteAddress);
-        try {
-            final JwtResponse response = authService.login(request);
-            authenticationRateLimiter.succeeded(request.getUsername(), remoteAddress);
-            return ResponseEntity.ok(response);
-        } catch (AuthenticationException exception) {
-            authenticationRateLimiter.failed(request.getUsername(), remoteAddress);
-            throw exception;
-        }
+        authenticationRateLimiter.acquire(request.getUsername(), remoteAddress);
+        final JwtResponse response = authService.login(request);
+        authenticationRateLimiter.succeeded(request.getUsername(), remoteAddress);
+        return ResponseEntity.ok(response);
     }
 
     /**

@@ -20,7 +20,7 @@ export default function ThemeProvider({ children }) {
   const themeOptions = useMemo(
     () => ({
       palette,
-      shape: { borderRadius: 14 },
+      shape: { borderRadius: 12 },
       typography,
       shadows: shadows(),
       customShadows: customShadows(),
@@ -34,7 +34,7 @@ export default function ThemeProvider({ children }) {
     {
       components: {
         ...componentsOverride(baseTheme),
-        MuiDialog: { styleOverrides: { paper: { borderRadius: 24 } } },
+        MuiDialog: { styleOverrides: { paper: { borderRadius: 20, backgroundColor: baseTheme.palette.background.raised } } },
         MuiTabs: { styleOverrides: { indicator: { height: 3, borderRadius: 3 } } },
         MuiTab: { styleOverrides: { root: { textTransform: 'none', minHeight: 60 } } },
       },

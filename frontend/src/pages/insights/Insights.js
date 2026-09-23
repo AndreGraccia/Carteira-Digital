@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
+import { alpha } from '@mui/material/styles';
 import { Helmet } from 'react-helmet-async';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
@@ -154,8 +155,10 @@ export default function Insights() {
                 placeItems: 'center',
                 mx: 'auto',
                 mb: 2.5,
-                color: '#fff',
-                background: 'linear-gradient(145deg, #5755D9, #007AFF)',
+                color: 'primary.main',
+                bgcolor: 'background.raised',
+                border: '1px solid',
+                borderColor: 'divider',
               }}
             >
               <WalletIcon name="insights" sx={{ fontSize: 30 }} />
@@ -172,8 +175,8 @@ export default function Insights() {
             <Card
               sx={{
                 p: { xs: 3, md: 4 },
-                color: 'white',
-                background: 'linear-gradient(135deg, #1C1C1E 0%, #34343A 62%, #244E73 100%)',
+                background: (theme) =>
+                  `radial-gradient(120% 120% at 100% 0%, ${alpha(theme.palette.brand.horizon, 0.14)} 0%, transparent 50%), ${theme.palette.background.paper}`,
               }}
             >
               <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2}>
@@ -181,12 +184,12 @@ export default function Insights() {
                   <Chip
                     size="small"
                     label={t(`insights.provider.${report.provider}`)}
-                    sx={{ mb: 2, color: 'white', bgcolor: 'rgba(255,255,255,.14)' }}
+                    sx={{ mb: 2, bgcolor: 'background.raised' }}
                   />
                   <Typography variant="h4">{report.headline}</Typography>
-                  <Typography sx={{ mt: 1, maxWidth: 700, color: 'rgba(255,255,255,.72)' }}>{report.summary}</Typography>
+                  <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 700 }}>{report.summary}</Typography>
                 </Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,.6)', whiteSpace: 'nowrap' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                   {t('insights.generatedAt', {
                     date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'short', timeStyle: 'short' }).format(
                       new Date(report.generatedAt)
@@ -232,15 +235,15 @@ export default function Insights() {
                           </Typography>
                         </Stack>
                         <Stack spacing={0.5}>
-                          <Box sx={{ height: 7, width: `${(Number(flow.inflow) / maxFlow) * 100}%`, bgcolor: '#34C759', borderRadius: 4 }} />
-                          <Box sx={{ height: 7, width: `${(Number(flow.outflow) / maxFlow) * 100}%`, bgcolor: '#FF9F0A', borderRadius: 4 }} />
+                          <Box sx={{ height: 7, width: `${(Number(flow.inflow) / maxFlow) * 100}%`, bgcolor: 'success.main', borderRadius: 4 }} />
+                          <Box sx={{ height: 7, width: `${(Number(flow.outflow) / maxFlow) * 100}%`, bgcolor: 'warning.main', borderRadius: 4 }} />
                         </Stack>
                       </Box>
                     ))}
                   </Stack>
                   <Stack direction="row" spacing={2} sx={{ mt: 2.5 }}>
                     <Typography variant="caption" color="text.secondary">● {t('insights.metrics.inflow')}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ '&::first-letter': { color: '#FF9F0A' } }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ '&::first-letter': { color: 'warning.main' } }}>
                       ● {t('insights.metrics.outflow')}
                     </Typography>
                   </Stack>
@@ -335,11 +338,11 @@ export default function Insights() {
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Box sx={{ p: { xs: 3, sm: 4 }, borderRadius: '24px', bgcolor: '#F0F5FF' }}>
+                  <Box sx={{ p: { xs: 3, sm: 4 }, borderRadius: '20px', bgcolor: 'background.neutral' }}>
                     <Typography variant="body2" color="text.secondary">
                       {t('insights.opportunity.estimatedValue')}
                     </Typography>
-                    <Typography variant="h3" sx={{ mt: 1, color: '#0757A6', overflowWrap: 'anywhere' }}>
+                    <Typography variant="h3" sx={{ mt: 1, color: 'secondary.main', overflowWrap: 'anywhere' }}>
                       {money(opportunity.futureValue, i18n.language)}
                     </Typography>
                     <Stack direction="row" spacing={3} sx={{ mt: 3 }}>

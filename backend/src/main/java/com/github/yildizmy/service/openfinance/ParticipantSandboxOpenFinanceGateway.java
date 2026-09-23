@@ -139,7 +139,7 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
                     .header("Authorization", "Bearer " + accessToken)
                     .header("x-fapi-interaction-id", UUID.randomUUID().toString())
                     .header("x-fapi-auth-date", DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(clock)))
-                    .header("x-customer-user-agent", "e-wallet-academic-open-finance/1.0")
+                    .header("x-customer-user-agent", "wallia-academic-open-finance/1.0")
                     .GET()
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

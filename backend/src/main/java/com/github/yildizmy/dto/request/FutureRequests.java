@@ -1,0 +1,45 @@
+package com.github.yildizmy.dto.request;
+
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
+
+public final class FutureRequests {
+
+    private FutureRequests() {
+    }
+
+    /**
+     * @param status PENDING removes the answer and turns the pattern back into a question
+     */
+    public record RecurrenceDecision(
+            @NotBlank @Size(max = 120) String key,
+            @NotNull @Pattern(regexp = "^(CONFIRMED|REJECTED|PENDING)$") String status,
+            @Pattern(regexp = "^(SALARY|OTHER_INCOME|RENT|SUBSCRIPTION|BILL|OTHER)$") String category
+    ) {
+    }
+
+    /**
+     * One hypothetical decision for Modo Futuro. Fields that do not apply to the type are ignored.
+     */
+    public record Scenario(
+            @NotNull @Pattern(regexp = "^(PURCHASE|SAVINGS|INCOME_LOSS)$") String type,
+            @DecimalMin("0.01") @DecimalMax("9999999999.99") @Digits(integer = 10, fraction = 2) BigDecimal amount,
+            @Min(1) @Max(24) Integer installments,
+            @Pattern(regexp = "^(CASH|CARD)$") String method,
+            Long cardId,
+            @Min(1) @Max(31) Integer dayOfMonth,
+            @Min(1) @Max(12) Integer months,
+            @Size(max = 120) String incomeKey,
+            @Size(max = 60) String label
+    ) {
+    }
+}

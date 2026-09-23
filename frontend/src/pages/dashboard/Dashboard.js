@@ -1,14 +1,91 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Card, Container, Grid, IconButton, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, Container, Grid, IconButton, Stack, Typography } from '@mui/material';
 import { Helmet } from 'react-helmet-async';
+import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { useWallets } from '../../context/WalletContext';
-import { ActivityList, DataState, EmptyState, PageHeading, SectionCard, WalletIcon } from '../../components/wallet-ui';
+import {
+  ActivityList,
+  DataState,
+  EmptyState,
+  IconTile,
+  PageHeading,
+  SectionCard,
+  WalletIcon,
+} from '../../components/wallet-ui';
 import WalletCard from '../../components/wallet-card';
 import TransactionDetail from '../../components/transaction-detail';
 import AuthService from '../../services/AuthService';
-import { money, totalsFor } from '../../utils/wallet';
+import HttpService from '../../services/HttpService';
+import { dayLabel, money, totalsFor } from '../../utils/wallet';
+
+/** "Próximos 30 dias": the Futuro page condensed. Quietly absent if the engine is unavailable. */
+function FutureSummary({ hidden }) {
+  const { t, i18n } = useTranslation();
+  const [overview, setOverview] = useState(null);
+  useEffect(() => {
+    let active = true;
+    HttpService.getWithAuth('/future/overview?horizon=30')
+      .then((data) => active && setOverview(data))
+      .catch(() => active && setOverview(null));
+    return () => {
+      active = false;
+    };
+  }, []);
+  if (!overview) return null;
+  const risk = overview.projection.riskWindows[0];
+  const mask = (value) => (hidden ? '••••' : money(value, i18n.language));
+  return (
+    <Card sx={{ p: 3, mb: 3 }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+        <Typography variant="overline" color="text.secondary">
+          {t('future.horizon', { days: 30 })}
+        </Typography>
+        <Button component={RouterLink} to="/future" size="small" endIcon={<WalletIcon name="arrow" />}>
+          {t('navigation.future')}
+        </Button>
+      </Stack>
+      <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary">
+            {t('future.committed')}
+          </Typography>
+          <Typography variant="h5" component="p" sx={{ fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>
+            {mask(overview.committed.total)}
+          </Typography>
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" color="text.secondary">
+            {t('future.free')}
+          </Typography>
+          <Typography
+            variant="h5"
+            component="p"
+            sx={{ fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere', color: 'primary.main' }}
+          >
+            {mask(overview.freeAfterCommitments)}
+          </Typography>
+        </Box>
+      </Stack>
+      {risk && (
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          {t('future.risk', {
+            start: dayLabel(risk.start, i18n.language),
+            end: dayLabel(risk.end, i18n.language),
+            amount: hidden ? '••••' : money(Math.abs(Number(risk.lowestBalance)), i18n.language),
+          })}
+        </Alert>
+      )}
+      {!risk && overview.sources.pendingQuestions > 0 && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          {t('future.needsAnswers')}
+        </Alert>
+      )}
+    </Card>
+  );
+}
+FutureSummary.propTypes = { hidden: PropTypes.bool };
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -133,6 +210,7 @@ export default function Dashboard() {
               </SectionCard>
             </Grid>
             <Grid item xs={12} md={7}>
+              <FutureSummary hidden={hidden} />
               <SectionCard
                 title={t('wallet.statement.recent')}
                 action={
@@ -143,29 +221,15 @@ export default function Dashboard() {
               >
                 <ActivityList transactions={transactions.slice(0, 6)} wallets={wallets} onSelect={setDetail} />
               </SectionCard>
-              <Card
-                sx={{
-                  mt: 3,
-                  p: 3,
-                  color: 'white',
-                  background: 'linear-gradient(135deg, #252527, #34343A 60%, #244E73)',
-                  boxShadow: 'none',
-                  border: 0,
-                }}
-              >
+              <Card sx={{ mt: 3, p: 3 }}>
                 <Stack direction="row" spacing={2}>
-                  <WalletIcon name="insights" />
+                  <IconTile name="insights" size={44} />
                   <Box>
                     <Typography variant="subtitle2">{t('insights.dashboardTitle')}</Typography>
-                    <Typography variant="body2" sx={{ mt: 0.5, mb: 1, color: 'rgba(255,255,255,.7)' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1 }}>
                       {t('insights.dashboardDescription')}
                     </Typography>
-                    <Button
-                      component={RouterLink}
-                      to="/insights"
-                      size="small"
-                      sx={{ p: 0, minHeight: 32, color: 'white' }}
-                    >
+                    <Button component={RouterLink} to="/insights" size="small" sx={{ p: 0, minHeight: 32 }}>
                       {t('insights.dashboardAction')}
                     </Button>
                   </Box>

@@ -1,16 +1,15 @@
-name: e-wallet
+name: wallia
 services:
   frontend:
-    container_name: e-wallet-frontend
+    container_name: wallia-frontend
     build: ./frontend
     restart: always
-    env_file: ./.env.properties
     ports:
-      - '3000:3000'
+      - '${frontend_port:-3000}:3000'
     depends_on:
       - backend
     networks:
-      - ewallet_network
+      - wallia_network
     logging:
       driver: 'json-file'
       options:
@@ -18,7 +17,7 @@ services:
         max-file: '5'
 
   backend:
-    container_name: e-wallet-backend
+    container_name: wallia-backend
     build: ./backend
     env_file: ./.env.properties
     restart: always
@@ -27,12 +26,14 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${db_name}
       SPRING_DATASOURCE_USERNAME: ${db_username}
       SPRING_DATASOURCE_PASSWORD: ${db_password}
+      # nginx in the frontend container proxies to backend:8080, whatever backend_port says.
+      SERVER_PORT: 8080
     ports:
-      - '8080:8080'
+      - '${backend_port:-8080}:8080'
     depends_on:
       - db
     networks:
-      - ewallet_network
+      - wallia_network
     logging:
       driver: 'json-file'
       options:
@@ -40,5 +41,5 @@ services:
         max-file: '5'
 
 networks:
-  ewallet_network:
+  wallia_network:
     driver: bridge

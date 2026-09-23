@@ -31,6 +31,12 @@ public class JwtUtils {
     @Value("${app.security.jwtExpirationMs}")
     private long jwtExpirationMs;
 
+    /** Fails at startup instead of on the first login when jwt_secret is missing or malformed. */
+    @jakarta.annotation.PostConstruct
+    void validateSecret() {
+        signingKey();
+    }
+
     private SecretKey signingKey() {
         try {
             return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));

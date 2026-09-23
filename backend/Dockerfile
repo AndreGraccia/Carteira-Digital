@@ -1,7 +1,5 @@
 # stage-1 : complete build environment
-FROM maven:3.8.1-openjdk-17-slim AS builder
-RUN addgroup demogroup; adduser --ingroup demogroup --disabled-password demo
-USER demo
+FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /app
 
 COPY pom.xml ./
@@ -14,13 +12,13 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-RUN groupadd --system ewallet && useradd --system --gid ewallet --home-dir /app ewallet
+RUN groupadd --system wallia && useradd --system --gid wallia --home-dir /app wallia
 
 # copy jar from the first stage
 COPY --from=builder /app/target/*.jar /app/app.jar
 
-RUN chown -R ewallet:ewallet /app
-USER ewallet
+RUN chown -R wallia:wallia /app
+USER wallia
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

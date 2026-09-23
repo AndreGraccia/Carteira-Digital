@@ -11,7 +11,7 @@ export default function GlobalStyles() {
         },
 
         '*::selection': {
-          color: theme.palette.common.white,
+          color: theme.palette.primary.contrastText,
           backgroundColor: theme.palette.primary.main,
         },
 
@@ -87,13 +87,11 @@ export default function GlobalStyles() {
           border: '3px solid transparent',
           borderRadius: 999,
           backgroundClip: 'padding-box',
-          backgroundColor:
-            'rgba(99,99,102,0.34)',
+          backgroundColor: theme.palette.brand.surface3,
         },
 
         '::-webkit-scrollbar-thumb:hover': {
-          backgroundColor:
-            'rgba(72,72,74,0.5)',
+          backgroundColor: theme.palette.brand.lineStrong,
         },
 
         '@media (prefers-reduced-motion: reduce)': {

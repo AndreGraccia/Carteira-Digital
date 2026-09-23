@@ -88,6 +88,10 @@ export function errorKey(error) {
       'OPEN_FINANCE_CODE_INVALID',
       'OPEN_FINANCE_EMAIL_UNAVAILABLE',
       'OPEN_FINANCE_ALREADY_CONNECTED',
+      'RECURRENCE_NOT_FOUND',
+      'RECURRENCE_CATEGORY_MISMATCH',
+      'SCENARIO_NO_CONFIRMED_INCOME',
+      'INVALID_HORIZON',
     ].includes(code)
   )
     return `app.errors.${code}`;
@@ -101,3 +105,14 @@ export function errorKey(error) {
   if (status === 400 || status === 422) return 'app.errors.validation';
   return error.response ? 'app.errors.server' : 'app.errors.network';
 }
+
+// API dates without time ("2026-10-03") are calendar days. `new Date("2026-10-03")` would be UTC
+// midnight, which is the previous day in Brazil, so they are built as local dates.
+export function localDate(isoDay) {
+  const [year, month, day] = String(isoDay).split('-').map(Number);
+  return new Date(year, month - 1, day || 1);
+}
+export const dayLabel = (isoDay, language, options = { day: '2-digit', month: '2-digit' }) =>
+  isoDay ? new Intl.DateTimeFormat(localeFor(language), options).format(localDate(isoDay)) : '—';
+export const monthLabel = (isoMonth, language) =>
+  new Intl.DateTimeFormat(localeFor(language), { month: 'long', year: 'numeric' }).format(localDate(`${isoMonth}-01`));

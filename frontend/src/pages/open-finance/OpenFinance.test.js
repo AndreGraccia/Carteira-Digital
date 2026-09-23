@@ -1,7 +1,8 @@
-﻿import { act, Simulate } from 'react-dom/test-utils';
+import { act, Simulate } from 'react-dom/test-utils';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import OpenFinance from './OpenFinance';
+import ThemeProvider from '../../theme';
 import HttpService from '../../services/HttpService';
 import { useWallets } from '../../context/WalletContext';
 
@@ -42,7 +43,7 @@ afterEach(() => {
   container.remove();
 });
 async function renderPage() {
-  await act(async () => root.render(<HelmetProvider><OpenFinance /></HelmetProvider>));
+  await act(async () => root.render(<HelmetProvider><ThemeProvider><OpenFinance /></ThemeProvider></HelmetProvider>));
 }
 
 test('pending connection reopens its code dialog without sending another email', async () => {

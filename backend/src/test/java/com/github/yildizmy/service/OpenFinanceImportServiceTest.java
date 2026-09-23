@@ -39,12 +39,14 @@ class OpenFinanceImportServiceTest {
     @Mock TransactionRepository transactions;
     @Mock UserService users;
     @Mock TypeService types;
+    @Mock com.github.yildizmy.repository.CreditCardRepository cards;
+    @Mock com.github.yildizmy.repository.LoanRepository loans;
 
     private OpenFinanceImportService service;
 
     @BeforeEach
     void setUp() {
-        service = new OpenFinanceImportService(connections, wallets, transactions, users, types);
+        service = new OpenFinanceImportService(connections, wallets, transactions, users, types, cards, loans);
     }
 
     @Test
@@ -116,6 +118,42 @@ class OpenFinanceImportServiceTest {
         verify(transactions, org.mockito.Mockito.times(2)).save(transactionCaptor.capture());
         assertEquals("7:institution-1:account-1:transaction-1", transactionCaptor.getAllValues().get(0).getExternalId());
         assertEquals("8:institution-1:account-1:transaction-1", transactionCaptor.getAllValues().get(1).getExternalId());
+    }
+
+    @Test
+    void resyncUpdatesCardChargesInPlaceAndDropsTheOnesNoLongerReported() {
+        User user = new User();
+        user.setId(7L);
+        Instant now = Instant.parse("2026-09-20T12:00:00Z");
+        var card = new com.github.yildizmy.domain.entity.CreditCard();
+        var kept = new com.github.yildizmy.domain.entity.CardCharge();
+        kept.setExternalId("tv");
+        kept.setCard(card);
+        var refunded = new com.github.yildizmy.domain.entity.CardCharge();
+        refunded.setExternalId("refunded");
+        refunded.setCard(card);
+        card.getCharges().addAll(List.of(kept, refunded));
+
+        when(connections.findByUserIdAndInstitutionId(7L, "institution-1")).thenReturn(Optional.empty());
+        when(users.getReferenceById(7L)).thenReturn(user);
+        when(wallets.findByUserIdAndSourceAndExternalAccountId(any(), any(), any())).thenReturn(Optional.empty());
+        when(cards.findByUserIdAndExternalId(7L, "institution-1:card-1")).thenReturn(Optional.of(card));
+        var base = snapshot("CREDITO", now);
+        var tv = new OpenFinanceSnapshot.CardTransaction("tv", "Smart TV", java.time.LocalDate.of(2026, 7, 14),
+                new BigDecimal("3299.00"), 10, java.time.LocalDate.of(2026, 8, 3));
+        var withCard = new OpenFinanceSnapshot(base.institutionId(), base.institutionName(), base.consentId(),
+                base.authorisedAt(), base.expiresAt(), base.accounts(),
+                List.of(new OpenFinanceSnapshot.CreditCardAccount("card-1", "Aurora", "4821",
+                        new BigDecimal("8000.00"), 25, 3, List.of(tv, tv))),
+                List.of());
+
+        service.importSnapshot(7L, withCard, now);
+
+        assertEquals(1, card.getCharges().size(), "duplicate ignored, refunded charge removed");
+        assertTrue(card.getCharges().get(0) == kept, "existing row updated, not re-inserted");
+        assertEquals(new BigDecimal("329.90"), kept.getInstallmentAmount());
+        assertEquals(java.time.LocalDate.of(2026, 8, 1), kept.getFirstInvoice());
+        verify(cards).save(card);
     }
 
     private OpenFinanceSnapshot snapshot(String direction, Instant now) {

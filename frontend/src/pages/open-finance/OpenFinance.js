@@ -1,3 +1,4 @@
+import { alpha } from '@mui/material/styles';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -20,7 +21,7 @@ import { LoadingButton } from '@mui/lab';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { enqueueSnackbar } from 'notistack';
-import { PageHeading, WalletIcon } from '../../components/wallet-ui';
+import { PageHeading, WalletIcon, IconTile } from '../../components/wallet-ui';
 import { useWallets } from '../../context/WalletContext';
 import HttpService from '../../services/HttpService';
 import { dateTime, errorKey } from '../../utils/wallet';
@@ -229,26 +230,14 @@ export default function OpenFinance() {
                   width: 220,
                   height: 220,
                   borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(0,113,227,.16), transparent 68%)',
+                  background: (theme) => `radial-gradient(circle, ${alpha(theme.palette.brand.horizon, 0.16)}, transparent 68%)`,
                   right: -70,
                   top: -90,
                 }}
               />
               <Stack spacing={3} sx={{ position: 'relative' }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-                  <Box
-                    sx={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: '18px',
-                      bgcolor: '#1D1D1F',
-                      color: 'white',
-                      display: 'grid',
-                      placeItems: 'center',
-                    }}
-                  >
-                    <WalletIcon name="bank" />
-                  </Box>
+                  <IconTile name="bank" />
                   <Chip
                     color={statusColor}
                     label={t(`openFinance.status.${connectionStatus}`)}

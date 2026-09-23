@@ -20,17 +20,12 @@ export function responsiveFontSizes({ sm, md, lg }) {
   };
 }
 
-const FONT_PRIMARY = [
-  '-apple-system',
-  'BlinkMacSystemFont',
-  '"SF Pro Display"',
-  '"SF Pro Text"',
-  '"Segoe UI"',
-  'Roboto',
-  'Helvetica',
-  'Arial',
-  'sans-serif',
-].join(',');
+// Inter for reading, Space Grotesk for headings and big numbers, JetBrains Mono for codes.
+// Loaded from @fontsource (self-hosted, so the nginx CSP can stay 'self').
+const SYSTEM = ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'];
+export const FONT_PRIMARY = ['"Inter Variable"', 'Inter', ...SYSTEM].join(',');
+export const FONT_DISPLAY = ['"Space Grotesk Variable"', '"Space Grotesk"', ...SYSTEM].join(',');
+export const FONT_MONO = ['"JetBrains Mono Variable"', '"JetBrains Mono"', 'ui-monospace', 'Consolas', 'monospace'].join(',');
 
 const typography = {
   fontFamily: FONT_PRIMARY,
@@ -40,6 +35,7 @@ const typography = {
   fontWeightBold: 700,
 
   h1: {
+    fontFamily: FONT_DISPLAY,
     fontWeight: 700,
     lineHeight: 1.08,
     letterSpacing: '-0.045em',
@@ -52,6 +48,7 @@ const typography = {
   },
 
   h2: {
+    fontFamily: FONT_DISPLAY,
     fontWeight: 700,
     lineHeight: 1.12,
     letterSpacing: '-0.04em',
@@ -64,6 +61,7 @@ const typography = {
   },
 
   h3: {
+    fontFamily: FONT_DISPLAY,
     fontWeight: 700,
     lineHeight: 1.18,
     letterSpacing: '-0.035em',
@@ -76,6 +74,7 @@ const typography = {
   },
 
   h4: {
+    fontFamily: FONT_DISPLAY,
     fontWeight: 700,
     lineHeight: 1.22,
     letterSpacing: '-0.03em',
@@ -88,6 +87,7 @@ const typography = {
   },
 
   h5: {
+    fontFamily: FONT_DISPLAY,
     fontWeight: 600,
     lineHeight: 1.3,
     letterSpacing: '-0.02em',
@@ -95,6 +95,7 @@ const typography = {
   },
 
   h6: {
+    fontFamily: FONT_DISPLAY,
     fontWeight: 600,
     lineHeight: 1.35,
     letterSpacing: '-0.015em',
@@ -140,6 +141,7 @@ const typography = {
   },
 
   button: {
+    fontFamily: FONT_DISPLAY,
     fontWeight: 600,
     lineHeight: 1.4,
     fontSize: pxToRem(14),

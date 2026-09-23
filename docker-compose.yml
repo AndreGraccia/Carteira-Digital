@@ -1,7 +1,7 @@
-name: e-wallet
+name: wallia
 services:
   db:
-    container_name: e-wallet-db
+    container_name: wallia-db
     image: postgres:14.6-alpine
     restart: always
     env_file: ./.env.properties
@@ -10,11 +10,12 @@ services:
       POSTGRES_USER: ${db_username}
       POSTGRES_PASSWORD: ${db_password}
     ports:
-      - '5432:5432'
+      # Only this machine reaches the database. Change db_port in .env.properties if 5432 is taken.
+      - '127.0.0.1:${db_port:-5432}:5432'
     volumes:
-      - ewallet_postgres_data:/var/lib/postgresql/data
+      - wallia_postgres_data:/var/lib/postgresql/data
     networks:
-      - ewallet_network
+      - wallia_network
     expose:
       - 5432
     logging:
@@ -24,14 +25,14 @@ services:
         max-file: '5'
 
   mailpit:
-    container_name: e-wallet-mailpit
+    container_name: wallia-mailpit
     image: axllent/mailpit:v1.31.1
     restart: unless-stopped
     ports:
       - '127.0.0.1:1025:1025'
       - '127.0.0.1:8025:8025'
     networks:
-      - ewallet_network
+      - wallia_network
     logging:
       driver: 'json-file'
       options:
@@ -39,9 +40,11 @@ services:
         max-file: '3'
 
 volumes:
-  ewallet_postgres_data:
+  wallia_postgres_data:
+    # Keeps the database created before the rename (project "e-wallet").
+    name: e-wallet_ewallet_postgres_data
     driver: local
 
 networks:
-  ewallet_network:
+  wallia_network:
     driver: bridge

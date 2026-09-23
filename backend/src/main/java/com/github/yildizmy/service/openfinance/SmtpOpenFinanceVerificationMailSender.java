@@ -26,18 +26,18 @@ public class SmtpOpenFinanceVerificationMailSender implements OpenFinanceVerific
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(recipient);
-        message.setSubject("Código para conectar seus dados financeiros");
+        message.setSubject("Wall.ia · código para conectar seus dados financeiros");
         message.setText("""
                 Olá, %s.
 
-                Seu código de verificação da e-wallet é:
+                Seu código de verificação da Wall.ia é:
 
                 %s
 
                 Ele é válido por %d minutos e pode ser usado uma única vez.
                 Se você não solicitou esta conexão, ignore esta mensagem.
 
-                A e-wallet nunca pedirá este código por telefone, mensagem ou redes sociais.
+                A Wall.ia nunca pedirá este código por telefone, mensagem ou redes sociais.
                 """.formatted(firstName, code, validityMinutes));
         try {
             mailSender.send(message);

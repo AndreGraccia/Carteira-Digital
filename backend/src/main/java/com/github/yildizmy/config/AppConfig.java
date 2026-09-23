@@ -1,14 +1,9 @@
 package com.github.yildizmy.config;
 
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.format.DateTimeFormatter;
-
-import static com.github.yildizmy.common.Constants.DATE_FORMAT;
 import static com.github.yildizmy.common.Constants.DATE_TIME_FORMAT;
 
 /**
@@ -19,10 +14,8 @@ public class AppConfig {
 
     @Bean
     public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
-        return builder -> {
-            builder.simpleDateFormat(DATE_TIME_FORMAT);
-            builder.serializers(new LocalDateSerializer(DateTimeFormatter.ofPattern(DATE_FORMAT)));
-            builder.serializers(new LocalDateTimeSerializer(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)));
-        };
+        // java.time values (LocalDate, Instant…) keep Jackson's ISO 8601 default so clients can parse
+        // them unambiguously; only legacy java.util.Date uses the display pattern.
+        return builder -> builder.simpleDateFormat(DATE_TIME_FORMAT);
     }
 }

@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   Container,
   IconButton,
   InputAdornment,
@@ -17,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { enqueueSnackbar } from 'notistack';
 import PropTypes from 'prop-types';
 import LanguageSelector from '../../components/language-selector';
+import { WalliaLogo } from '../../components/brand';
 import { WalletIcon } from '../../components/wallet-ui';
 import AuthService from '../../services/AuthService';
 import { errorKey } from '../../utils/wallet';
@@ -77,52 +79,68 @@ export default function AuthView({ signup = false }) {
           sx={{
             display: { xs: 'none', md: 'flex' },
             width: '45%',
-            bgcolor: '#1D1D1F',
-            color: 'white',
+            position: 'relative',
+            bgcolor: 'background.paper',
+            borderRight: '1px solid',
+            borderColor: 'divider',
             p: 6,
             flexDirection: 'column',
             justifyContent: 'space-between',
             overflow: 'hidden',
           }}
         >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <WalletIcon name="wallet" />
-            <Typography variant="h6">e-wallet</Typography>
-          </Stack>
+          <WalliaLogo size={36} />
           <Box>
-            <Box aria-hidden="true" sx={{ position: 'relative', height: 230, mb: 6 }}>
-              {['#899C89', '#738DAB', '#D6CAB6'].map((color, index) => (
+            {/* Decorative echo of the mark: past (solid), projection (dots), the future point (volt). */}
+            <Box aria-hidden="true" component="svg" viewBox="0 0 420 180" sx={{ width: '100%', maxWidth: 440, mb: 6 }}>
+              <Box component="line" x1="0" y1="140" x2="420" y2="140" sx={{ stroke: 'divider' }} strokeWidth="1" />
+              <Box
+                component="polyline"
+                points="0,120 50,96 90,128 140,70 190,104 240,60"
+                fill="none"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                sx={{ stroke: (theme) => theme.palette.text.primary }}
+              />
+              {[
+                [275, 72],
+                [305, 88],
+                [335, 64],
+                [365, 46],
+              ].map(([cx, cy]) => (
                 <Box
-                  key={color}
-                  sx={{
-                    height: 175,
-                    position: 'absolute',
-                    inset: `${index * 28}px 0 auto`,
-                    transform: `rotate(${-10 + index * 6}deg)`,
-                    borderRadius: '24px',
-                    background: `linear-gradient(120deg,${color},#35373D)`,
-                    boxShadow: '0 16px 32px #00000030',
-                    p: 3,
-                  }}
-                >
-                  <WalletIcon name="wallet" sx={{ opacity: 0.7 }} />
-                </Box>
+                  key={cx}
+                  component="circle"
+                  cx={cx}
+                  cy={cy}
+                  r="4"
+                  sx={{ fill: (theme) => theme.palette.brand.horizon }}
+                />
               ))}
+              <Box component="circle" cx="398" cy="26" r="11" sx={{ fill: (theme) => theme.palette.brand.volt }} />
             </Box>
-            <Typography variant="h2" sx={{ fontSize: { md: 42, lg: 54 }, maxWidth: 450 }}>
+            <Typography variant="h2" component="p" sx={{ fontSize: { md: 40, lg: 52 }, maxWidth: 480 }}>
               {t('app.authHeadline')}
             </Typography>
-            <Typography sx={{ mt: 2, color: '#FFFFFFAD', maxWidth: 380 }}>{t('app.authDescription')}</Typography>
+            <Typography color="text.secondary" sx={{ mt: 2, maxWidth: 420 }}>
+              {t('app.authDescription')}
+            </Typography>
+            <Stack direction="row" flexWrap="wrap" sx={{ mt: 4, gap: 1 }}>
+              {['clarity', 'control', 'trust'].map((pillar) => (
+                <Chip key={pillar} label={t(`app.pillars.${pillar}`)} variant="outlined" />
+              ))}
+            </Stack>
           </Box>
-          <Typography variant="caption" sx={{ color: '#FFFFFF99' }}>
+          <Typography variant="caption" color="text.secondary">
             {t('app.demoNotice')}
           </Typography>
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 3 }}>
-            <Typography variant="subtitle1" sx={{ visibility: { md: 'hidden' } }}>
-              e-wallet
-            </Typography>
+            <Box sx={{ visibility: { md: 'hidden' } }}>
+              <WalliaLogo size={28} />
+            </Box>
             <LanguageSelector />
           </Stack>
           <Container maxWidth="sm" sx={{ px: { xs: 3, sm: 6 }, py: { xs: 4, md: 6 } }}>

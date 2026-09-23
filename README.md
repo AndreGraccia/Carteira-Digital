@@ -1,81 +1,61 @@
-# e-wallet
+# Wall.ia
 
-Plataforma de gestão financeira em ambiente simulado, desenvolvida com React, Spring Boot e PostgreSQL.
+Uma carteira que entende seus compromissos, explica de onde cada número veio e deixa você testar o futuro antes de mexer no dinheiro.
 
-O projeto oferece uma base organizada para carteiras, movimentações, fluxo de caixa e relatórios explicados em linguagem natural, com uma integração opcional à API Gemini.
+React, Spring Boot e PostgreSQL, com Open Finance em sandbox. Nenhum valor real é movimentado.
 
-> Este projeto está em desenvolvimento e não deve ser utilizado para movimentar dinheiro real.
+> Projeto em desenvolvimento. Não use para dinheiro real.
 
-## Interface e regras da demonstração
+Primeira vez rodando, ou algo não subiu? O [guia do desenvolvedor](docs/guia-do-desenvolvedor.md) explica cada peça, as portas, os erros mais comuns e como criar telas, endpoints e migrações.
 
-A experiência de carteiras, movimentações, rotas e traduções foi revisada. Consulte [design, regras implementadas e limites do protótipo](docs/wallet-design-and-rules.md), incluindo a migração V6 e as referências oficiais da Apple e do Banco Central.
+## O problema
 
-## Funcionalidades atuais
+82% das famílias brasileiras estão endividadas e 29,9% têm contas em atraso (Peic/CNC, ago/2026). O cartão aparece em 84,6% dessas dívidas, e 42,6% das compras no crédito são parceladas: dinheiro que já tem destino nos próximos meses, mas não aparece no saldo.
 
-- Cadastro e autenticação de usuários com JWT.
-- Criação e consulta de carteiras.
-- Adição e retirada de saldo.
-- Transferências entre carteiras.
-- Consulta do histórico de movimentações.
-- Validação de IBAN.
-- Documentação interativa da API com Swagger.
-- Persistência de dados em PostgreSQL.
-- Relatório de entradas, saídas, saldo do período e transferências internas.
-- Análise financeira local ou com Gemini, sem enviar o extrato bruto ao provedor.
-- Leituras com referências fixas e verificáveis.
-- Limite de tentativas de login e de relatórios com IA.
+Os apps de controle financeiro no Brasil mostram, no máximo, o saldo previsto no fim do mês. Quem termina o mês no positivo ainda pode ficar sem dinheiro entre o vencimento da fatura e o salário. É esse buraco que o Wall.ia mostra.
 
-## Funcionalidades planejadas
+Os números, as fontes e as projeções de negócio (três cenários de 36 meses, teto de CAC) estão em [docs/pesquisa-mercado.md](docs/pesquisa-mercado.md).
 
-O desenvolvimento será realizado por fases.
+## Como funciona
 
-### Fase 1 — Experiência e interface
+1. **Dados vêm do Open Finance.** Contas, saldos, transações, cartões, faturas, parcelas e empréstimos (sandbox local com estrutura próxima das APIs reais).
+2. **O sistema pergunta em vez de supor.** Uma entrada de R$ 4.200 da Concentrix S.A. todo dia 5 vira a pergunta "isso é seu salário?", com o histórico que levou à suspeita. Só o que o usuário confirma entra nas contas.
+3. **Java calcula, a IA explica, o usuário decide.** O motor de projeção é determinístico e testado; nenhum valor é inventado por modelo de linguagem. Decisão registrada em [ADR 0001](docs/adr/0001-motor-futuro-deterministico.md).
 
-- Interface em português.
-- Navegação simplificada.
-- Painel com dados reais do usuário.
-- Remoção dos indicadores fictícios.
-- Tratamento de carregamento, ausência de dados e erros.
-- Páginas de erro e rotas inexistentes.
-- Melhor funcionamento em celulares e computadores.
+## Funcionalidades
 
-### Fase 2 — Segurança e consistência financeira
+**Futuro**
 
-- Autorização por proprietário da carteira.
-- Proteção contra acesso a carteiras de outros usuários.
-- Identificação da moeda de cada carteira.
-- Tipos explícitos de operação: saldo inicial, depósito, retirada, transferência e estorno.
-- Proteção contra operações duplicadas.
-- Controle de movimentações simultâneas.
-- Histórico financeiro auditável.
+- Saldo agora, quanto já tem destino (separando confirmado de estimado) e margem livre.
+- Saldo projetado dia a dia em 30, 60 ou 90 dias, com o menor saldo marcado.
+- Alerta de janela negativa ("entre 03/10 e 04/10 seu saldo pode ficar em -R$ 324,87") e "ver por quê", que lista as contas que causam o buraco e a entrada que o fecha.
+- Perguntas rápidas sobre recorrências detectadas, com evidência (valor, dia, vezes, conta de origem) e resposta em um toque.
+- Modo Futuro: simula compra à vista ou parcelada, guardar todo mês ou perder uma renda, sem gravar nada.
 
-### Fase 3 — Gestão e relatórios
+**Cartões e dívidas**
 
-- Filtros por período, carteira, categoria e tipo de operação.
-- Resumo de entradas e saídas.
-- Análise de gastos por categoria.
-- Comparação entre períodos.
-- Metas e orçamento.
-- Exportação de relatórios em CSV.
-- Painel com gráficos e indicadores.
+- Fatura aberta e faturas futuras com as compras e parcelas que as compõem.
+- Limite comprometido.
+- Empréstimos: quanto falta, parcela, parcelas restantes, próximo vencimento e instituição de origem.
 
-### Fase 4 — Relatórios com inteligência artificial
+**Base da carteira**
 
-- Relatórios explicados em linguagem natural.
-- Integração configurável com Gemini ou OpenAI.
-- Parâmetros por período, carteira, categoria e moeda.
-- Envio somente dos dados necessários para o provedor de IA.
-- Respostas estruturadas e verificáveis.
-- Controle de limites, custos e erros da API.
+- Cadastro e login com JWT, limite de tentativas.
+- Carteiras, transferências e extrato, com autorização por dono da carteira.
+- Conexão Open Finance protegida por código de 8 dígitos enviado ao e-mail cadastrado ([roteiro de teste](docs/open-finance-email-tests.md)).
+- Análise do extrato com regras locais ou Gemini, sem enviar o extrato bruto ([segurança e IA](docs/security-and-ai-reports.md)).
+- Interface em português e inglês, tema escuro, responsiva, validada em 1440 px e 390 px.
+- Swagger em `/swagger-ui/index.html`.
 
-### Fase 5 — Assistente financeiro
+## Próximos passos
 
-- Chat sobre os dados da carteira.
-- Perguntas sobre gastos, entradas e variações.
-- Comparação entre períodos.
-- Identificação das movimentações relacionadas a cada resposta.
-- Consultas limitadas aos dados do usuário autenticado.
-- Assistente somente para leitura, sem permissão para movimentar valores.
+Em ordem de valor para o usuário:
+
+1. **Assistente somente leitura.** Chat que chama o motor como ferramenta ("posso comprar um notebook de R$ 4.000?") e responde com os números do backend. Não movimenta dinheiro. Tela de privacidade dizendo o que ele vê e o que não vê.
+2. **Ledger de dupla entrada.** Todo débito com crédito correspondente, carteira encerrada sem apagar histórico, correção por estorno.
+3. **Papéis administrativos.** Usuário, suporte, operações, auditoria e administrador, com trilha de auditoria. Administrador não movimenta dinheiro de cliente.
+4. **Metas** entrando na projeção como compromisso.
+5. **Categorias controladas** para gastos variáveis (mercado, transporte), hoje fora da projeção.
 
 ## Tecnologias
 
@@ -105,7 +85,7 @@ O desenvolvimento será realizado por fases.
 - Axios
 - React Hook Form
 - Notistack
-- ApexCharts
+- i18next (PT/EN)
 - Node.js
 - npm
 
@@ -114,6 +94,7 @@ O desenvolvimento será realizado por fases.
 - Docker
 - Docker Compose
 - PostgreSQL
+- Mailpit (caixa de e-mail local para o código de 8 dígitos)
 
 ## Estrutura do projeto
 
@@ -130,6 +111,8 @@ Carteira-Digital/
 │   │       ├── repository/
 │   │       ├── security/
 │   │       ├── service/
+│   │       │   ├── future/        # motor de projeção (sem Spring)
+│   │       │   └── openfinance/   # sandbox e gateway
 │   │       └── validator/
 │   └── src/main/resources/
 │       ├── db/migration/
@@ -139,9 +122,10 @@ Carteira-Digital/
 │   └── src/
 │       ├── components/
 │       ├── layouts/
-│       ├── pages/
+│       ├── pages/             # future/, commitments/, open-finance/...
 │       ├── services/
 │       └── theme/
+├── docs/                      # guia do desenvolvedor, pesquisa, ADR, roteiros de teste
 ├── docker-compose.yml
 ├── docker-compose.prod.yml
 ├── .env.example.properties
@@ -153,8 +137,7 @@ Carteira-Digital/
 Antes de iniciar, instale:
 
 - Git
-- Java 17 ou superior
-- Maven
+- Java 17 ou superior (o Maven vem pelo wrapper `mvnw`)
 - Node.js LTS com npm
 - Docker Desktop
 
@@ -163,7 +146,6 @@ Confira as instalações:
 ```powershell
 git --version
 java -version
-mvn --version
 node --version
 npm.cmd --version
 docker --version
@@ -193,15 +175,22 @@ notepad .env.properties
 Configure os valores locais:
 
 ```properties
-db_name=ewallet
-db_username=ewallet
+db_name=wallia
+db_username=wallia
 db_password=SUBSTITUA_PELA_SENHA_LOCAL
 jwt_secret=SUBSTITUA_POR_UM_SEGREDO_ALEATORIO
 frontend_origin=http://localhost:3000
 gemini_api_key=
 gemini_model=gemini-3.8-flash
 gemini_search_grounding=true
+db_port=5432
+backend_port=8080
+frontend_port=3000
 ```
+
+As portas só precisam mudar se 5432, 8080 ou 3000 já estiverem em uso por outro programa. Nesse caso, troque também `frontend_origin` e crie `frontend/.env.local` a partir de `frontend/.env.example`. O passo a passo está na [seção de portas do guia](docs/guia-do-desenvolvedor.md#4-portas-conferir-e-trocar).
+
+Troque `db_password` antes de subir o banco pela primeira vez: o PostgreSQL grava a senha só na criação do volume.
 
 Para gerar um segredo JWT no PowerShell:
 
@@ -221,15 +210,17 @@ O arquivo `.env.properties` contém informações locais e está ignorado pelo G
 
 O relatório envia apenas totais mensais, direção das operações e contagem de movimentações. Nomes, e-mails, códigos de carteira, descrições e identificadores não são enviados. Consulte [segurança e relatórios com IA](docs/security-and-ai-reports.md) para entender o fluxo, os limites e as referências.
 
-## Executando o PostgreSQL
+## Executando o PostgreSQL e o Mailpit
 
 Abra o Docker Desktop e aguarde o mecanismo iniciar.
 
 Na raiz do projeto, abra o primeiro PowerShell e execute:
 
 ```powershell
-docker compose --env-file .env.properties up -d db
+docker compose --env-file .env.properties up -d db mailpit
 ```
+
+O Mailpit recebe o código de confirmação do Open Finance em http://localhost:8025. Nenhum e-mail sai da máquina.
 
 Confira o container:
 
@@ -255,12 +246,12 @@ Abra um segundo PowerShell, entre na pasta do backend e inicie o Spring Boot:
 
 ```powershell
 cd backend
-mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
-Se você já iniciou `EWalletApplication` pelo VS Code, pule esse comando. Apenas uma instância pode usar a porta `8080` ao mesmo tempo.
+Se você já iniciou `WalliaApplication` pelo VS Code, pule esse comando. Apenas uma instância pode usar a porta `8080` (ou a `backend_port`) ao mesmo tempo.
 
-Aguarde a mensagem indicando que a aplicação foi iniciada.
+Aguarde a linha `Started WalliaApplication`. Se o processo parar antes disso, veja [Problemas comuns](docs/guia-do-desenvolvedor.md#problemas-comuns).
 
 O backend estará disponível em:
 
@@ -312,7 +303,7 @@ Como alternativa aos três terminais, execute na raiz do projeto:
 docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml up --build
 ```
 
-Esse comando inicia PostgreSQL, backend e frontend. Não mantenha as versões locais nas portas `3000` e `8080` enquanto executar a pilha completa em containers.
+Esse comando inicia PostgreSQL, Mailpit, backend e frontend. Não mantenha as versões locais nas portas `3000` e `8080` enquanto executar a pilha completa em containers.
 
 ## Encerrando a aplicação
 
@@ -336,17 +327,21 @@ docker compose --env-file .env.properties down
 
 ## Executando os testes
 
-Testes do backend:
+Testes do backend (a partir da raiz):
 
 ```powershell
-mvn -f backend/pom.xml test
+cd backend
+.\mvnw.cmd test
 ```
 
-Testes do frontend:
+Testes do frontend (a partir da raiz):
 
 ```powershell
 cd frontend
-npm.cmd test
+npm.cmd test -- --watchAll=false
+npm.cmd run test:i18n
+npm.cmd run test:wallet
+npm.cmd run lint
 ```
 
 ## Segurança
@@ -417,7 +412,3 @@ A licença e os créditos do projeto original são preservados no arquivo [LICEN
 ## Licença
 
 Este projeto é distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para conhecer os termos.
-
-### Conex?o Open Finance com c?digo por e-mail
-
-Consulte [dados e roteiro de teste](docs/open-finance-email-tests.md) para iniciar o Mailpit, cadastrar duas contas e testar confirma??o, reenvio e isolamento de dados.

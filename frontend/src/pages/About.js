@@ -8,7 +8,7 @@ export default function About() {
   return (
     <>
       <Helmet>
-        <title>{t('app.about')} | e-wallet</title>
+        <title>{t('app.about')} | Wall.ia</title>
       </Helmet>
       <Container maxWidth="md">
         <PageHeading title={t('app.about')} description={t('app.demoNotice')} />

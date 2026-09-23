@@ -140,3 +140,21 @@ Escopo: alterações realizadas desde a base `main` (`9e83117`) até a branch at
 | Flyway V1 a V7 validado no PostgreSQL 14.6. | Migração incompatível, versão ausente ou esquema fora de ordem. |
 | Restrições financeiras e índice único de `request_id` consultados no banco. | Regras presentes apenas no Java, sem proteção no PostgreSQL. |
 | OpenAPI respondeu com as rotas de autenticação, carteiras e transações. | Rotas do backend ausentes ou aplicação indisponível. |
+
+## Branch `feat/wallia`: ambiente local, documentação e revisão de segurança (23/09/2026)
+
+| Modificação | Erro ou limitação corrigida |
+| --- | --- |
+| Portas configuráveis (`db_port`, `backend_port`, `frontend_port`) e `frontend/.env.example`. | O cadastro falhava porque a interface chamava a porta 8080, ocupada por outro projeto. |
+| `docs/guia-do-desenvolvedor.md` com peças, configuração, portas, problemas comuns, caminho de uma requisição e receitas. | O README não bastava para rodar o projeto numa máquina com outras aplicações. |
+| README com Mailpit no passo do banco, portas e link para o guia. | O código do Open Finance não chegava porque o README subia só o banco. |
+| O limitador de login reserva a tentativa antes do BCrypt e soma um teto por usuário (20) além do teto por usuário e IP (5). Entradas vencidas são limpas. | Uma rajada de requisições paralelas passava toda pela verificação antes do primeiro erro ser contado; trocar de IP zerava o limite; o mapa só crescia. |
+| O IBAN das carteiras importadas do Open Finance passou a ser aleatório. | O IBAN era derivado de `userId` e do id da conta, então outro usuário podia criá-lo antes e fazer a importação da vítima falhar por unicidade. |
+| `frontend/.dockerignore` ignora `.env.local`, `build` e `coverage`. | Configuração local e artefatos entravam no contexto da imagem. |
+| `Contexto*.txt` no `.gitignore`. | Exportações de sessão podiam ser commitadas por engano. |
+
+| Validação | Resultado |
+| --- | --- |
+| `mvnw test` | 101 testes, 0 falhas (inclui `AuthenticationRateLimiterTest`, com rajada de 200 requisições paralelas). |
+| Frontend: Jest, lint, `test:i18n`, `test:wallet`, build | Todos passando; 469 chaves PT/EN. |
+| Roteiro de API contra o backend local | Cadastro 201, CORS, 428 sem e-mail, código pelo Mailpit, código errado 400, sincronização, 8 perguntas, Futuro, 403 entre contas, 429 na 6ª senha errada. |

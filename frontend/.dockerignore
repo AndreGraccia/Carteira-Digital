@@ -3,8 +3,13 @@
 **/.vscode
 **/.env
 **/env
+# Local overrides (ports, API URL) must not leak into the image build.
+.env.local
+.env.*.local
 .git
 .vscode
 Dockerfile
 README.md
 node_modules
+build
+coverage

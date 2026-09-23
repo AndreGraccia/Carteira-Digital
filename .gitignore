@@ -97,3 +97,6 @@ frontend/.eslintcache
 
 # Arquivos locais da IDE
 backend/.jpb/
+
+# Exportacoes de sessao usadas como contexto local
+Contexto*.txt

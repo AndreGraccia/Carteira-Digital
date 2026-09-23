@@ -10,7 +10,7 @@ export default function Button(theme) {
           padding: theme.spacing(1.25, 2.5),
           minHeight: 44,
           '&.Mui-focusVisible': {
-            outline: `3px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+            outline: `2px solid ${theme.palette.primary.main}`,
             outlineOffset: 3,
           },
           '&:hover': {
@@ -21,14 +21,21 @@ export default function Button(theme) {
           height: 48,
         },
         containedInherit: {
-          color: theme.palette.grey[800],
-          boxShadow: theme.customShadows.z8,
+          color: theme.palette.text.primary,
+          backgroundColor: theme.palette.background.raised,
           '&:hover': {
-            backgroundColor: theme.palette.grey[400],
+            backgroundColor: theme.palette.grey[600],
           },
         },
         containedPrimary: {
           boxShadow: 'none',
+          '&:hover': {
+            backgroundColor: theme.palette.primary.light,
+            boxShadow: theme.customShadows.primary,
+          },
+        },
+        outlinedPrimary: {
+          borderColor: alpha(theme.palette.primary.main, 0.5),
         },
         containedSecondary: {
           boxShadow: 'none',

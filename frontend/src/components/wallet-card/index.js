@@ -1,4 +1,5 @@
 import { Box, ButtonBase, Card, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Link as RouterLink } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
@@ -6,25 +7,23 @@ import { useTranslation } from 'react-i18next';
 import { WalletIcon } from '../wallet-ui';
 import { money } from '../../utils/wallet';
 
-const THEMES = [
-  'linear-gradient(120deg,#34373D,#111214)',
-  'linear-gradient(120deg,#557B9F,#294D70)',
-  'linear-gradient(120deg,#667B6A,#344D40)',
-  'linear-gradient(120deg,#9F7F70,#705044)',
-  'linear-gradient(120deg,#807592,#50465E)',
-];
+
+const FINISH_COUNT = 5; // theme.palette.cardFinishes.length
+
 export default function WalletCard({ wallet, index = 0, selected = false, onClick, href, hideBalance = false }) {
   const { t, i18n } = useTranslation();
+  const theme = useTheme();
+  const THEMES = theme.palette.cardFinishes;
   const storageKey = `wallet-card-theme-${wallet.id}`;
   const [color, setColor] = useState(() => {
     try {
       const saved = localStorage.getItem(storageKey);
       const value = Number(saved);
-      if (saved !== null && Number.isInteger(value) && value >= 0 && value < THEMES.length) return value;
+      if (saved !== null && Number.isInteger(value) && value >= 0 && value < FINISH_COUNT) return value;
     } catch {
       /* optional preference */
     }
-    return index % THEMES.length;
+    return index % FINISH_COUNT;
   });
   const changeColor = () => {
     const next = (color + 1) % THEMES.length;
@@ -39,14 +38,15 @@ export default function WalletCard({ wallet, index = 0, selected = false, onClic
     <Card
       sx={{
         height: 202,
-        borderRadius: '24px',
+        borderRadius: '20px',
         background: THEMES[color],
-        color: '#FFF',
-        border: '1px solid #FFFFFF24',
-        boxShadow: '0 8px 20px #16161D24',
+        color: 'common.white',
+        border: '1px solid',
+        borderColor: (th) => alpha(th.palette.common.white, 0.12),
+        boxShadow: (th) => th.customShadows.z12,
         overflow: 'visible',
         position: 'relative',
-        '&:focus-within': { outline: '3px solid #0071E3', outlineOffset: 3 },
+        '&:focus-within': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 3 },
       }}
     >
       <ButtonBase
@@ -65,11 +65,12 @@ export default function WalletCard({ wallet, index = 0, selected = false, onClic
             {!selected && <WalletIcon name="wallet" sx={{ opacity: 0.6 }} />}
           </Stack>
           <Box>
-            <Typography variant="caption" sx={{ color: '#FFFFFFB8' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {t('wallet.availableBalance')}
             </Typography>
             <Typography
               sx={{
+                fontFamily: (th) => th.typography.h3.fontFamily,
                 fontSize: 28,
                 fontWeight: 600,
                 letterSpacing: '-0.035em',
@@ -81,7 +82,7 @@ export default function WalletCard({ wallet, index = 0, selected = false, onClic
             </Typography>
           </Box>
           <Stack direction="row" justifyContent="space-between">
-            <Typography variant="caption" sx={{ color: '#FFFFFFB8' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {wallet.source === 'OPEN_FINANCE' ? wallet.institutionName : t('app.demo')}
             </Typography>
             <Typography variant="caption" sx={{ letterSpacing: '0.12em' }}>
@@ -101,9 +102,9 @@ export default function WalletCard({ wallet, index = 0, selected = false, onClic
               top: 14,
               width: 44,
               height: 44,
-              color: 'white',
-              bgcolor: '#FFFFFF18',
-              '&:hover': { bgcolor: '#FFFFFF28' },
+              color: 'common.white',
+              bgcolor: (th) => alpha(th.palette.common.white, 0.1),
+              '&:hover': { bgcolor: (th) => alpha(th.palette.common.white, 0.18) },
             }}
           >
             <Box
@@ -112,7 +113,8 @@ export default function WalletCard({ wallet, index = 0, selected = false, onClic
                 height: 17,
                 borderRadius: '50%',
                 border: '2px solid currentColor',
-                background: 'conic-gradient(#B5C9D5,#D0B8A8,#A5BAA3,#B5C9D5)',
+                background: (th) =>
+                  `conic-gradient(${th.palette.brand.volt},${th.palette.brand.horizon},${th.palette.brand.lineStrong},${th.palette.brand.volt})`,
               }}
             />
           </IconButton>

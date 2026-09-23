@@ -26,6 +26,8 @@ const paths = {
   book: 'M4 5a3 3 0 0 1 3-2h5v17H7a3 3 0 0 0-3 3V5Zm8-2h5a3 3 0 0 1 3 3v17a3 3 0 0 0-3-3h-5',
   bank: 'M3 9h18L12 3 3 9Zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18',
   sync: 'M20 7h-6V1m6 6-3-3a8 8 0 0 0-13 3m0 10h6v6m-6-6 3 3a8 8 0 0 0 13-3',
+  future: 'M3 17l5-6 4 4 3-4M17.5 9.5h.01M20 6.5h.01M3 21h18',
+  card: 'M3 6h18v12H3V6Zm0 4h18M7 15h4',
 };
 export function WalletIcon({ name, ...props }) {
   return (
@@ -42,6 +44,30 @@ export function WalletIcon({ name, ...props }) {
   );
 }
 WalletIcon.propTypes = { name: PropTypes.string };
+/** Square icon badge used at the top of cards: the brand accent on a raised surface. */
+export function IconTile({ name, size = 54, sx }) {
+  return (
+    <Box
+      aria-hidden="true"
+      sx={{
+        width: size,
+        height: size,
+        flexShrink: 0,
+        borderRadius: `${Math.round(size / 3)}px`,
+        bgcolor: 'background.raised',
+        border: '1px solid',
+        borderColor: 'divider',
+        color: 'primary.main',
+        display: 'grid',
+        placeItems: 'center',
+        ...sx,
+      }}
+    >
+      <WalletIcon name={name} sx={{ fontSize: Math.round(size * 0.5) }} />
+    </Box>
+  );
+}
+IconTile.propTypes = { name: PropTypes.string.isRequired, size: PropTypes.number, sx: PropTypes.object };
 export function PageHeading({ title, description, action }) {
   return (
     <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: { xs: 3, md: 4 } }}>
@@ -118,7 +144,10 @@ export function ActivityList({ transactions, wallets, onSelect }) {
         const direction = directionFor(item, wallets);
         const success = item.status === 'SUCCESS';
         const color = success && direction === 'incoming' ? 'success.dark' : 'text.primary';
-        const title = t(`app.types.${item.type?.name}`, { defaultValue: t('app.types.Transfer') });
+        const type = t(`app.types.${item.type?.name}`, { defaultValue: t('app.types.Transfer') });
+        // Imported entries carry the counterparty ("Netflix"); that says more than the generic type.
+        const named = item.description && item.description !== 'Initial balance';
+        const title = named ? item.description : type;
         return (
           <Box
             key={item.id}
@@ -163,6 +192,7 @@ export function ActivityList({ transactions, wallets, onSelect }) {
                 {title}
               </Typography>
               <Typography variant="caption" color="text.secondary">
+                {named ? `${type} · ` : ''}
                 {dateTime(item.createdAt, i18n.language)}
               </Typography>
             </Box>
@@ -194,7 +224,7 @@ export function SectionCard({ title, action, children }) {
     <Card>
       <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ p: 3, pb: 1.5 }}>
         <Typography variant="h6">{title}</Typography>
-        {action}
+        {action && <Box sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{action}</Box>}
       </Stack>
       {children}
     </Card>

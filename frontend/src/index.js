@@ -1,3 +1,6 @@
+import '@fontsource-variable/inter';
+import '@fontsource-variable/space-grotesk';
+import '@fontsource-variable/jetbrains-mono';
 import { SnackbarProvider } from 'notistack';
 import ReactDOM from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';

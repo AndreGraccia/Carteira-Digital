@@ -39,7 +39,7 @@ class OpenFinanceEmailVerificationServiceTest {
     private OpenFinanceEmailChallengeRepository challengeRepository;
     private UserRepository userRepository;
     private OpenFinanceVerificationMailSender mailSender;
-    private SecureRandom secureRandom;
+    private FixedRandom secureRandom;
     private BCryptPasswordEncoder passwordEncoder;
     private OpenFinanceEmailVerificationService service;
 
@@ -48,7 +48,7 @@ class OpenFinanceEmailVerificationServiceTest {
         challengeRepository = mock(OpenFinanceEmailChallengeRepository.class);
         userRepository = mock(UserRepository.class);
         mailSender = mock(OpenFinanceVerificationMailSender.class);
-        secureRandom = mock(SecureRandom.class);
+        secureRandom = new FixedRandom();
         passwordEncoder = new BCryptPasswordEncoder(4);
         service = new OpenFinanceEmailVerificationService(
                 challengeRepository,
@@ -67,7 +67,7 @@ class OpenFinanceEmailVerificationServiceTest {
     @Test
     void requestStoresOnlyHashAndSendsCodeToRegisteredEmail() {
         when(challengeRepository.findByUserIdForUpdate(7L)).thenReturn(Optional.empty());
-        when(secureRandom.nextInt(90_000_000)).thenReturn(23_456_789);
+        secureRandom.value = 23_456_789;
 
         var response = service.request(7L);
 
@@ -168,7 +168,7 @@ class OpenFinanceEmailVerificationServiceTest {
         challenge.setVerifiedEmail("maria@example.com");
         challenge.setConsumedAt(NOW.minusSeconds(120));
         when(challengeRepository.findByUserIdForUpdate(7L)).thenReturn(Optional.of(challenge));
-        when(secureRandom.nextInt(90_000_000)).thenReturn(23_456_789);
+        secureRandom.value = 23_456_789;
 
         service.request(7L);
 
@@ -261,5 +261,15 @@ class OpenFinanceEmailVerificationServiceTest {
         user.setFirstName("Maria");
         user.setEmail("maria@example.com");
         return user;
+    }
+
+    // Mockito cannot mock SecureRandom on Java 21+ (sealed internal annotations); a fixed subclass is enough.
+    private static final class FixedRandom extends SecureRandom {
+        private int value;
+
+        @Override
+        public int nextInt(int bound) {
+            return value;
+        }
     }
 }

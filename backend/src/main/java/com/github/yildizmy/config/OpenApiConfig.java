@@ -9,9 +9,10 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@OpenAPIDefinition(info = @Info(title = "e-wallet REST API", version = "1.0",
-        description = "Application used for a digital wallet",
-        contact = @Contact(name = "Murat Yıldız")),
+// Based on yildizmy/e-wallet by Murat Yıldız (MIT); credits kept in LICENSE.
+@OpenAPIDefinition(info = @Info(title = "Wall.ia REST API", version = "1.0",
+        description = "Carteira que projeta compromissos, explica cada número e simula decisões sem mover dinheiro",
+        contact = @Contact(name = "Wall.ia")),
         security = {@SecurityRequirement(name = "bearerToken")}
 )
 @SecurityScheme(name = "bearerToken", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")

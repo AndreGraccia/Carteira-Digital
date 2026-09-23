@@ -17,6 +17,8 @@ import NewWallet from './pages/wallet/NewWallet';
 import Wallet from './pages/wallet/Wallet';
 import Insights from './pages/insights/Insights';
 import OpenFinance from './pages/open-finance/OpenFinance';
+import Future from './pages/future/Future';
+import Commitments from './pages/commitments/Commitments';
 
 const USER_ROLES = ['ROLE_USER', 'ROLE_ADMIN'];
 
@@ -42,6 +44,8 @@ export default function App() {
 
             <Route path="transfers" element={<BasicTabs />} />
             <Route path="transactions" element={<Transaction />} />
+            <Route path="future" element={<Future />} />
+            <Route path="commitments" element={<Commitments />} />
             <Route path="insights" element={<Insights />} />
             <Route path="open-finance" element={<OpenFinance />} />
             <Route path="about" element={<About />} />

@@ -6,7 +6,7 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { enqueueSnackbar } from 'notistack';
 import { useWallets } from '../../context/WalletContext';
-import { PageHeading, WalletIcon } from '../../components/wallet-ui';
+import { IconTile, PageHeading, WalletIcon } from '../../components/wallet-ui';
 import AuthService from '../../services/AuthService';
 import HttpService from '../../services/HttpService';
 import { errorKey } from '../../utils/wallet';
@@ -56,20 +56,7 @@ export default function NewWallet() {
         </Button>
         <PageHeading title={t('wallet.newWallet')} description={t('app.newWalletHelp')} />
         <Card sx={{ p: { xs: 3, sm: 4 } }}>
-          <Box
-            sx={{
-              width: 56,
-              height: 56,
-              borderRadius: '18px',
-              bgcolor: '#1D1D1F',
-              color: 'white',
-              display: 'grid',
-              placeItems: 'center',
-              mb: 4,
-            }}
-          >
-            <WalletIcon name="wallet" sx={{ fontSize: 30 }} />
-          </Box>
+          <IconTile name="wallet" size={56} sx={{ mb: 4 }} />
           <Box component="form" onSubmit={submit}>
             <Stack spacing={3}>
               {error && <Alert severity="error">{t(error)}</Alert>}

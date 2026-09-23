@@ -80,6 +80,16 @@ class AuthenticationRateLimiterTest {
         assertDoesNotThrow(() -> limiter.acquire("dave", "ip"));
     }
 
+    @Test
+    void signupsAreCappedPerAddressForAnHour() {
+        for (int i = 0; i < AuthenticationRateLimiter.MAX_SIGNUPS_PER_ADDRESS; i++) limiter.acquireSignup("ip");
+        assertThrows(AuthenticationRateLimitException.class, () -> limiter.acquireSignup("ip"));
+        assertDoesNotThrow(() -> limiter.acquireSignup("other-ip"));
+
+        clock.now = clock.now.plus(AuthenticationRateLimiter.SIGNUP_WINDOW).plusSeconds(1);
+        assertDoesNotThrow(() -> limiter.acquireSignup("ip"));
+    }
+
     private static final class MutableClock extends Clock {
         private Instant now;
 

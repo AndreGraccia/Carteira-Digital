@@ -70,6 +70,8 @@ public class InsightsService {
 
         if (narrativeGenerator.isEnabled()) {
             rateLimiter.check(userId);
+        }
+        if (narrativeGenerator.isEnabled() && rateLimiter.tryGlobal()) {
             try {
                 Optional<GeneratedNarrative> generated = narrativeGenerator.generate(snapshot, language, research);
                 if (generated.isPresent() && isUsable(generated.get())) {

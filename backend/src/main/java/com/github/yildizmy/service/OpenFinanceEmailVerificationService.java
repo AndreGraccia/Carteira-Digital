@@ -24,6 +24,7 @@ public class OpenFinanceEmailVerificationService {
 
     private static final int CODE_FLOOR = 10_000_000;
     private static final int CODE_RANGE = 90_000_000;
+    static final int MAX_SENDS_PER_DAY = 10;
 
     private final OpenFinanceEmailChallengeRepository challengeRepository;
     private final UserRepository userRepository;
@@ -73,10 +74,27 @@ public class OpenFinanceEmailVerificationService {
             );
         }
 
+        boolean newSendWindow = challenge == null
+                || challenge.getSendWindowStartedAt() == null
+                || !now.isBefore(challenge.getSendWindowStartedAt().plus(1, ChronoUnit.DAYS));
+        if (!newSendWindow && challenge.getSendCount() >= MAX_SENDS_PER_DAY) {
+            throw new OpenFinanceVerificationException(
+                    "OPEN_FINANCE_CODE_DAILY_LIMIT",
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    secondsUntil(now, challenge.getSendWindowStartedAt().plus(1, ChronoUnit.DAYS))
+            );
+        }
+
         String code = String.valueOf(secureRandom.nextInt(CODE_RANGE) + CODE_FLOOR);
         if (challenge == null) {
             challenge = new OpenFinanceEmailChallenge();
             challenge.setUser(user);
+        }
+        if (newSendWindow) {
+            challenge.setSendWindowStartedAt(now);
+            challenge.setSendCount(1);
+        } else {
+            challenge.setSendCount(challenge.getSendCount() + 1);
         }
         challenge.setCodeHash(passwordEncoder.encode(code));
         challenge.setCreatedAt(now);

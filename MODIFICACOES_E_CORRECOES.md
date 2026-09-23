@@ -152,9 +152,14 @@ Escopo: alterações realizadas desde a base `main` (`9e83117`) até a branch at
 | O IBAN das carteiras importadas do Open Finance passou a ser aleatório. | O IBAN era derivado de `userId` e do id da conta, então outro usuário podia criá-lo antes e fazer a importação da vítima falhar por unicidade. |
 | `frontend/.dockerignore` ignora `.env.local`, `build` e `coverage`. | Configuração local e artefatos entravam no contexto da imagem. |
 | `Contexto*.txt` no `.gitignore`. | Exportações de sessão podiam ser commitadas por engano. |
+| Login encontra o usuário ignorando maiúsculas e espaços, ou pelo e-mail; campo sem autocapitalização no celular. | Conta criada como `gui_oliveira` não entrava digitando `Gui_oliveira`: o cadastro comparava ignorando maiúsculas e o login, não. |
+| Cadastro limitado a 10 por IP por hora. | Um script podia criar contas em massa e multiplicar os limites por usuário (Gemini, e-mails). |
+| Código do Open Finance limitado a 10 envios por conta em 24 h (V12). | Uma conta cadastrada com o e-mail de outra pessoa podia mandar a ela um código por minuto. |
+| Teto global de 200 relatórios Gemini por hora, com volta para a análise local. | O custo da chave de API não tinha limite total. |
+| Remoção do `frontend/yarn.lock`. | Dois lockfiles divergentes; o projeto e o Dockerfile usam npm. |
 
 | Validação | Resultado |
 | --- | --- |
-| `mvnw test` | 101 testes, 0 falhas (inclui `AuthenticationRateLimiterTest`, com rajada de 200 requisições paralelas). |
+| `mvnw test` | 107 testes, 0 falhas (inclui `AuthenticationRateLimiterTest`, com rajada de 200 requisições paralelas, e `UserDetailsServiceImplTest`). |
 | Frontend: Jest, lint, `test:i18n`, `test:wallet`, build | Todos passando; 469 chaves PT/EN. |
 | Roteiro de API contra o backend local | Cadastro 201, CORS, 428 sem e-mail, código pelo Mailpit, código errado 400, sincronização, 8 perguntas, Futuro, 403 entre contas, 429 na 6ª senha errada. |

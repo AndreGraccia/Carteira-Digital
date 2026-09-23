@@ -77,6 +77,7 @@ class InsightsServiceTest {
     @Test
     void usesAiNarrativeWhenConfiguredButKeepsServerCalculatedMetricsAndReferences() {
         when(narrativeGenerator.isEnabled()).thenReturn(true);
+        when(rateLimiter.tryGlobal()).thenReturn(true);
         when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of());
         var generated = new GeneratedNarrative(
                 "Leitura personalizada",
@@ -91,6 +92,18 @@ class InsightsServiceTest {
         assertEquals("Leitura personalizada", report.headline());
         assertEquals(6, report.references().size());
         verify(rateLimiter).check(7L);
+    }
+
+    @Test
+    void fallsBackToLocalAnalysisWhenTheSharedGeminiBudgetIsUsedUp() {
+        when(narrativeGenerator.isEnabled()).thenReturn(true);
+        when(rateLimiter.tryGlobal()).thenReturn(false);
+        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of());
+
+        var report = service.generate(7L, 1, "pt-BR");
+
+        assertEquals("LOCAL", report.provider());
+        verify(narrativeGenerator, never()).generate(any(), any(), any(Map.class));
     }
 
     private Wallet wallet(Long id) {

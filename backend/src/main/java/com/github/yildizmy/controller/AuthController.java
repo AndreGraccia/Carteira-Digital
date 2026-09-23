@@ -46,7 +46,8 @@ public class AuthController {
      * @return id of the registered user
      */
     @PostMapping("/signup")
-    public ResponseEntity<CommandResponse> signup(@Valid @RequestBody SignupRequest request) {
+    public ResponseEntity<CommandResponse> signup(@Valid @RequestBody SignupRequest request, HttpServletRequest servletRequest) {
+        authenticationRateLimiter.acquireSignup(servletRequest.getRemoteAddr());
         final CommandResponse response = authService.signup(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

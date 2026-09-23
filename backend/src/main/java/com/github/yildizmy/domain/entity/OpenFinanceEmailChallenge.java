@@ -60,4 +60,10 @@ public class OpenFinanceEmailChallenge {
 
     @Column(name = "verified_email", length = 50)
     private String verifiedEmail;
+
+    @Column(name = "send_count", nullable = false)
+    private int sendCount;
+
+    @Column(name = "send_window_started_at")
+    private Instant sendWindowStartedAt;
 }

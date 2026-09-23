@@ -242,6 +242,24 @@ class OpenFinanceEmailVerificationServiceTest {
         assertNull(challenge.getVerifiedAt());
     }
 
+    @Test
+    void requestStopsAtTheDailySendLimitAndReopensAfter24Hours() {
+        OpenFinanceEmailChallenge challenge = challenge("87654321", 0, 5);
+        challenge.setResendAvailableAt(NOW.minusSeconds(1));
+        challenge.setSendWindowStartedAt(NOW.minus(2, ChronoUnit.HOURS));
+        challenge.setSendCount(OpenFinanceEmailVerificationService.MAX_SENDS_PER_DAY);
+        when(challengeRepository.findByUserIdForUpdate(7L)).thenReturn(Optional.of(challenge));
+
+        var exception = assertThrows(OpenFinanceVerificationException.class, () -> service.request(7L));
+        assertEquals("OPEN_FINANCE_CODE_DAILY_LIMIT", exception.getCode());
+        verifyNoInteractions(mailSender);
+
+        challenge.setSendWindowStartedAt(NOW.minus(25, ChronoUnit.HOURS));
+        service.request(7L);
+        assertEquals(1, challenge.getSendCount());
+        assertEquals(NOW, challenge.getSendWindowStartedAt());
+    }
+
     private OpenFinanceEmailChallenge challenge(String code, int attempts, int maximumAttempts) {
         OpenFinanceEmailChallenge challenge = new OpenFinanceEmailChallenge();
         challenge.setUser(user());

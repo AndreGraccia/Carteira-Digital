@@ -47,8 +47,12 @@ Esses dados são só locais. Nenhum código é fixo.
 8. No topo do Futuro, o cartão do limite diário diz "Faltam R$ 324,87 mesmo sem gastar nada", com o dia 03/10 como o mais apertado e o custo máximo do cheque especial (até R$ 1,67).
 9. Nas perguntas aparece "Gastos do dia a dia": R$ 28,46 por dia, R$ 2.561,75 em 12 compras nos últimos 90 dias (Mercado Bairro). Confirme. O ponto mais baixo passa a -R$ 637,93 em 04/10 e o custo máximo, a R$ 3,20.
 10. Abra **Perguntar** e toque nas sugestões. "Posso comprar um notebook de R$ 4.000 em 10x?" responde "Melhor não agora", com mais dias abaixo de zero e a parcela de R$ 400 no Aurora Card. "Qual a previsão do tempo?" responde que ainda não sabe.
-11. Repita com a segunda conta: ela recebe os próprios dados, sem compartilhamento com a primeira.
-12. Revogue a conexão. Reconectar exige outro código.
+11. Clique em "ver por quê": em "Como sair do buraco" aparece combinar o aluguel (R$ 1.500) de 01/10 para 05/10, sem nenhum dia negativo.
+12. Confirme também "Compras do dia a dia no cartão" (R$ 8,30 por dia; Posto Shell, iFood e Spotify). A estimativa entra nas faturas de 03/10 e 03/11.
+13. Em "Metas", crie "Reserva de emergência", R$ 200 por mês, dia 10. O limite e a projeção passam a descontar a meta.
+14. Ative "Avisar por e-mail". Para ver o e-mail sem esperar as 8h, suba o backend com `future_alert_cron=0 * * * * *` (a cada minuto) e confira o Mailpit: um e-mail por janela nova, nenhum repetido.
+15. Repita com a segunda conta: ela recebe os próprios dados, sem compartilhamento com a primeira.
+16. Revogue a conexão. Reconectar exige outro código.
 
 Números conferidos em 23/09/2026 com o roteiro de API contra o backend local. A massa é gerada a partir da data atual (`Clock`), então meses e valores do buraco mudam conforme o dia em que o teste roda. O cenário de 22/09/2026 está travado em `ContractSandboxOpenFinanceGatewayTest`.
 

@@ -12,6 +12,8 @@ import com.github.yildizmy.dto.request.FutureRequests;
 import com.github.yildizmy.dto.response.FutureResponses;
 import com.github.yildizmy.exception.WalletRuleException;
 import com.github.yildizmy.repository.CreditCardRepository;
+import com.github.yildizmy.repository.GoalRepository;
+import com.github.yildizmy.domain.entity.Goal;
 import com.github.yildizmy.repository.LoanRepository;
 import com.github.yildizmy.repository.RecurrenceDecisionRepository;
 import com.github.yildizmy.repository.TransactionRepository;
@@ -21,6 +23,7 @@ import com.github.yildizmy.service.future.CashEvent;
 import com.github.yildizmy.service.future.CashEventPlanner;
 import com.github.yildizmy.service.future.CashEventPlanner.ConfirmedRecurrence;
 import com.github.yildizmy.service.future.DailySpending;
+import com.github.yildizmy.service.future.ExitPlan;
 import com.github.yildizmy.service.future.LoanPlan;
 import com.github.yildizmy.service.future.ProjectionEngine;
 import com.github.yildizmy.service.future.QuestionParser;
@@ -66,12 +69,14 @@ public class FutureService {
     private static final Set<String> EXPENSE_CATEGORIES = Set.of("RENT", "SUBSCRIPTION", "BILL", "OTHER");
     /** Decision row that stores the everyday-spending answer; pattern keys always start with "in:" or "out:". */
     static final String DAILY_SPENDING_KEY = "daily-spending";
+    static final String CARD_SPENDING_KEY = "card-spending";
 
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final RecurrenceDecisionRepository decisionRepository;
     private final CreditCardRepository creditCardRepository;
     private final LoanRepository loanRepository;
+    private final GoalRepository goalRepository;
     private final UserService userService;
     private final Clock clock;
 
@@ -81,6 +86,7 @@ public class FutureService {
             RecurrenceDecisionRepository decisionRepository,
             CreditCardRepository creditCardRepository,
             LoanRepository loanRepository,
+            GoalRepository goalRepository,
             UserService userService,
             Clock clock) {
         this.walletRepository = walletRepository;
@@ -88,6 +94,7 @@ public class FutureService {
         this.decisionRepository = decisionRepository;
         this.creditCardRepository = creditCardRepository;
         this.loanRepository = loanRepository;
+        this.goalRepository = goalRepository;
         this.userService = userService;
         this.clock = clock;
     }
@@ -124,7 +131,9 @@ public class FutureService {
                         context.confirmed().size(),
                         (int) pending
                 ),
-                dailySpending(context),
+                spendingQuestion(context, DAILY_SPENDING_KEY, context.dailyEstimate(), context.dailyAmount()),
+                context.cardPlans().isEmpty() ? null
+                        : spendingQuestion(context, CARD_SPENDING_KEY, context.cardEstimate(), context.cardAmount()),
                 new FutureResponses.SpendingLimit(
                         limit.daily(),
                         limit.until(),
@@ -133,45 +142,55 @@ public class FutureService {
                         limit.bindingDate(),
                         context.dailyAmount(),
                         context.dailyAmount() == null ? null : limit.daily().subtract(context.dailyAmount()),
-                        limit.shortfall())
+                        limit.shortfall()),
+                ExitPlan.suggest(context.today(), context.balance(), events, horizonDays, context.dailyAmount()).stream()
+                        .map(action -> new FutureResponses.ExitAction(action.type(), action.label(), action.category(),
+                                action.amount(), action.from(), action.to(), action.newDaily(),
+                                action.resultingLowest(), action.solves()))
+                        .toList()
         );
     }
 
     /**
-     * Answer to "is this your everyday spending?". PENDING removes the answer; CONFIRMED may carry the
-     * user's own daily value, otherwise the estimate from the history is used.
+     * Answer to "is this your everyday spending?" for the account ({@code source} ACCOUNT, default) or the
+     * credit card (CARD). PENDING removes the answer; CONFIRMED may carry the user's own daily value,
+     * otherwise the estimate from the history is used.
      */
     @Transactional
     public void decideDailySpending(long userId, FutureRequests.DailySpendingDecision request) {
-        var existing = decisionRepository.findByUserIdAndPatternKey(userId, DAILY_SPENDING_KEY);
+        boolean card = "CARD".equals(request.source());
+        String key = card ? CARD_SPENDING_KEY : DAILY_SPENDING_KEY;
+        var existing = decisionRepository.findByUserIdAndPatternKey(userId, key);
         if ("PENDING".equals(request.status())) {
             existing.ifPresent(decisionRepository::delete);
             return;
         }
         Context context = load(userId);
-        if (context.dailyEstimate().isEmpty() && request.dailyAmount() == null) {
+        if (card && context.cardPlans().isEmpty()) throw new WalletRuleException("CARD_SPENDING_NO_CARD");
+        Optional<DailySpending.Estimate> estimate = card ? context.cardEstimate() : context.dailyEstimate();
+        if (estimate.isEmpty() && request.dailyAmount() == null) {
             throw new WalletRuleException("DAILY_SPENDING_NO_HISTORY");
         }
         RecurrenceDecision decision = existing.orElseGet(RecurrenceDecision::new);
         decision.setUser(userService.getReferenceById(userId));
-        decision.setPatternKey(DAILY_SPENDING_KEY);
+        decision.setPatternKey(key);
         decision.setStatus(RecurrenceStatus.valueOf(request.status()));
-        decision.setCategory(CashEventPlanner.DAILY_SPENDING);
+        decision.setCategory(card ? CashEventPlanner.CARD_SPENDING : CashEventPlanner.DAILY_SPENDING);
         decision.setAmount("CONFIRMED".equals(request.status()) ? request.dailyAmount() : null);
         decision.setDecidedAt(clock.instant());
         decisionRepository.save(decision);
     }
 
-    private FutureResponses.DailySpending dailySpending(Context context) {
-        RecurrenceDecision decision = context.decisions().get(DAILY_SPENDING_KEY);
-        Optional<DailySpending.Estimate> estimate = context.dailyEstimate();
+    private FutureResponses.DailySpending spendingQuestion(Context context, String key,
+                                                          Optional<DailySpending.Estimate> estimate, BigDecimal applied) {
+        RecurrenceDecision decision = context.decisions().get(key);
         String status = decision == null ? "PENDING" : decision.getStatus().name();
         // Confirmed "use the estimate", but there is no estimate any more (e.g. 90 days without movements).
-        if ("CONFIRMED".equals(status) && context.dailyAmount() == null) status = "PENDING";
+        if ("CONFIRMED".equals(status) && applied == null) status = "PENDING";
         return new FutureResponses.DailySpending(
                 status,
                 estimate.map(DailySpending.Estimate::daily).orElse(null),
-                context.dailyAmount(),
+                applied,
                 decision == null ? null : decision.getAmount(),
                 estimate.map(DailySpending.Estimate::total).orElse(null),
                 estimate.map(DailySpending.Estimate::days).orElse(0),
@@ -301,6 +320,43 @@ public class FutureService {
         );
     }
 
+    static final int MAX_GOALS = 10;
+
+    @Transactional(readOnly = true)
+    public List<FutureResponses.Goal> goals(long userId) {
+        LocalDate today = LocalDate.now(clock.withZone(ZONE));
+        return goalRepository.findByUserIdOrderById(userId).stream().map(goal -> toResponse(goal, today)).toList();
+    }
+
+    @Transactional
+    public FutureResponses.Goal createGoal(long userId, FutureRequests.Goal request) {
+        if (goalRepository.countByUserId(userId) >= MAX_GOALS) throw new WalletRuleException("GOAL_LIMIT");
+        Goal goal = new Goal();
+        goal.setUser(userService.getReferenceById(userId));
+        goal.setName(request.name().trim());
+        goal.setMonthlyAmount(request.monthlyAmount());
+        goal.setDayOfMonth(request.dayOfMonth());
+        goal.setCreatedAt(clock.instant());
+        goalRepository.save(goal);
+        return toResponse(goal, LocalDate.now(clock.withZone(ZONE)));
+    }
+
+    @Transactional
+    public void deleteGoal(long userId, long goalId) {
+        goalRepository.delete(goalRepository.findByIdAndUserId(goalId, userId)
+                .orElseThrow(() -> new WalletRuleException("GOAL_NOT_FOUND")));
+    }
+
+    private FutureResponses.Goal toResponse(Goal goal, LocalDate today) {
+        LocalDate next = CashEventPlanner.goals(List.of(toPlan(goal)), today, today.plusMonths(2)).stream()
+                .map(CashEvent::date).findFirst().orElse(null);
+        return new FutureResponses.Goal(goal.getId(), goal.getName(), goal.getMonthlyAmount(), goal.getDayOfMonth(), next);
+    }
+
+    private CashEventPlanner.GoalPlan toPlan(Goal goal) {
+        return new CashEventPlanner.GoalPlan(goal.getId(), goal.getName(), goal.getMonthlyAmount(), goal.getDayOfMonth());
+    }
+
     /** How far "Pergunte ao Wall.ia" looks for risks and the next income. */
     static final int ASK_HORIZON_DAYS = 60;
 
@@ -376,7 +432,8 @@ public class FutureService {
                 scenario == null ? null : scenario.baseline(),
                 scenario == null ? null : scenario.scenario(),
                 newMonthlyCommitment,
-                cardName);
+                cardName,
+                "WHY_NEGATIVE".equals(intent) ? overview.exitPlan() : null);
     }
 
     // --- loading -----------------------------------------------------------------------------
@@ -408,16 +465,32 @@ public class FutureService {
                 .map(RecurrencePattern::key)
                 .collect(Collectors.toSet());
         Optional<DailySpending.Estimate> dailyEstimate = DailySpending.estimate(today, movements, fixedKeys);
-        RecurrenceDecision dailyDecision = decisions.get(DAILY_SPENDING_KEY);
-        BigDecimal dailyAmount = null;
-        if (dailyDecision != null && dailyDecision.getStatus() == RecurrenceStatus.CONFIRMED) {
-            dailyAmount = dailyDecision.getAmount() != null
-                    ? dailyDecision.getAmount()
-                    : dailyEstimate.map(DailySpending.Estimate::daily).orElse(null);
-        }
+        BigDecimal dailyAmount = applied(decisions.get(DAILY_SPENDING_KEY), dailyEstimate);
+        List<CardPlan> cardPlans = cards.stream().map(this::toPlan).toList();
+        Optional<DailySpending.Estimate> cardEstimate = DailySpending.estimateCard(today, cardPlans);
+        BigDecimal cardAmount = applied(decisions.get(CARD_SPENDING_KEY), cardEstimate);
+        List<CashEventPlanner.GoalPlan> goals = goalRepository.findByUserIdOrderById(userId).stream().map(this::toPlan).toList();
         return new Context(today, wallets, balance, patterns, decisions, confirmed,
-                cards, cards.stream().map(this::toPlan).toList(), loans, loans.stream().map(this::toPlan).toList(),
-                dailyEstimate, dailyAmount);
+                cards, cardPlans, loans, loans.stream().map(this::toPlan).toList(),
+                dailyEstimate, dailyAmount, cardEstimate, cardAmount, mainCard(cardPlans, today), goals);
+    }
+
+    /** The user's value, or the estimate, when the answer is CONFIRMED; null otherwise. */
+    private static BigDecimal applied(RecurrenceDecision decision, Optional<DailySpending.Estimate> estimate) {
+        if (decision == null || decision.getStatus() != RecurrenceStatus.CONFIRMED) return null;
+        return decision.getAmount() != null ? decision.getAmount() : estimate.map(DailySpending.Estimate::daily).orElse(null);
+    }
+
+    // ponytail: the everyday card estimate is charged to the card with the most single purchases in the
+    // window. Split it per card when users with several active cards show up.
+    private static CardPlan mainCard(List<CardPlan> cards, LocalDate today) {
+        LocalDate from = today.minusDays(90);
+        return cards.stream()
+                .max(Comparator.comparing(card -> card.charges().stream()
+                        .filter(charge -> charge.installments() == 1 && !charge.purchaseDate().isBefore(from))
+                        .map(CardPlan.Charge::totalAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)))
+                .orElse(null);
     }
 
     /**
@@ -664,20 +737,27 @@ public class FutureService {
             List<Loan> loans,
             List<LoanPlan> loanPlans,
             Optional<DailySpending.Estimate> dailyEstimate,
-            BigDecimal dailyAmount
+            BigDecimal dailyAmount,
+            Optional<DailySpending.Estimate> cardEstimate,
+            BigDecimal cardAmount,
+            CardPlan mainCard,
+            List<CashEventPlanner.GoalPlan> goals
     ) {
 
-        /** Everything the user confirmed, everyday spending included. */
+        /** Everything the user confirmed, everyday spending on the account and on the card included. */
         List<CashEvent> plan(LocalDate end) {
             List<CashEvent> events = new ArrayList<>(planFixed(end));
             events.addAll(CashEventPlanner.dailySpending(dailyAmount, today, end,
                     dailyEstimate.map(estimate -> "Média dos últimos " + estimate.days() + " dias").orElse("Valor informado")));
+            events.addAll(CashEventPlanner.cardSpending(cardAmount, mainCard, today, end));
             return events;
         }
 
-        /** Bills, invoices and instalments only: the base for the daily spending limit. */
+        /** Bills, invoices, instalments and the user's goals: the base for the daily spending limit. */
         List<CashEvent> planFixed(LocalDate end) {
-            return CashEventPlanner.plan(today, end, confirmed, cardPlans, loanPlans);
+            List<CashEvent> events = new ArrayList<>(CashEventPlanner.plan(today, end, confirmed, cardPlans, loanPlans));
+            events.addAll(CashEventPlanner.goals(goals, today, end));
+            return events;
         }
     }
 }

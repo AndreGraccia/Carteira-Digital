@@ -28,6 +28,7 @@ const paths = {
   sync: 'M20 7h-6V1m6 6-3-3a8 8 0 0 0-13 3m0 10h6v6m-6-6 3 3a8 8 0 0 0 13-3',
   future: 'M3 17l5-6 4 4 3-4M17.5 9.5h.01M20 6.5h.01M3 21h18',
   card: 'M3 6h18v12H3V6Zm0 4h18M7 15h4',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6m4-6v6',
   ask: 'M4 5h16v11H9l-5 4V5Zm6.5 3.5a1.5 1.5 0 1 1 2.2 1.3c-.5.3-.7.7-.7 1.2M12 13.5h.01',
 };
 export function WalletIcon({ name, ...props }) {

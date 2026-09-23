@@ -87,6 +87,39 @@ public final class DailySpending {
     }
 
     /**
+     * Everyday purchases on credit cards (food delivery, fuel): single-payment charges of the last 90 days.
+     * Future invoices only know purchases already made, so without this they look lighter than they will be.
+     * Instalment purchases are left out: their future instalments are already on the invoices.
+     */
+    public static Optional<Estimate> estimateCard(LocalDate today, List<CardPlan> cards) {
+        LocalDate from = today.minusDays(WINDOW_DAYS);
+        List<CardPlan.Charge> recent = cards.stream()
+                .flatMap(card -> card.charges().stream())
+                .filter(charge -> !charge.purchaseDate().isBefore(from) && charge.purchaseDate().isBefore(today))
+                .toList();
+        if (recent.isEmpty()) return Optional.empty();
+        LocalDate firstSeen = recent.stream().map(CardPlan.Charge::purchaseDate).min(Comparator.naturalOrder()).orElseThrow();
+        int days = (int) ChronoUnit.DAYS.between(firstSeen, today);
+        if (days < MIN_HISTORY_DAYS) return Optional.empty();
+
+        List<CardPlan.Charge> single = recent.stream().filter(charge -> charge.installments() == 1).toList();
+        if (single.isEmpty()) return Optional.empty();
+        BigDecimal total = single.stream().map(CardPlan.Charge::totalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<Item> top = single.stream()
+                .collect(Collectors.groupingBy(CardPlan.Charge::description, LinkedHashMap::new, Collectors.toList()))
+                .entrySet().stream()
+                .map(entry -> new Item(
+                        entry.getKey(),
+                        entry.getValue().stream().map(CardPlan.Charge::totalAmount).reduce(BigDecimal.ZERO, BigDecimal::add),
+                        entry.getValue().size()))
+                .sorted(Comparator.comparing(Item::total).reversed())
+                .limit(TOP_ITEMS)
+                .toList();
+        return Optional.of(new Estimate(
+                total.divide(BigDecimal.valueOf(days), 2, RoundingMode.HALF_UP), total, days, single.size(), top));
+    }
+
+    /**
      * @param daily     average per calendar day, rounded to cents
      * @param total     sum of the everyday outflows in the period
      * @param days      length of the period, from the first movement seen to yesterday

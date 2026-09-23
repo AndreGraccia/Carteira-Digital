@@ -161,6 +161,50 @@ class DailySpendingAndLimitTest {
         assertTrue(CashEventPlanner.dailySpending(null, TODAY, TODAY.plusDays(2), "média").isEmpty());
     }
 
+    // --- everyday card purchases ----------------------------------------------------------------
+
+    @Test
+    void cardEstimateCountsSinglePurchasesOnlyBecauseInstalmentsAreAlreadyOnTheInvoices() {
+        CardPlan card = new CardPlan(1, "Aurora Card", "Banco Aurora", 25, 3, List.of(
+                charge("2026-07-09", "21.90", 1), charge("2026-08-09", "21.90", 1), charge("2026-09-09", "21.90", 1),
+                charge("2026-07-16", "68.40", 1), charge("2026-08-16", "68.40", 1), charge("2026-09-16", "68.40", 1),
+                charge("2026-08-14", "3299.00", 10)));
+
+        DailySpending.Estimate estimate = DailySpending.estimateCard(TODAY, List.of(card)).orElseThrow();
+
+        // 270.90 over the 84 days since the first purchase seen (09/07).
+        assertEquals(new BigDecimal("270.90"), estimate.total());
+        assertEquals(84, estimate.days());
+        assertEquals(new BigDecimal("3.23"), estimate.daily());
+        assertEquals(6, estimate.movements());
+        assertEquals("iFood", estimate.top().get(0).counterparty());
+    }
+
+    @Test
+    void everydayCardPurchasesLandOnTheInvoiceTheyFallInto() {
+        // Closes on the 25th, due on the 3rd. Purchases from 02/10 to 24/10 go to the invoice due 03/11;
+        // from 25/10 on they go to 03/12, outside the period.
+        CardPlan card = new CardPlan(1, "Aurora Card", "Banco Aurora", 25, 3, List.of());
+
+        List<CashEvent> events = CashEventPlanner.cardSpending(new BigDecimal("10.00"), card, TODAY, LocalDate.of(2026, 11, 10));
+
+        assertEquals(1, events.size());
+        assertEquals(LocalDate.of(2026, 11, 3), events.get(0).date());
+        assertEquals(new BigDecimal("-230.00"), events.get(0).amount());
+        assertEquals(Certainty.ESTIMATED, events.get(0).certainty());
+        assertEquals(Kind.CARD_SPENDING, events.get(0).kind());
+    }
+
+    private static CardPlan.Charge charge(String date, String amount, int installments) {
+        LocalDate day = LocalDate.parse(date);
+        BigDecimal value = new BigDecimal(amount);
+        String description = value.compareTo(new BigDecimal("68.40")) == 0 ? "iFood"
+                : installments > 1 ? "Smart TV" : "Spotify";
+        return new CardPlan.Charge(day.toEpochDay(), description, day, value,
+                value.divide(BigDecimal.valueOf(installments), 2, java.math.RoundingMode.DOWN), installments,
+                java.time.YearMonth.from(day).plusMonths(1));
+    }
+
     // --- cost of doing nothing ------------------------------------------------------------------
 
     @Test

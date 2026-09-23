@@ -72,6 +72,7 @@ export function errorKey(error) {
   const code = error.response?.data?.code;
   if (code === 'AUTH_RATE_LIMIT') return 'app.errors.authRateLimit';
   if (code === 'INSIGHT_RATE_LIMIT') return 'app.errors.insightRateLimit';
+  if (code === 'ASK_RATE_LIMIT') return 'app.errors.askRateLimit';
   if (code === 'OPEN_FINANCE_UNAVAILABLE') return 'app.errors.openFinance';
   if (
     [
@@ -93,6 +94,9 @@ export function errorKey(error) {
       'RECURRENCE_CATEGORY_MISMATCH',
       'SCENARIO_NO_CONFIRMED_INCOME',
       'DAILY_SPENDING_NO_HISTORY',
+      'CARD_SPENDING_NO_CARD',
+      'GOAL_LIMIT',
+      'GOAL_NOT_FOUND',
       'INVALID_HORIZON',
     ].includes(code)
   )

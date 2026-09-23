@@ -98,6 +98,12 @@ public final class FutureResponses {
     }
 
     /**
+     * @param nextDate next day the goal takes money out of the projection
+     */
+    public record Goal(long id, String name, BigDecimal monthlyAmount, int dayOfMonth, LocalDate nextDate) {
+    }
+
+    /**
      * Answer to a free-text question. Only the fields of the detected intent are filled; every number
      * comes from the engine, and the client builds the sentence from them.
      *
@@ -119,7 +125,8 @@ public final class FutureResponses {
             ScenarioSummary before,
             ScenarioSummary after,
             BigDecimal newMonthlyCommitment,
-            String cardName
+            String cardName,
+            List<ExitAction> exitPlan
     ) {
     }
 
@@ -152,7 +159,27 @@ public final class FutureResponses {
             Projection projection,
             Sources sources,
             DailySpending dailySpending,
-            SpendingLimit spendingLimit
+            DailySpending cardSpending,
+            SpendingLimit spendingLimit,
+            List<ExitAction> exitPlan
+    ) {
+    }
+
+    /**
+     * One calculated way out of the first negative window. See {@code ExitPlan.Action}.
+     *
+     * @param type POSTPONE, CUT_DAILY or GAP
+     */
+    public record ExitAction(
+            String type,
+            String label,
+            String category,
+            BigDecimal amount,
+            LocalDate from,
+            LocalDate to,
+            BigDecimal newDaily,
+            BigDecimal resultingLowest,
+            boolean solves
     ) {
     }
 

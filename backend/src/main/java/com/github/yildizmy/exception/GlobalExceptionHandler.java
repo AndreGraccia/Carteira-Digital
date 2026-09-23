@@ -37,6 +37,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(java.util.Map.of("code", "AUTH_RATE_LIMIT"));
     }
 
+    @ExceptionHandler(AskRateLimitException.class)
+    public ResponseEntity<Object> handleAskRateLimit() {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(java.util.Map.of("code", "ASK_RATE_LIMIT"));
+    }
+
     @ExceptionHandler(InsightRateLimitException.class)
     public ResponseEntity<Object> handleInsightRateLimit() {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)

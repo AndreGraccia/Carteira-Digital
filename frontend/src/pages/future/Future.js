@@ -24,13 +24,15 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import ProjectionChart from '../../components/projection-chart';
-import { DailyLimitCard, EventRow, StatBlock } from '../../components/future-ui';
+import { DailyLimitCard, EventRow, ExitPlanList, StatBlock } from '../../components/future-ui';
 import { EmptyState, PageHeading, SectionCard, WalletIcon } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money } from '../../utils/wallet';
 import Questions from './Questions';
 import Simulator from './Simulator';
+import Goals from './Goals';
+import AlertToggle from './AlertToggle';
 
-function WhyDialog({ risk, onClose }) {
+function WhyDialog({ risk, exitPlan, onClose }) {
   const { t, i18n } = useTranslation();
   return (
     <Dialog open={Boolean(risk)} onClose={onClose} fullWidth maxWidth="sm" aria-labelledby="why-title">
@@ -53,6 +55,7 @@ function WhyDialog({ risk, onClose }) {
                   })
                 : t('future.whyNoRelief')}
             </Alert>
+            <ExitPlanList actions={exitPlan} />
             <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 2 }}>
               {t('future.whyFooter')}
             </Typography>
@@ -66,7 +69,7 @@ function WhyDialog({ risk, onClose }) {
   );
 }
 
-WhyDialog.propTypes = { risk: PropTypes.object, onClose: PropTypes.func.isRequired };
+WhyDialog.propTypes = { risk: PropTypes.object, exitPlan: PropTypes.array, onClose: PropTypes.func.isRequired };
 
 export default function Future() {
   const theme = useTheme();
@@ -146,11 +149,14 @@ export default function Future() {
           <Stack spacing={3}>
             {/* The one answer people open this page for; the numbers below explain it. */}
             {overview.spendingLimit && overview.sources.confirmedRecurrences > 0 && (
-              <DailyLimitCard
-                limit={overview.spendingLimit}
-                risk={projection.riskWindows[0]}
-                onWhy={setWhy}
-              />
+              <>
+                <DailyLimitCard
+                  limit={overview.spendingLimit}
+                  risk={projection.riskWindows[0]}
+                  onWhy={setWhy}
+                />
+                <AlertToggle />
+              </>
             )}
             <Card sx={{ p: { xs: 3, md: 4 } }}>
               <Grid container spacing={3}>
@@ -327,12 +333,23 @@ export default function Future() {
               </Grid>
             </Box>
 
-            <Questions recurrences={recurrences} dailySpending={overview.dailySpending} onAnswered={load} />
+            <Questions
+              recurrences={recurrences}
+              dailySpending={overview.dailySpending}
+              cardSpending={overview.cardSpending}
+              onAnswered={load}
+            />
+            <Goals onChanged={load} />
             <Simulator incomes={incomes} hasCard={overview.sources.cards > 0} />
           </Stack>
         )}
       </Container>
-      <WhyDialog risk={why} onClose={() => setWhy(null)} />
+      <WhyDialog
+        risk={why}
+        // The plan is calculated for the first window only.
+        exitPlan={why && why.start === projection?.riskWindows[0]?.start ? overview?.exitPlan : null}
+        onClose={() => setWhy(null)}
+      />
     </>
   );
 }

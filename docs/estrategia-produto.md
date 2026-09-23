@@ -36,11 +36,12 @@ Critérios: **dor** (quanto resolve de um problema com número por trás), **pro
 | Custo de não agir (cheque especial) | D3; 29,9% das famílias com conta atrasada | Explica com número | Nenhum player pesquisado | P | **Feito** |
 | Pergunte ao Wall.ia, respondido pelo motor | D4 | IA não calcula | Assistentes de WhatsApp registram gasto, não projetam | M | **Feito** |
 | Restrição de saldo local no banco | D5 | Dinheiro protegido em duas camadas | Interno | P | **Feito** (V13) |
-| Gasto variável no cartão (fatura futura estimada) | Faturas futuras só conhecem compras passadas | Pergunta em vez de supor | Nenhum | M | Próximo |
-| Plano de saída do buraco | Alerta ainda não diz o que fazer além de cortar | Explica e sugere, não executa | Nenhum | M | Próximo |
-| Alertas proativos (e-mail, push) | A pessoa precisa abrir o app para descobrir | Número calculado chega antes do problema | Nubank avisa cheque especial em outro banco | M | Próximo |
-| Metas como compromisso na projeção | README, item 4 | Pergunta em vez de supor | Comum, mas não ligado à projeção diária | M | Depois |
-| Classificador de intenção com LLM para o Pergunte | Frases fora do padrão voltam UNKNOWN | IA só escolhe o cálculo | Nenhum | P | Depois, com medição |
+| Gasto variável no cartão (fatura futura estimada) | Faturas futuras só conhecem compras passadas | Pergunta em vez de supor | Nenhum | M | **Feito** (ADR 0003) |
+| Plano de saída do buraco | Alerta ainda não diz o que fazer além de cortar | Explica e sugere, não executa | Nenhum | M | **Feito** (ADR 0003) |
+| Alertas proativos por e-mail | A pessoa precisa abrir o app para descobrir | Número calculado chega antes do problema | Nubank avisa cheque especial em outro banco | M | **Feito** (ADR 0003); push fica para depois |
+| Metas como compromisso na projeção | README, item 4 | Pergunta em vez de supor | Comum, mas não ligado à projeção diária | M | **Feito** (ADR 0003) |
+| Medição e limite do Pergunte | Sem saber o que as pessoas perguntam, não dá para decidir o próximo passo | Mede sem guardar texto | Interno | P | **Feito** (ADR 0003) |
+| Classificador de intenção com LLM para o Pergunte | Frases fora do padrão voltam UNKNOWN | IA só escolhe o cálculo | Nenhum | P | Quando a medição pedir |
 | Ledger de dupla entrada | Base para dinheiro real | Correção por estorno | Interno | G | Depois |
 | Papéis administrativos e auditoria | Operar com usuários reais | Admin não movimenta dinheiro | Interno | G | Depois |
 | Marketplace de crédito | Receita | **Viola a regra 3** | Guiabolso fechou com esse modelo | M | **Não fazer** |
@@ -79,13 +80,21 @@ Tela nova (`/ask`) com cinco perguntas sugeridas e campo livre. Exemplos reais d
 | Quando cai minha próxima renda? | Concentrix S.A., em 05/10, R$ 4.200,00 |
 | Qual a previsão do tempo? | "Ainda não sei responder isso", com a lista do que dá para perguntar |
 
+## Segunda rodada (ADR 0003)
+
+- **Compras do dia a dia no cartão.** No sandbox: R$ 8,30 por dia (Posto Shell, iFood, Spotify em 76 dias), perguntadas como o dia a dia da conta e lançadas na fatura em que cada dia cai.
+- **Plano de saída.** No sandbox: "Combinar o pagamento de Imobiliária Lar Seguro (R$ 1.500) de 01/10 para 05/10, depois da entrada. Nenhum dia fica abaixo de zero." Fatura e empréstimo nunca são sugeridos para adiar.
+- **Metas.** Até 10, cada uma como compromisso mensal que o limite diário já desconta.
+- **Alertas por e-mail.** Opcionais; um por janela negativa nova, às 8h. Verificado ponta a ponta com o Mailpit.
+- **Pergunte medido e limitado.** 30 perguntas a cada 10 minutos por pessoa; contagem diária por intenção, sem texto.
+
 ## Próximos passos, em ordem
 
-1. **Gasto variável no cartão.** Mesma lógica do dia a dia, aplicada às compras à vista do cartão (iFood, combustível), somada às faturas futuras como `ESTIMATED`. Fecha o último buraco otimista da projeção.
-2. **Plano de saída do buraco.** Para cada janela negativa, até três ações calculadas: usar a reserva (a conta poupança do sandbox tem saldo conhecido), reduzir o ritmo diário até a data X, adiar uma conta com vencimento flexível. A Wall.ia sugere; quem executa é o usuário, no banco dele.
-3. **Alertas proativos.** Um job diário recalcula o limite e avisa por e-mail quando surge uma janela negativa nova ou o ritmo passa do limite. O Mailpit já existe para testar.
-4. **Medir o Pergunte.** Contar intenções e `UNKNOWN` (sem guardar o texto). Com 200 perguntas reais, decidir se vale um classificador com LLM.
-5. **Metas na projeção.** Uma meta mensal vira compromisso `CONFIRMED` pelo usuário.
+1. **Ledger de dupla entrada.** Base obrigatória antes de qualquer dinheiro real: todo débito com crédito correspondente, estorno em vez de apagar, conciliação diária. É grande (semanas), muda o modelo de transações e precisa de ADR próprio.
+2. **Papéis administrativos e trilha de auditoria.** Usuário, suporte, operações, auditoria e administrador; admin não movimenta dinheiro de cliente. Hoje existe só `ROLE_USER` e `ROLE_ADMIN`.
+3. **Classificador de intenção**, só quando a medição mostrar muitas perguntas em `UNKNOWN`.
+4. **Push no navegador** para os alertas, reaproveitando o mesmo job.
+5. **Estimativa por cartão** quando houver usuários com mais de um cartão ativo.
 
 ## Métricas
 

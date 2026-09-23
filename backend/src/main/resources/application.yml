@@ -36,6 +36,7 @@ spring:
       max-file-size: 1MB
       max-request-size: 10MB
   mail:
+    default-encoding: UTF-8
     host: ${mail_host:localhost}
     port: ${mail_port:1025}
     username: ${mail_username:}
@@ -90,6 +91,9 @@ app:
     geminiModel: ${gemini_model:gemini-3.8-flash}
     searchGroundingEnabled: ${gemini_search_grounding:true}
     endpoint: https://generativelanguage.googleapis.com/v1beta/interactions
+  future:
+    # Daily e-mail about new negative windows, only for users who turned it on. "-" disables the job.
+    alert-cron: ${future_alert_cron:0 0 8 * * *}
   open-finance:
     mode: ${open_finance_mode:contract-sandbox}
     base-url: ${open_finance_base_url:}

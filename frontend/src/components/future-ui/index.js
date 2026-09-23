@@ -36,10 +36,10 @@ export function EventRow({ event, dense = false }) {
   const { t, i18n } = useTranslation();
   const inflow = Number(event.amount) > 0;
   // Everyday spending arrives folded into one line; its reference carries how many days it covers.
-  const label =
-    event.category === 'DAILY_SPENDING'
-      ? t('future.dailyEvent', { days: Number(event.reference?.split(':')[1]) || 1 })
-      : event.label;
+  const days = Number(event.reference?.split(':')[1]) || 1;
+  let { label } = event;
+  if (event.category === 'DAILY_SPENDING') label = t('future.dailyEvent', { days });
+  if (event.category === 'CARD_SPENDING') label = t('future.cardEvent', { days });
   return (
     <Stack
       direction="row"
@@ -113,6 +113,53 @@ StatBlock.propTypes = {
   emphasis: PropTypes.bool,
   children: PropTypes.node,
 };
+
+/**
+ * Calculated ways out of the first negative window. Each line says what changes and what it gives;
+ * the Wall.ia never acts for the user.
+ */
+export function ExitPlanList({ actions }) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  if (!actions?.length) return null;
+  const sentence = (action) => {
+    const result = action.solves
+      ? t('future.exit.solves')
+      : t('future.exit.lowest', { amount: money(action.resultingLowest, lang) });
+    if (action.type === 'POSTPONE')
+      return `${t('future.exit.POSTPONE', {
+        label: action.label,
+        amount: money(action.amount, lang),
+        from: dayLabel(action.from, lang),
+        to: dayLabel(action.to, lang),
+      })} ${result}`;
+    if (action.type === 'CUT_DAILY')
+      return `${t('future.exit.CUT_DAILY', {
+        amount: money(action.amount, lang),
+        daily: money(action.newDaily, lang),
+        to: dayLabel(action.to, lang),
+      })} ${result}`;
+    return t('future.exit.GAP', { amount: money(action.amount, lang), to: dayLabel(action.to, lang) });
+  };
+  return (
+    <Box component="section" aria-label={t('future.exit.title')} sx={{ mt: 2 }}>
+      <Typography variant="subtitle2" component="h3">
+        {t('future.exit.title')}
+      </Typography>
+      <Box component="ol" sx={{ m: 0, mt: 1, pl: 2.5 }}>
+        {actions.map((action) => (
+          <Typography component="li" variant="body2" key={`${action.type}-${action.label || ''}`} sx={{ py: 0.5 }}>
+            {sentence(action)}
+          </Typography>
+        ))}
+      </Box>
+      <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1 }}>
+        {t('future.exit.note')}
+      </Typography>
+    </Box>
+  );
+}
+ExitPlanList.propTypes = { actions: PropTypes.array };
 
 /**
  * The first thing the Future page answers: how much can be spent per day until the next income,

@@ -139,8 +139,10 @@ Question.propTypes = { item: PropTypes.object.isRequired, onAnswered: PropTypes.
  * Everyday spending asked like a recurrence: the estimate and where the money went, then the
  * user's answer. The user may also type their own daily value.
  */
-function DailySpendingQuestion({ data, onAnswered }) {
+function DailySpendingQuestion({ data, source = 'ACCOUNT', onAnswered }) {
   const { t, i18n } = useTranslation();
+  // The card question reuses the same flow; only its own sentences change.
+  const copy = source === 'CARD' ? 'future.cardDaily' : 'future.daily';
   const { enqueueSnackbar } = useSnackbar();
   const lang = i18n.language;
   const [busy, setBusy] = useState(false);
@@ -154,7 +156,7 @@ function DailySpendingQuestion({ data, onAnswered }) {
   const answer = async (status, dailyAmount) => {
     setBusy(true);
     try {
-      await HttpService.putWithAuth('/future/daily-spending', { status, dailyAmount });
+      await HttpService.putWithAuth('/future/daily-spending', { status, source, dailyAmount });
       enqueueSnackbar(t('future.saved'), { variant: 'success' });
       setEditing(false);
       onAnswered();
@@ -165,24 +167,24 @@ function DailySpendingQuestion({ data, onAnswered }) {
     }
   };
 
-  let title = t('future.daily.question', { amount: money(data.suggestedDaily, lang) });
-  if (!data.suggestedDaily) title = t('future.daily.noHistory');
-  if (data.status === 'CONFIRMED') title = t('future.daily.confirmed', { amount: money(data.appliedDaily, lang) });
-  if (data.status === 'REJECTED') title = t('future.daily.rejected');
+  let title = t(`${copy}.question`, { amount: money(data.suggestedDaily, lang) });
+  if (!data.suggestedDaily) title = t(`${copy}.noHistory`);
+  if (data.status === 'CONFIRMED') title = t(`${copy}.confirmed`, { amount: money(data.appliedDaily, lang) });
+  if (data.status === 'REJECTED') title = t(`${copy}.rejected`);
 
   return (
     <Box sx={{ px: 3, py: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between">
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="overline" color="text.secondary" component="p">
-            {t('future.daily.title')}
+            {t(`${copy}.title`)}
           </Typography>
           <Typography variant="subtitle1" component="h3">
             {title}
           </Typography>
           {data.suggestedDaily && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {t('future.daily.evidence', {
+              {t(`${copy}.evidence`, {
                 total: money(data.total, lang),
                 times: data.movements,
                 days: data.days,
@@ -266,18 +268,25 @@ function DailySpendingQuestion({ data, onAnswered }) {
     </Box>
   );
 }
-DailySpendingQuestion.propTypes = { data: PropTypes.object.isRequired, onAnswered: PropTypes.func.isRequired };
+DailySpendingQuestion.propTypes = {
+  data: PropTypes.object.isRequired,
+  source: PropTypes.oneOf(['ACCOUNT', 'CARD']),
+  onAnswered: PropTypes.func.isRequired,
+};
 
-export default function Questions({ recurrences, dailySpending, onAnswered }) {
+export default function Questions({ recurrences, dailySpending, cardSpending, onAnswered }) {
   const { t } = useTranslation();
   const pending = recurrences.filter((item) => item.status === 'PENDING');
   const answered = recurrences.filter((item) => item.status !== 'PENDING');
   return (
     <SectionCard title={t('future.questionsTitle')}>
       <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 2 }}>
-        {pending.length || dailySpending?.status === 'PENDING' ? t('future.questionsHelp') : t('future.noQuestions')}
+        {pending.length || dailySpending?.status === 'PENDING' || cardSpending?.status === 'PENDING'
+          ? t('future.questionsHelp')
+          : t('future.noQuestions')}
       </Typography>
       {dailySpending && <DailySpendingQuestion data={dailySpending} onAnswered={onAnswered} />}
+      {cardSpending && <DailySpendingQuestion data={cardSpending} source="CARD" onAnswered={onAnswered} />}
       {pending.map((item) => (
         <Question key={item.key} item={item} onAnswered={onAnswered} />
       ))}
@@ -302,5 +311,6 @@ export default function Questions({ recurrences, dailySpending, onAnswered }) {
 Questions.propTypes = {
   recurrences: PropTypes.array.isRequired,
   dailySpending: PropTypes.object,
+  cardSpending: PropTypes.object,
   onAnswered: PropTypes.func.isRequired,
 };

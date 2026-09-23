@@ -35,6 +35,51 @@ public final class CashEventPlanner {
     }
 
     public static final String DAILY_SPENDING = "DAILY_SPENDING";
+    public static final String CARD_SPENDING = "CARD_SPENDING";
+    public static final String GOAL = "GOAL";
+
+    /** A monthly savings goal the user set: money that leaves the spendable balance on its day. */
+    public record GoalPlan(long id, String name, BigDecimal monthlyAmount, int dayOfMonth) {
+    }
+
+    /** One CONFIRMED outflow per month for each goal, after today and until {@code end}. */
+    public static List<CashEvent> goals(List<GoalPlan> goals, LocalDate today, LocalDate end) {
+        List<CashEvent> events = new ArrayList<>();
+        for (GoalPlan goal : goals) {
+            for (YearMonth month = YearMonth.from(today); !month.atDay(1).isAfter(end); month = month.plusMonths(1)) {
+                LocalDate date = month.atDay(Math.min(goal.dayOfMonth(), month.lengthOfMonth()));
+                if (!date.isAfter(today) || date.isAfter(end)) continue;
+                events.add(new CashEvent(date, goal.monthlyAmount().negate(), goal.name(), Kind.GOAL, GOAL,
+                        Certainty.CONFIRMED, "Meta", "goal:" + goal.id()));
+            }
+        }
+        return events;
+    }
+
+    /**
+     * Everyday card purchases the user confirmed, from tomorrow on, grouped into the invoice each day
+     * falls into and charged on that invoice's due date. Only invoices due inside the period appear.
+     */
+    public static List<CashEvent> cardSpending(BigDecimal daily, CardPlan card, LocalDate today, LocalDate end) {
+        List<CashEvent> events = new ArrayList<>();
+        if (daily == null || daily.signum() <= 0 || card == null) return events;
+        java.util.Map<LocalDate, Integer> daysByDue = new java.util.TreeMap<>();
+        for (LocalDate day = today.plusDays(1); !day.isAfter(end); day = day.plusDays(1)) {
+            LocalDate due = card.dueDate(card.invoiceFor(day));
+            if (due.isAfter(end)) break;
+            daysByDue.merge(due, 1, Integer::sum);
+        }
+        daysByDue.forEach((due, days) -> events.add(new CashEvent(
+                due,
+                daily.multiply(BigDecimal.valueOf(days)).negate(),
+                "Compras do dia a dia no cartão",
+                Kind.CARD_SPENDING,
+                CARD_SPENDING,
+                Certainty.ESTIMATED,
+                card.name(),
+                "card-spending:" + days)));
+        return events;
+    }
 
     /**
      * One estimated outflow per day, from tomorrow on, for the everyday spending the user confirmed.

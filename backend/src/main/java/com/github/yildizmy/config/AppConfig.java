@@ -3,6 +3,7 @@ package com.github.yildizmy.config;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import static com.github.yildizmy.common.Constants.DATE_TIME_FORMAT;
 
@@ -10,6 +11,7 @@ import static com.github.yildizmy.common.Constants.DATE_TIME_FORMAT;
  * Configuration file used to configure settings of the application.
  */
 @Configuration
+@EnableScheduling
 public class AppConfig {
 
     @Bean

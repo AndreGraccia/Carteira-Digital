@@ -164,3 +164,21 @@ Escopo: alterações realizadas desde a base `main` (`9e83117`) até a branch at
 | `mvnw test` | 107 testes, 0 falhas (inclui `AuthenticationRateLimiterTest`, com rajada de 200 requisições paralelas, e `UserDetailsServiceImplTest`). |
 | Frontend: Jest, lint, `test:i18n`, `test:wallet`, build | Todos passando; 469 chaves PT/EN. |
 | Roteiro de API contra o backend local | Cadastro 201, CORS, 428 sem e-mail, código pelo Mailpit, código errado 400, sincronização, 8 perguntas, Futuro, 403 entre contas, 429 na 6ª senha errada. |
+
+## Motor Futuro, segunda e terceira rodadas (ADR 0002 e 0003)
+
+| Modificação | Erro ou limitação corrigida |
+| --- | --- |
+| Gastos do dia a dia (conta e cartão) como perguntas com evidência. | A projeção ignorava mercado, transporte e compras à vista no cartão: o ponto mais baixo do sandbox era R$ 313 otimista. |
+| Limite diário até a próxima renda, com quanto falta quando só as contas já não cabem. | A tela não respondia "quanto posso gastar?". |
+| Custo máximo do cheque especial em cada janela negativa. | O alerta não tinha preço. |
+| Plano de saída calculado (combinar outra data, gastar menos por dia, quanto falta). | O alerta não dizia o que fazer. |
+| Pergunte ao Wall.ia, respondido pelo motor, com limite de 30 perguntas a cada 10 minutos e contagem por intenção sem texto. | Tirar uma dúvida exigia navegar por três telas; não havia medição nem proteção contra excesso de chamadas. |
+| Metas mensais na projeção (V16). | Guardar dinheiro só existia no simulador. |
+| Alertas por e-mail opcionais, um por janela nova (V17). | Era preciso abrir o app para descobrir o buraco. |
+
+| Validação | Resultado |
+| --- | --- |
+| `mvnw test` | 169 testes, 0 falhas. |
+| Frontend | 13 testes, lint, 571 chaves PT/EN e build de produção. |
+| Roteiro de API ao vivo | Cartão, plano de saída, metas (incluindo a meta de outra conta recusada), alertas com e-mail real no Mailpit sem reenvio, 403 para não admin, 429 na 31ª pergunta. |

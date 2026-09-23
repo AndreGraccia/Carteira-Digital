@@ -5,7 +5,7 @@ import { Alert, Box, Button, Card, Chip, Container, Stack, TextField, Typography
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
-import { EventRow } from '../../components/future-ui';
+import { EventRow, ExitPlanList } from '../../components/future-ui';
 import { PageHeading } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money } from '../../utils/wallet';
 
@@ -72,6 +72,7 @@ function AnswerBody({ answer }) {
           </Box>
           {Number(answer.risk.overdraftCostCap) > 0 &&
             line(t('future.limit.cost', { amount: money(answer.risk.overdraftCostCap, lang) }))}
+          <ExitPlanList actions={answer.exitPlan} />
         </>
       );
     case 'COMMITTED':

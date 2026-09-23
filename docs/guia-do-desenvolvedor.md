@@ -86,6 +86,7 @@ O backend lê esse arquivo da raiz ou de `backend/` (`spring.config.import` em `
 | `frontend_port` | Porta do frontend quando roda em container | `3000` | Só se estiver ocupada |
 | `gemini_api_key` | Chave da Gemini | vazio | Opcional |
 | `open_finance_mode` | `contract-sandbox` (local) ou `participant-sandbox` (credenciais reais de sandbox) | `contract-sandbox` | Não |
+| `future_alert_cron` | Quando o job de alertas por e-mail roda (cron do Spring, horário de Brasília) | `0 0 8 * * *` | Só para testar; `-` desliga |
 
 Chaves que não aparecem no exemplo, mas existem com valor padrão em `application.yml`: `mail_host` (localhost), `mail_port` (1025), `open_finance_code_ttl_minutes` (10), `open_finance_resend_cooldown_seconds` (60), `open_finance_code_max_attempts` (5).
 

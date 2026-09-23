@@ -27,7 +27,10 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 **Futuro**
 
 - **Limite diário:** quanto dá para gastar por dia até a próxima renda sem nenhum dia negativo, ou quanto falta quando só as contas já não cabem. Com o ritmo do dia a dia confirmado, diz quanto sobra ou quanto cortar por dia.
-- **Gastos do dia a dia como pergunta:** a média de mercado, transporte e farmácia dos últimos 90 dias, com a evidência. Só entra na projeção se o usuário confirmar (ou informar o próprio valor).
+- **Gastos do dia a dia como pergunta:** a média de mercado, transporte e farmácia dos últimos 90 dias, com a evidência. Só entra na projeção se o usuário confirmar (ou informar o próprio valor). O mesmo vale para as compras à vista no cartão, que entram na fatura em que cada dia cai.
+- **Plano de saída do buraco:** até três ações calculadas pelo motor (combinar outra data para uma conta, gastar menos por dia, ou quanto falta). Fatura e empréstimo nunca são sugeridos para adiar.
+- **Metas:** um valor por mês que entra na projeção como compromisso; o limite diário já desconta.
+- **Alertas por e-mail**, opcionais: um aviso por janela negativa nova, com o link para a saída.
 - Saldo agora, quanto já tem destino (separando confirmado de estimado) e margem livre.
 - Saldo projetado dia a dia em 30, 60 ou 90 dias, com o menor saldo marcado.
 - Alerta de janela negativa ("entre 03/10 e 04/10 seu saldo pode ficar em -R$ 324,87") e "ver por quê", que lista as contas que causam o buraco e a entrada que o fecha, com o custo máximo do cheque especial no período (teto legal de 8% ao mês).
@@ -55,14 +58,12 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 ## Próximos passos
 
-A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Em ordem:
+A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Decisões em [ADR 0001](docs/adr/0001-motor-futuro-deterministico.md), [0002](docs/adr/0002-limite-diario-e-perguntas.md) e [0003](docs/adr/0003-saida-do-buraco-metas-e-alertas.md). Em ordem:
 
-1. **Gasto variável no cartão**, estimado como o dia a dia, para as faturas futuras deixarem de ser otimistas.
-2. **Plano de saída do buraco:** para cada janela negativa, até três ações calculadas (usar a reserva, reduzir o ritmo, adiar uma conta flexível).
-3. **Alertas proativos** por e-mail quando surge uma janela negativa nova.
-4. **Medir o Pergunte ao Wall.ia** antes de pensar em um classificador com LLM.
-5. **Metas** entrando na projeção como compromisso.
-6. **Ledger de dupla entrada** e **papéis administrativos** com trilha de auditoria, antes de qualquer dinheiro real.
+1. **Ledger de dupla entrada**, antes de qualquer dinheiro real.
+2. **Papéis administrativos** (suporte, operações, auditoria) com trilha de auditoria.
+3. **Classificador de intenção** para o Pergunte, quando a medição pedir.
+4. **Push no navegador** para os alertas.
 
 ## Tecnologias
 

@@ -30,11 +30,20 @@ public final class FutureRequests {
     public record Question(@NotBlank @Size(max = 300) String question) {
     }
 
+    public record Goal(
+            @NotBlank @Size(max = 60) String name,
+            @NotNull @DecimalMin("0.01") @DecimalMax("1000000.00") @Digits(integer = 7, fraction = 2) BigDecimal monthlyAmount,
+            @NotNull @Min(1) @Max(31) Integer dayOfMonth
+    ) {
+    }
+
     /**
+     * @param source      ACCOUNT (default) for account spending, CARD for everyday card purchases
      * @param dailyAmount the user's own value per day; null keeps the estimate from the history
      */
     public record DailySpendingDecision(
             @NotNull @Pattern(regexp = "^(CONFIRMED|REJECTED|PENDING)$") String status,
+            @Pattern(regexp = "^(ACCOUNT|CARD)$") String source,
             @DecimalMin("0.00") @DecimalMax("100000.00") @Digits(integer = 6, fraction = 2) BigDecimal dailyAmount
     ) {
     }

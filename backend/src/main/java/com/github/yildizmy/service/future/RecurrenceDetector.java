@@ -43,7 +43,7 @@ public final class RecurrenceDetector {
     public static List<RecurrencePattern> detect(List<Movement> movements) {
         Map<String, List<Movement>> groups = movements.stream()
                 .filter(movement -> movement.amount().signum() > 0)
-                .filter(movement -> !COVERED_ELSEWHERE.matcher(normalize(movement.counterparty())).find())
+                .filter(movement -> !coveredElsewhere(movement.counterparty()))
                 .collect(Collectors.groupingBy(RecurrenceDetector::keyOf, LinkedHashMap::new, Collectors.toList()));
 
         List<RecurrencePattern> patterns = new ArrayList<>();
@@ -123,6 +123,11 @@ public final class RecurrenceDetector {
             return Category.SUBSCRIPTION;
         }
         return Category.BILL;
+    }
+
+    /** Card bills and loan instalments: projected from card and loan data, never from the account history. */
+    static boolean coveredElsewhere(String counterparty) {
+        return COVERED_ELSEWHERE.matcher(normalize(counterparty)).find();
     }
 
     static String keyOf(Movement movement) {

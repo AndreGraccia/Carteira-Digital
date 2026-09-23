@@ -5,6 +5,7 @@ import com.github.yildizmy.domain.enums.RecurrenceStatus;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -36,4 +37,8 @@ public class RecurrenceDecision {
 
     @Column(nullable = false)
     private Instant decidedAt;
+
+    /** The user's own value; null keeps the estimate. Used by the everyday-spending decision. */
+    @Column(precision = 12, scale = 2)
+    private BigDecimal amount;
 }

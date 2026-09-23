@@ -1,6 +1,7 @@
 package com.github.yildizmy.service.future;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -16,6 +17,12 @@ import java.util.TreeMap;
  * the next income, and which days go below zero (and because of what).
  */
 public final class ProjectionEngine {
+
+    /**
+     * Daily rate equivalent to 8% a month, the legal cap on overdraft (cheque especial) interest set by
+     * CMN Resolution 4,765/2019: (1.08)^(1/30) - 1. Used only as an upper bound for "what doing nothing costs".
+     */
+    static final BigDecimal OVERDRAFT_DAILY_RATE_CAP = new BigDecimal("0.0025687");
 
     private ProjectionEngine() {
     }
@@ -71,8 +78,10 @@ public final class ProjectionEngine {
             }
             int start = i;
             DayPoint lowest = days.get(i);
+            BigDecimal interest = BigDecimal.ZERO;
             while (i < days.size() && days.get(i).balance().signum() < 0) {
                 if (days.get(i).balance().compareTo(lowest.balance()) < 0) lowest = days.get(i);
+                interest = interest.add(days.get(i).balance().negate().multiply(OVERDRAFT_DAILY_RATE_CAP));
                 i++;
             }
             LocalDate startDate = days.get(start).date();
@@ -95,7 +104,8 @@ public final class ProjectionEngine {
                     .findFirst()
                     .orElse(null);
             boolean untilHorizon = i == days.size();
-            windows.add(new RiskWindow(startDate, endDate, lowest.balance(), lowestDate, untilHorizon, causes, relief));
+            windows.add(new RiskWindow(startDate, endDate, lowest.balance(), lowestDate, untilHorizon, causes, relief,
+                    interest.setScale(2, RoundingMode.HALF_UP)));
         }
         return windows;
     }
@@ -107,6 +117,7 @@ public final class ProjectionEngine {
      * @param untilHorizon true when the balance is still negative on the last projected day
      * @param causes       outflows between the last income and the lowest day
      * @param relief       first income after the window, or null if none is expected in the horizon
+     * @param overdraftCostCap most the overdraft could charge in interest for the days in the window, at the legal cap
      */
     public record RiskWindow(
             LocalDate start,
@@ -115,7 +126,8 @@ public final class ProjectionEngine {
             LocalDate lowestDate,
             boolean untilHorizon,
             List<CashEvent> causes,
-            CashEvent relief
+            CashEvent relief,
+            BigDecimal overdraftCostCap
     ) {
     }
 

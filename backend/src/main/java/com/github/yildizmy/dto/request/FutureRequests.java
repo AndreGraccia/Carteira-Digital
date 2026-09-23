@@ -27,6 +27,18 @@ public final class FutureRequests {
     ) {
     }
 
+    public record Question(@NotBlank @Size(max = 300) String question) {
+    }
+
+    /**
+     * @param dailyAmount the user's own value per day; null keeps the estimate from the history
+     */
+    public record DailySpendingDecision(
+            @NotNull @Pattern(regexp = "^(CONFIRMED|REJECTED|PENDING)$") String status,
+            @DecimalMin("0.00") @DecimalMax("100000.00") @Digits(integer = 6, fraction = 2) BigDecimal dailyAmount
+    ) {
+    }
+
     /**
      * One hypothetical decision for Modo Futuro. Fields that do not apply to the type are ignored.
      */

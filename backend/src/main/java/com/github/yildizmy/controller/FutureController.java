@@ -55,6 +55,22 @@ public class FutureController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Read-only assistant: answers from engine numbers, never moves money. */
+    @PostMapping("/ask")
+    public ResponseEntity<FutureResponses.Answer> ask(
+            @AuthenticationPrincipal UserDetailsImpl user,
+            @Valid @RequestBody FutureRequests.Question request) {
+        return noStore(futureService.ask(user.getId(), request.question()));
+    }
+
+    @PutMapping("/daily-spending")
+    public ResponseEntity<Void> decideDailySpending(
+            @AuthenticationPrincipal UserDetailsImpl user,
+            @Valid @RequestBody FutureRequests.DailySpendingDecision request) {
+        futureService.decideDailySpending(user.getId(), request);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/commitments")
     public ResponseEntity<FutureResponses.Commitments> commitments(@AuthenticationPrincipal UserDetailsImpl user) {
         return noStore(futureService.commitments(user.getId()));

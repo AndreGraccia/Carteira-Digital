@@ -15,7 +15,7 @@ import java.time.LocalDate;
  * @param kind      what produced the event
  * @param category  what the money is for, as confirmed by the user (SALARY, RENT…) or implied by the source
  * @param certainty CONFIRMED when the institution or a contract states the value; ESTIMATED when it comes from a
- *                  pattern the user confirmed; HYPOTHETICAL when it only exists in a scenario
+ *                  pattern the user confirmed (bills, everyday spending); HYPOTHETICAL when it only exists in a scenario
  * @param origin    where the data came from, e.g. "Banco Aurora Sandbox · Conta corrente"
  * @param reference stable id used by the UI to open the evidence (pattern key, card id, loan id…)
  */
@@ -30,7 +30,7 @@ public record CashEvent(
         String reference
 ) {
 
-    public enum Kind { INCOME, RECURRING_EXPENSE, CARD_INVOICE, LOAN_INSTALLMENT, SCENARIO }
+    public enum Kind { INCOME, RECURRING_EXPENSE, CARD_INVOICE, LOAN_INSTALLMENT, DAILY_SPENDING, SCENARIO }
 
     public enum Certainty { CONFIRMED, ESTIMATED, HYPOTHETICAL }
 

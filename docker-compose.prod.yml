@@ -28,6 +28,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${db_password}
       # nginx in the frontend container proxies to backend:8080, whatever backend_port says.
       SERVER_PORT: 8080
+      # API docs stay off in production unless springdoc_enabled=true in .env.properties.
+      SPRINGDOC_API_DOCS_ENABLED: ${springdoc_enabled:-false}
+      SPRINGDOC_SWAGGER_UI_ENABLED: ${springdoc_enabled:-false}
     ports:
       - '${backend_port:-8080}:8080'
     depends_on:

@@ -182,3 +182,14 @@ Escopo: alterações realizadas desde a base `main` (`9e83117`) até a branch at
 | `mvnw test` | 169 testes, 0 falhas. |
 | Frontend | 13 testes, lint, 571 chaves PT/EN e build de produção. |
 | Roteiro de API ao vivo | Cartão, plano de saída, metas (incluindo a meta de outra conta recusada), alertas com e-mail real no Mailpit sem reenvio, 403 para não admin, 429 na 31ª pergunta. |
+
+## Atualização do Spring Boot (3.0.4 para 3.5.16)
+
+| Modificação | Erro ou limitação corrigida |
+| --- | --- |
+| Spring Boot 3.5.16, springdoc 2.8.17, Lombok 1.18.38, `flyway-database-postgresql`, validação gerenciada pelo Boot. | A 3.0.4 estava sem suporte, com Tomcat 10.1.5 e Spring Security 6.0.2 com CVEs conhecidos. |
+| `BigDecimal.TWO` trocado por `BigDecimal.valueOf(2)`. | API do Java 19 num projeto Java 17: compilava com o JDK 21 local e falharia no JRE 17 do container de produção. |
+| Swagger e `/v3/api-docs` desligados por padrão no Compose de produção (`springdoc_enabled`). | A documentação da API ficava exposta em produção. |
+
+Validação: 169 testes; aplicação subindo na versão nova; roteiros de API das três rodadas com os mesmos números de antes; login sem diferenciar maiúsculas, 429 na 6ª senha errada e cabeçalhos de segurança conferidos.
+

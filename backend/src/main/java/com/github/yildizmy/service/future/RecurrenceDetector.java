@@ -156,7 +156,7 @@ public final class RecurrenceDetector {
         int middle = sorted.size() / 2;
         BigDecimal value = sorted.size() % 2 == 1
                 ? sorted.get(middle)
-                : sorted.get(middle - 1).add(sorted.get(middle)).divide(BigDecimal.TWO, 2, RoundingMode.HALF_EVEN);
+                : sorted.get(middle - 1).add(sorted.get(middle)).divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_EVEN);
         return value.setScale(2, RoundingMode.HALF_EVEN);
     }
 

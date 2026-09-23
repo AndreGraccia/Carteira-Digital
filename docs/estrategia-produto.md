@@ -42,8 +42,8 @@ Critérios: **dor** (quanto resolve de um problema com número por trás), **pro
 | Metas como compromisso na projeção | README, item 4 | Pergunta em vez de supor | Comum, mas não ligado à projeção diária | M | **Feito** (ADR 0003) |
 | Medição e limite do Pergunte | Sem saber o que as pessoas perguntam, não dá para decidir o próximo passo | Mede sem guardar texto | Interno | P | **Feito** (ADR 0003) |
 | Classificador de intenção com LLM para o Pergunte | Frases fora do padrão voltam UNKNOWN | IA só escolhe o cálculo | Nenhum | P | Quando a medição pedir |
-| Ledger de dupla entrada | Base para dinheiro real | Correção por estorno | Interno | G | Depois |
-| Papéis administrativos e auditoria | Operar com usuários reais | Admin não movimenta dinheiro | Interno | G | Depois |
+| Ledger de dupla entrada | Base para dinheiro real | Correção por estorno | Interno | G | Proposto, com gatilho (ADR 0004) |
+| Trilha de auditoria administrativa | Admin lista dados de todos sem deixar rastro | Transparência | Interno | P | **Feito** (ADR 0004) |
 | Marketplace de crédito | Receita | **Viola a regra 3** | Guiabolso fechou com esse modelo | M | **Não fazer** |
 | Registro de gasto por WhatsApp | Menos atrito para anotar | Com Open Finance, anotar à mão é o problema errado | Commodity (Magie, ZapGastos, Focca) | M | **Não fazer** |
 | Previsão feita por modelo de linguagem | "Parecer inteligente" | **Viola a regra 2** | Nenhum banco confia nisso para dinheiro | P | **Não fazer** |
@@ -88,13 +88,24 @@ Tela nova (`/ask`) com cinco perguntas sugeridas e campo livre. Exemplos reais d
 - **Alertas por e-mail.** Opcionais; um por janela negativa nova, às 8h. Verificado ponta a ponta com o Mailpit.
 - **Pergunte medido e limitado.** 30 perguntas a cada 10 minutos por pessoa; contagem diária por intenção, sem texto.
 
-## Próximos passos, em ordem
+## Terceira rodada (ADR 0004 e atualização da plataforma)
 
-1. **Ledger de dupla entrada.** Base obrigatória antes de qualquer dinheiro real: todo débito com crédito correspondente, estorno em vez de apagar, conciliação diária. É grande (semanas), muda o modelo de transações e precisa de ADR próprio.
-2. **Papéis administrativos e trilha de auditoria.** Usuário, suporte, operações, auditoria e administrador; admin não movimenta dinheiro de cliente. Hoje existe só `ROLE_USER` e `ROLE_ADMIN`.
-3. **Classificador de intenção**, só quando a medição mostrar muitas perguntas em `UNKNOWN`.
-4. **Push no navegador** para os alertas, reaproveitando o mesmo job.
-5. **Estimativa por cartão** quando houver usuários com mais de um cartão ativo.
+- **Trilha de auditoria administrativa:** toda chamada a endpoint de admin, inclusive as negadas, fica registrada com quem, o quê e o resultado, sem corpo nem parâmetros.
+- **Spring Boot 3.0.4 para 3.5.16:** a versão antiga estava sem suporte e com CVEs conhecidos. O upgrade encontrou um uso de API do Java 19 que quebraria no JRE 17 de produção.
+- **Ledger de dupla entrada, proposto:** hoje nenhum real se move dentro do Wall.ia (carteira local nasce com zero, não há depósito, Open Finance é só leitura). O desenho está pronto no ADR 0004, para quando houver dinheiro em movimento.
+
+## Decisões de produto em aberto
+
+1. **O que fazer com a tela Movimentar.** Carteiras locais nunca recebem dinheiro, então transferir e retirar não têm uso real. Opções: dar um propósito (separar dinheiro em envelopes simulados, que entrariam na projeção) ou retirar a tela. A regra do projeto é não remover funcionalidade sem decisão do dono.
+2. **Iniciação de pagamento (Pix pelo Open Finance).** É o que transformaria o Wall.ia de "ver o futuro" em "agir sobre ele" e o gatilho do ledger. Exige credenciamento e muda a regulação aplicável. Decisão de negócio antes de técnica.
+
+## Próximos passos técnicos, em ordem
+
+1. **Classificador de intenção** para o Pergunte, quando a medição mostrar muitas perguntas sem resposta.
+2. **Push no navegador** para os alertas, reaproveitando o mesmo job.
+3. **Estimativa por cartão** quando houver usuários com mais de um cartão ativo.
+4. **Limites em Redis** (login, Gemini, Pergunte) antes de rodar mais de uma instância da API.
+5. **Ledger**, no dia do gatilho acima.
 
 ## Métricas
 

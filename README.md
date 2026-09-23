@@ -49,7 +49,8 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 **Base da carteira**
 
-- Cadastro e login com JWT, limite de tentativas.
+- Cadastro e login com JWT (usuário sem diferenciar maiúsculas, ou e-mail), limite de tentativas e de cadastros.
+- Trilha de auditoria de todo acesso administrativo, inclusive tentativas negadas.
 - Carteiras, transferências e extrato, com autorização por dono da carteira.
 - Conexão Open Finance protegida por código de 8 dígitos enviado ao e-mail cadastrado ([roteiro de teste](docs/open-finance-email-tests.md)).
 - Análise do extrato com regras locais ou Gemini, sem enviar o extrato bruto ([segurança e IA](docs/security-and-ai-reports.md)).
@@ -58,12 +59,9 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 ## Próximos passos
 
-A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Decisões em [ADR 0001](docs/adr/0001-motor-futuro-deterministico.md), [0002](docs/adr/0002-limite-diario-e-perguntas.md) e [0003](docs/adr/0003-saida-do-buraco-metas-e-alertas.md). Em ordem:
+A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, decisões em aberto e métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Decisões técnicas nos ADRs [0001](docs/adr/0001-motor-futuro-deterministico.md), [0002](docs/adr/0002-limite-diario-e-perguntas.md), [0003](docs/adr/0003-saida-do-buraco-metas-e-alertas.md) e [0004](docs/adr/0004-auditoria-admin-e-ledger.md).
 
-1. **Ledger de dupla entrada**, antes de qualquer dinheiro real.
-2. **Papéis administrativos** (suporte, operações, auditoria) com trilha de auditoria.
-3. **Classificador de intenção** para o Pergunte, quando a medição pedir.
-4. **Push no navegador** para os alertas.
+Em aberto, para o dono do produto decidir: o futuro da tela Movimentar e a iniciação de pagamento pelo Open Finance, que é também o gatilho do ledger de dupla entrada.
 
 ## Tecnologias
 

@@ -193,3 +193,12 @@ Escopo: alterações realizadas desde a base `main` (`9e83117`) até a branch at
 
 Validação: 169 testes; aplicação subindo na versão nova; roteiros de API das três rodadas com os mesmos números de antes; login sem diferenciar maiúsculas, 429 na 6ª senha errada e cabeçalhos de segurança conferidos.
 
+## Trilha de auditoria administrativa (ADR 0004)
+
+| Modificação | Erro ou limitação corrigida |
+| --- | --- |
+| `admin_audit` (V18) e interceptor em todo endpoint `hasRole('ADMIN')`, inclusive tentativas negadas; leitura em `GET /api/v1/admin/audit`. | Administradores listavam carteiras e transações de todos os usuários sem deixar rastro. |
+| Ledger de dupla entrada documentado como proposta, com desenho e gatilho. | Evita construir contabilidade para um fluxo que hoje não existe (nenhum dinheiro se move em carteira local). |
+
+Validação: 173 testes; ao vivo, usuário comum recebe 403 em `/wallets` e `/admin/audit` e as duas tentativas aparecem na trilha; o acesso de um admin temporário também; a tabela guarda só id, autor, método, caminho, status e data.
+

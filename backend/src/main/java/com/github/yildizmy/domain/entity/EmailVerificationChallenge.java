@@ -18,14 +18,14 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "open_finance_email_challenge")
-public class OpenFinanceEmailChallenge {
+@Table(name = "email_verification_challenge")
+public class EmailVerificationChallenge {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "open_finance_email_challenge_seq_gen")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "email_verification_challenge_seq_gen")
     @SequenceGenerator(
-            name = "open_finance_email_challenge_seq_gen",
-            sequenceName = "open_finance_email_challenge_seq",
+            name = "email_verification_challenge_seq_gen",
+            sequenceName = "email_verification_challenge_seq",
             allocationSize = 1
     )
     private Long id;

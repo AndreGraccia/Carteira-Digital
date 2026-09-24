@@ -2,7 +2,9 @@ package com.github.yildizmy.controller;
 
 import com.github.yildizmy.dto.request.LoginRequest;
 import com.github.yildizmy.dto.request.SignupRequest;
-import com.github.yildizmy.dto.response.CommandResponse;
+import com.github.yildizmy.dto.response.SignupResponse;
+import com.github.yildizmy.dto.request.EmailResendRequest;
+import com.github.yildizmy.dto.request.EmailVerificationRequest;
 import com.github.yildizmy.dto.response.JwtResponse;
 import com.github.yildizmy.service.AuthService;
 import com.github.yildizmy.security.AuthenticationRateLimiter;
@@ -46,9 +48,25 @@ public class AuthController {
      * @return id of the registered user
      */
     @PostMapping("/signup")
-    public ResponseEntity<CommandResponse> signup(@Valid @RequestBody SignupRequest request, HttpServletRequest servletRequest) {
+    public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request, HttpServletRequest servletRequest) {
         authenticationRateLimiter.acquireSignup(servletRequest.getRemoteAddr());
-        final CommandResponse response = authService.signup(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.accepted().body(authService.signup(request));
+    }
+
+    /** Confirms the e-mail with the code sent at sign-up. Counts as a login attempt for rate limiting. */
+    @PostMapping("/email/verify")
+    public ResponseEntity<Void> verifyEmail(@Valid @RequestBody EmailVerificationRequest request,
+                                            HttpServletRequest servletRequest) {
+        authenticationRateLimiter.acquire(request.login(), servletRequest.getRemoteAddr());
+        authService.verifyEmail(request.login(), request.code());
+        authenticationRateLimiter.succeeded(request.login(), servletRequest.getRemoteAddr());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/email/resend")
+    public ResponseEntity<SignupResponse> resendCode(@Valid @RequestBody EmailResendRequest request,
+                                                     HttpServletRequest servletRequest) {
+        authenticationRateLimiter.acquireSignup(servletRequest.getRemoteAddr());
+        return ResponseEntity.accepted().body(authService.resendCode(request.login()));
     }
 }

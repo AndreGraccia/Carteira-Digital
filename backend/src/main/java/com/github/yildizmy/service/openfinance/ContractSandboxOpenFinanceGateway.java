@@ -32,6 +32,7 @@ public class ContractSandboxOpenFinanceGateway implements OpenFinanceGateway {
 
     static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
     static final String INSTITUTION = "Banco Aurora Sandbox";
+    static final String INSTITUTION_ID = "sandbox-21128159000166";
     private static final BigDecimal CHECKING_OPENING = new BigDecimal("350.00");
     private static final BigDecimal SAVINGS_OPENING = new BigDecimal("400.00");
     private static final int HISTORY_MONTHS = 3;
@@ -89,7 +90,7 @@ public class ContractSandboxOpenFinanceGateway implements OpenFinanceGateway {
         }
 
         return new OpenFinanceSnapshot(
-                "sandbox-21128159000166",
+                INSTITUTION_ID,
                 INSTITUTION,
                 UUID.nameUUIDFromBytes(("ofb-consent-" + userId).getBytes(StandardCharsets.UTF_8)).toString(),
                 now,
@@ -176,6 +177,16 @@ public class ContractSandboxOpenFinanceGateway implements OpenFinanceGateway {
         return entries.stream()
                 .map(entry -> "CREDITO".equals(entry.creditDebitType()) ? entry.amount() : entry.amount().negate())
                 .reduce(opening, BigDecimal::add);
+    }
+
+    @Override
+    public String institutionId() {
+        return INSTITUTION_ID;
+    }
+
+    @Override
+    public String institutionName() {
+        return INSTITUTION;
     }
 
     @Override

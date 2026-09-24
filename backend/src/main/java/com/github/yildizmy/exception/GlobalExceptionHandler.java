@@ -55,8 +55,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(java.util.Map.of("code", "OPEN_FINANCE_UNAVAILABLE"));
     }
 
-    @ExceptionHandler(OpenFinanceVerificationException.class)
-    public ResponseEntity<Object> handleOpenFinanceVerification(OpenFinanceVerificationException exception) {
+    @ExceptionHandler(CodedException.class)
+    public ResponseEntity<Object> handleOpenFinanceVerification(CodedException exception) {
         var response = ResponseEntity.status(exception.getStatus());
         if (exception.getRetryAfterSeconds() > 0) {
             response.header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.getRetryAfterSeconds()));

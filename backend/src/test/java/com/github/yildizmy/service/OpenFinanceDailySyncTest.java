@@ -1,7 +1,7 @@
 package com.github.yildizmy.service;
 
 import com.github.yildizmy.domain.enums.OpenFinanceConnectionStatus;
-import com.github.yildizmy.exception.OpenFinanceVerificationException;
+import com.github.yildizmy.exception.CodedException;
 import com.github.yildizmy.repository.OpenFinanceConnectionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -25,7 +25,7 @@ class OpenFinanceDailySyncTest {
     @Test
     void anExpiredConsentIsSkippedAndTheOthersAreSyncedAndRecorded() {
         when(connections.findUserIdsByStatus(OpenFinanceConnectionStatus.AUTHORISED)).thenReturn(List.of(1L, 2L, 3L));
-        doThrow(new OpenFinanceVerificationException("OPEN_FINANCE_VERIFICATION_REQUIRED", HttpStatus.PRECONDITION_REQUIRED))
+        doThrow(new CodedException("OPEN_FINANCE_CONSENT_REQUIRED", HttpStatus.PRECONDITION_REQUIRED))
                 .when(openFinance).sync(2L);
         doThrow(new IllegalStateException("snapshot")).when(forecast).record(3L);
 

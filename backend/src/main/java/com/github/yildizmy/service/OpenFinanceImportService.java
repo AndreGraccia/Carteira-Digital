@@ -3,17 +3,14 @@ package com.github.yildizmy.service;
 import com.github.yildizmy.domain.entity.CardCharge;
 import com.github.yildizmy.domain.entity.CreditCard;
 import com.github.yildizmy.domain.entity.Loan;
-import com.github.yildizmy.domain.entity.OpenFinanceConnection;
 import com.github.yildizmy.domain.entity.Transaction;
 import com.github.yildizmy.domain.entity.Wallet;
-import com.github.yildizmy.domain.enums.OpenFinanceConnectionStatus;
 import com.github.yildizmy.domain.enums.Status;
 import com.github.yildizmy.domain.enums.TransactionSource;
 import com.github.yildizmy.domain.enums.WalletSource;
 import com.github.yildizmy.exception.OpenFinanceUnavailableException;
 import com.github.yildizmy.repository.CreditCardRepository;
 import com.github.yildizmy.repository.LoanRepository;
-import com.github.yildizmy.repository.OpenFinanceConnectionRepository;
 import com.github.yildizmy.repository.TransactionRepository;
 import com.github.yildizmy.repository.WalletRepository;
 import com.github.yildizmy.service.openfinance.OpenFinanceSnapshot;
@@ -31,7 +28,6 @@ public class OpenFinanceImportService {
 
     private static final BigDecimal MAX_AMOUNT = new BigDecimal("9999999999.99");
 
-    private final OpenFinanceConnectionRepository connectionRepository;
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final UserService userService;
@@ -40,14 +36,12 @@ public class OpenFinanceImportService {
     private final LoanRepository loanRepository;
 
     public OpenFinanceImportService(
-            OpenFinanceConnectionRepository connectionRepository,
             WalletRepository walletRepository,
             TransactionRepository transactionRepository,
             UserService userService,
             TypeService typeService,
             CreditCardRepository creditCardRepository,
             LoanRepository loanRepository) {
-        this.connectionRepository = connectionRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.userService = userService;
@@ -62,19 +56,8 @@ public class OpenFinanceImportService {
             throw new OpenFinanceUnavailableException("The consent did not return any accounts");
         }
 
-        OpenFinanceConnection connection = connectionRepository
-                .findByUserIdAndInstitutionId(userId, snapshot.institutionId())
-                .orElseGet(OpenFinanceConnection::new);
-        connection.setUser(userService.getReferenceById(userId));
-        connection.setInstitutionId(snapshot.institutionId());
-        connection.setInstitutionName(snapshot.institutionName());
-        connection.setConsentId(snapshot.consentId());
-        connection.setStatus(OpenFinanceConnectionStatus.AUTHORISED);
-        connection.setAuthorisedAt(snapshot.authorisedAt());
-        connection.setExpiresAt(snapshot.expiresAt());
-        connection.setLastSyncedAt(syncedAt);
-        connectionRepository.save(connection);
-
+        // The consent (status, dates) is OpenFinanceService's business: an import only brings data in, so a daily
+        // sync can never renew an expiring consent.
         int newTransactions = 0;
         for (OpenFinanceSnapshot.Account account : snapshot.accounts()) {
             validateBalance(account.availableBalance());
@@ -165,6 +148,18 @@ public class OpenFinanceImportService {
             card.getCharges().removeIf(charge -> !received.contains(charge.getExternalId()));
             creditCardRepository.save(card);
         }
+    }
+
+    /**
+     * Deletes everything imported for the user: transactions, Open Finance wallets, cards and loans. Called when
+     * the consent is revoked, so revoked data stops feeding the balance and the projection (LGPD art. 18, VI).
+     */
+    @Transactional
+    public void purge(long userId) {
+        transactionRepository.deleteOpenFinanceByUserId(userId);
+        walletRepository.deleteOpenFinanceByUserId(userId);
+        creditCardRepository.deleteAll(creditCardRepository.findByUserIdOrderById(userId));
+        loanRepository.deleteAll(loanRepository.findByUserIdOrderById(userId));
     }
 
     private void importLoans(long userId, OpenFinanceSnapshot snapshot, Instant syncedAt) {

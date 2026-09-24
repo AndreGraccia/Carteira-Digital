@@ -7,7 +7,6 @@ import com.github.yildizmy.domain.entity.Wallet;
 import com.github.yildizmy.domain.enums.TransactionSource;
 import com.github.yildizmy.domain.enums.WalletSource;
 import com.github.yildizmy.exception.OpenFinanceUnavailableException;
-import com.github.yildizmy.repository.OpenFinanceConnectionRepository;
 import com.github.yildizmy.repository.TransactionRepository;
 import com.github.yildizmy.repository.WalletRepository;
 import com.github.yildizmy.service.openfinance.OpenFinanceSnapshot;
@@ -34,7 +33,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class OpenFinanceImportServiceTest {
 
-    @Mock OpenFinanceConnectionRepository connections;
     @Mock WalletRepository wallets;
     @Mock TransactionRepository transactions;
     @Mock UserService users;
@@ -46,7 +44,7 @@ class OpenFinanceImportServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new OpenFinanceImportService(connections, wallets, transactions, users, types, cards, loans);
+        service = new OpenFinanceImportService(wallets, transactions, users, types, cards, loans);
     }
 
     @Test
@@ -57,7 +55,6 @@ class OpenFinanceImportServiceTest {
         deposit.setId(4L);
         Instant now = Instant.parse("2026-09-20T12:00:00Z");
 
-        when(connections.findByUserIdAndInstitutionId(7L, "institution-1")).thenReturn(Optional.empty());
         when(users.getReferenceById(7L)).thenReturn(user);
         when(wallets.findByUserIdAndSourceAndExternalAccountId(7L, WalletSource.OPEN_FINANCE, "account-1"))
                 .thenReturn(Optional.empty());
@@ -87,7 +84,6 @@ class OpenFinanceImportServiceTest {
         User user = new User();
         user.setId(7L);
         Instant now = Instant.parse("2026-09-20T12:00:00Z");
-        when(connections.findByUserIdAndInstitutionId(7L, "institution-1")).thenReturn(Optional.empty());
         when(users.getReferenceById(7L)).thenReturn(user);
         when(wallets.findByUserIdAndSourceAndExternalAccountId(7L, WalletSource.OPEN_FINANCE, "account-1"))
                 .thenReturn(Optional.empty());
@@ -134,7 +130,6 @@ class OpenFinanceImportServiceTest {
         refunded.setCard(card);
         card.getCharges().addAll(List.of(kept, refunded));
 
-        when(connections.findByUserIdAndInstitutionId(7L, "institution-1")).thenReturn(Optional.empty());
         when(users.getReferenceById(7L)).thenReturn(user);
         when(wallets.findByUserIdAndSourceAndExternalAccountId(any(), any(), any())).thenReturn(Optional.empty());
         when(cards.findByUserIdAndExternalId(7L, "institution-1:card-1")).thenReturn(Optional.of(card));
@@ -164,7 +159,6 @@ class OpenFinanceImportServiceTest {
         var active = loan("institution-1:active");
         var paidOff = loan("institution-1:paid-off");
         var otherBank = loan("institution-2:other");
-        when(connections.findByUserIdAndInstitutionId(7L, "institution-1")).thenReturn(Optional.empty());
         when(users.getReferenceById(7L)).thenReturn(user);
         when(wallets.findByUserIdAndSourceAndExternalAccountId(any(), any(), any())).thenReturn(Optional.empty());
         when(loans.findByUserIdAndExternalId(7L, "institution-1:active")).thenReturn(Optional.of(active));

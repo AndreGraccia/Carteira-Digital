@@ -37,10 +37,9 @@ class FutureAlertServiceTest {
     private final FutureAlertRepository alerts = mock(FutureAlertRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final FutureService future = mock(FutureService.class);
-    private final OpenFinanceEmailVerificationService verification = mock(OpenFinanceEmailVerificationService.class);
     private final JavaMailSender mail = mock(JavaMailSender.class);
     private final PushService push = mock(PushService.class);
-    private final FutureAlertService service = new FutureAlertService(alerts, users, future, verification, mail, push,
+    private final FutureAlertService service = new FutureAlertService(alerts, users, future, mail, push,
             Clock.fixed(Instant.parse("2026-09-23T11:00:00Z"), ZoneOffset.UTC), "no-reply@wallia.local", "http://localhost:3000");
 
     @Test
@@ -77,8 +76,8 @@ class FutureAlertServiceTest {
         User user = new User();
         user.setEmail("ana@example.test");
         user.setFirstName("Ana");
+        user.setEmailVerifiedAt(Instant.parse("2026-09-01T00:00:00Z"));
         when(users.findById(2L)).thenReturn(Optional.of(user));
-        when(verification.isVerified(org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
 
         assertEquals(1, service.runDaily());
         verify(mail, times(1)).send(any(SimpleMailMessage.class));
@@ -124,12 +123,12 @@ class FutureAlertServiceTest {
         FutureAlert alert = alert(6L);
         when(alerts.findByEnabledTrue()).thenReturn(List.of(alert));
         when(future.overview(6L, FutureAlertService.HORIZON_DAYS)).thenReturn(overview());
-        when(verification.isVerified(6L)).thenReturn(true);
         when(push.hasSubscription(6L)).thenReturn(true);
         when(push.send(org.mockito.ArgumentMatchers.eq(6L), any(), any(), any())).thenThrow(new IllegalStateException("db"));
         User user = new User();
         user.setEmail("ana@example.test");
         user.setFirstName("Ana");
+        user.setEmailVerifiedAt(Instant.parse("2026-09-01T00:00:00Z"));
         when(users.findById(6L)).thenReturn(Optional.of(user));
 
         assertEquals(1, service.runDaily());

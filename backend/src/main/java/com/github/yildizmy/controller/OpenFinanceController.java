@@ -1,7 +1,8 @@
 package com.github.yildizmy.controller;
 
-import com.github.yildizmy.dto.request.OpenFinanceCodeRequest;
-import com.github.yildizmy.dto.response.OpenFinanceChallengeResponse;
+import com.github.yildizmy.dto.request.OpenFinanceConsentDecision;
+import com.github.yildizmy.dto.request.OpenFinanceConsentRequest;
+import com.github.yildizmy.dto.response.OpenFinanceConsentResponse;
 import com.github.yildizmy.dto.response.OpenFinanceStatusResponse;
 import com.github.yildizmy.dto.response.OpenFinanceSyncResponse;
 import com.github.yildizmy.security.UserDetailsImpl;
@@ -36,21 +37,31 @@ public class OpenFinanceController {
                 .body(openFinanceService.status(user.getId()));
     }
 
-    @PostMapping("/connection/challenge")
-    public ResponseEntity<OpenFinanceChallengeResponse> requestConnectionCode(
-            @AuthenticationPrincipal UserDetailsImpl user) {
-        return ResponseEntity.ok()
+    /** Creates the consent. The person then authorises or rejects it on the institution's (sandbox) screen. */
+    @PostMapping("/connection")
+    public ResponseEntity<OpenFinanceConsentResponse> createConsent(
+            @AuthenticationPrincipal UserDetailsImpl user,
+            @RequestBody(required = false) OpenFinanceConsentRequest request) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .cacheControl(CacheControl.noStore())
-                .body(openFinanceService.requestConnectionCode(user.getId()));
+                .body(openFinanceService.createConsent(user.getId(), request == null ? null : request.months()));
     }
 
-    @PostMapping("/connection/confirm")
-    public ResponseEntity<OpenFinanceSyncResponse> confirmConnection(
+    @PostMapping("/connection/authorise")
+    public ResponseEntity<OpenFinanceSyncResponse> authorise(
             @AuthenticationPrincipal UserDetailsImpl user,
-            @Valid @RequestBody OpenFinanceCodeRequest request) {
-        OpenFinanceSyncResponse response = openFinanceService.confirmConnection(user.getId(), request.code());
+            @Valid @RequestBody OpenFinanceConsentDecision request) {
+        OpenFinanceSyncResponse response = openFinanceService.authorise(user.getId(), request.consentId());
         recordForecast(user.getId());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(response);
+    }
+
+    @PostMapping("/connection/reject")
+    public ResponseEntity<Void> reject(
+            @AuthenticationPrincipal UserDetailsImpl user,
+            @Valid @RequestBody OpenFinanceConsentDecision request) {
+        openFinanceService.reject(user.getId(), request.consentId());
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/sync")

@@ -35,8 +35,28 @@ class FlywayMigrationsTest {
 
     @Test
     void everyMigrationAppliesOnAnEmptyDatabase() throws SQLException {
-        assertEquals("22", scalar("SELECT max(version::int)::text FROM flyway_schema_history WHERE success"));
+        // The highest V<n>__ file on disk, so a new migration does not need this test edited.
+        String latest = String.valueOf(java.util.Arrays.stream(
+                        new java.io.File("src/main/resources/db/migration").list((dir, name) -> name.matches("V[0-9]+__.*[.]sql")))
+                .mapToInt(name -> Integer.parseInt(name.substring(1, name.indexOf("__"))))
+                .max().orElseThrow());
+        assertEquals(latest, scalar("SELECT max(version::int)::text FROM flyway_schema_history WHERE success"));
         assertEquals("0", scalar("SELECT count(*)::text FROM flyway_schema_history WHERE NOT success"));
+    }
+
+    @Test
+    void accountsThatExistedBeforeSignupVerificationCanStillLogIn() throws SQLException {
+        assertEquals("0", scalar("SELECT count(*)::text FROM \"user\" WHERE email_verified_at IS NULL AND id < 9000"),
+                "rows other tests insert later (id 9000+) are not part of the migration");
+    }
+
+    @Test
+    void consentStatusOnlyAcceptsTheOpenFinanceValues() throws SQLException {
+        assertEquals("AUTHORISED,AWAITING_AUTHORISATION,REJECTED", scalar("""
+                SELECT string_agg(value, ',' ORDER BY value) FROM (
+                  SELECT unnest(regexp_matches(pg_get_constraintdef(oid), '''([A-Z_]+)''', 'g')) AS value
+                  FROM pg_constraint WHERE conname = 'open_finance_connection_status_check') AS found
+                """));
     }
 
     @Test

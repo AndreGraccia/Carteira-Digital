@@ -25,4 +25,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             "WHERE w.user.id = :userId " +
             "ORDER BY t.createdAt DESC")
     List<Transaction> findAllByUserId(@Param("userId") Long userId);
+
+    /** Everything imported into the user's Open Finance wallets: used when the consent is revoked. */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("delete from Transaction t where t.fromWallet.id in (select w.id from Wallet w where w.user.id = :userId "
+            + "and w.source = com.github.yildizmy.domain.enums.WalletSource.OPEN_FINANCE) "
+            + "or t.toWallet.id in (select w.id from Wallet w where w.user.id = :userId "
+            + "and w.source = com.github.yildizmy.domain.enums.WalletSource.OPEN_FINANCE)")
+    int deleteOpenFinanceByUserId(@Param("userId") Long userId);
 }

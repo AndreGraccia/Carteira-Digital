@@ -216,6 +216,16 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
     }
 
     @Override
+    public String institutionId() {
+        return configuredInstitutionId;
+    }
+
+    @Override
+    public String institutionName() {
+        return "Open Finance Sandbox";
+    }
+
+    @Override
     public String mode() {
         return "PARTICIPANT_SANDBOX";
     }

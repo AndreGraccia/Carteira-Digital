@@ -31,4 +31,9 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     boolean existsByUserIdAndNameIgnoreCase(Long userId, String name);
 
     Wallet getReferenceByIban(String iban);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query(
+            "delete from Wallet w where w.user.id = :userId and w.source = com.github.yildizmy.domain.enums.WalletSource.OPEN_FINANCE")
+    int deleteOpenFinanceByUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
 }

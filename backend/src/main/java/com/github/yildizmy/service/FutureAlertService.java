@@ -37,7 +37,6 @@ public class FutureAlertService {
     private final FutureAlertRepository alertRepository;
     private final UserRepository userRepository;
     private final FutureService futureService;
-    private final OpenFinanceEmailVerificationService emailVerification;
     private final JavaMailSender mailSender;
     private final PushService pushService;
     private final Clock clock;
@@ -48,16 +47,14 @@ public class FutureAlertService {
             FutureAlertRepository alertRepository,
             UserRepository userRepository,
             FutureService futureService,
-            OpenFinanceEmailVerificationService emailVerification,
             JavaMailSender mailSender,
             PushService pushService,
             Clock clock,
-            @Value("${app.open-finance.verification.mail-from}") String from,
+            @Value("${app.email-verification.mail-from}") String from,
             @Value("${app.security.allowedOrigin}") String appUrl) {
         this.alertRepository = alertRepository;
         this.userRepository = userRepository;
         this.futureService = futureService;
-        this.emailVerification = emailVerification;
         this.mailSender = mailSender;
         this.pushService = pushService;
         this.clock = clock;
@@ -65,10 +62,14 @@ public class FutureAlertService {
         this.appUrl = appUrl;
     }
 
+    private boolean emailVerified(long userId) {
+        return userRepository.findById(userId).map(user -> user.getEmailVerifiedAt() != null).orElse(false);
+    }
+
     /** False when neither a verified e-mail nor a browser can receive the alert: the switch is on but silent. */
     @Transactional(readOnly = true)
     public boolean deliverable(long userId) {
-        return emailVerification.isVerified(userId) || pushService.hasSubscription(userId);
+        return emailVerified(userId) || pushService.hasSubscription(userId);
     }
 
     @Transactional(readOnly = true)
@@ -80,7 +81,7 @@ public class FutureAlertService {
     public void setEnabled(long userId, boolean enabled) {
         // Sign-up does not confirm the e-mail; without this, anyone could aim Wall.ia's mail at a stranger.
         // A browser subscribed from the user's own session is a channel of its own.
-        if (enabled && !emailVerification.isVerified(userId) && !pushService.hasSubscription(userId)) {
+        if (enabled && !emailVerified(userId) && !pushService.hasSubscription(userId)) {
             throw new WalletRuleException("ALERT_EMAIL_NOT_VERIFIED");
         }
         FutureAlert alert = alertRepository.findById(userId).orElseGet(() -> {
@@ -111,7 +112,7 @@ public class FutureAlertService {
 
     private boolean check(FutureAlert alert) {
         // The verification lasts 90 days or ends when the e-mail changes; without it, only push is left.
-        boolean email = emailVerification.isVerified(alert.getUserId());
+        boolean email = emailVerified(alert.getUserId());
         boolean push = pushService.hasSubscription(alert.getUserId());
         if (!email && !push) return false;
         FutureResponses.Overview overview = futureService.overview(alert.getUserId(), HORIZON_DAYS);

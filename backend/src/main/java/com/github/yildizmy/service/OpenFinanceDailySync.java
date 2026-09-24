@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
  * 8h alerts read today's balance instead of whatever the user last synced by hand.
  * <p>
  * Each user goes through {@link OpenFinanceService#sync}, which commits on its own and re-checks the
- * consent and the verified e-mail; an expired one is skipped, never renewed here.
+ * consent; an expired one is marked REJECTED (CONSENT_MAX_DATE_REACHED) and skipped, never renewed here.
  */
 @Slf4j
 @Service
@@ -38,7 +38,7 @@ public class OpenFinanceDailySync {
             try {
                 openFinanceService.sync(userId);
             } catch (RuntimeException exception) {
-                // Expired consent, unverified e-mail or the bank being down: this user waits for tomorrow.
+                // Expired consent or the bank being down: this user waits for tomorrow.
                 skipped++;
                 log.warn("Daily sync skipped for one user: {}", exception.getClass().getSimpleName());
                 continue;

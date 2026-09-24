@@ -38,14 +38,37 @@ public class OpenFinanceConnection {
     private String consentId;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20, nullable = false)
+    @Column(length = 30, nullable = false)
     private OpenFinanceConnectionStatus status;
 
     @Column(nullable = false)
+    private Instant createdAt;
+
     private Instant authorisedAt;
 
+    /** Consent expirationDateTime, chosen when the consent is created; a sync never moves it. */
     private Instant expiresAt;
 
-    @Column(nullable = false)
     private Instant lastSyncedAt;
+
+    /** Comma-separated permissions: the purpose is stored with the data (LGPD art. 8). */
+    @Column(length = 600, nullable = false)
+    private String permissions;
+
+    /** USER, ASPSP or TPP, when REJECTED. */
+    @Column(length = 10)
+    private String rejectedBy;
+
+    /** Open Finance rejection reason code, e.g. CUSTOMER_MANUALLY_REVOKED, CONSENT_MAX_DATE_REACHED. */
+    @Column(length = 40)
+    private String rejectionReason;
+
+    private Instant rejectedAt;
+
+    public void reject(String by, String reason, Instant at) {
+        this.status = OpenFinanceConnectionStatus.REJECTED;
+        this.rejectedBy = by;
+        this.rejectionReason = reason;
+        this.rejectedAt = at;
+    }
 }

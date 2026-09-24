@@ -42,6 +42,9 @@ public class User {
     @Column(length = 100, nullable = false)
     private String password;
 
+    /** When the owner proved the address with the sign-up code; null until then, and login is refused. */
+    private java.time.Instant emailVerifiedAt;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private Set<Wallet> wallets = new HashSet<>();
 

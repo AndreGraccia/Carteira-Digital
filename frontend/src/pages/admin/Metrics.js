@@ -138,54 +138,57 @@ export default function Metrics() {
               </Grid>
             </Card>
 
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <SectionCard title={t('metrics.pixTitle')}>
-                  <Box sx={{ px: 3, pb: 3 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {t('metrics.pixHelp')}
+            {/* Box keeps Stack's margin reset off the Grid's negative margins. */}
+            <Box>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <SectionCard title={t('metrics.pixTitle')}>
+                    <Box sx={{ px: 3, pb: 3 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {t('metrics.pixHelp')}
+                      </Typography>
+                      <Grid container spacing={2} sx={{ mt: 1 }}>
+                        <Grid item xs={6}>
+                          <StatBlock label={t('metrics.pixPrepare')} value={String(pix('PIX_PREPARE'))} />
+                        </Grid>
+                        <Grid item xs={6}>
+                          <StatBlock label={t('metrics.pixConfirm')} value={String(pix('PIX_CONFIRM'))} />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </SectionCard>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <SectionCard title={t('metrics.askTitle')}>
+                    <Typography variant="body2" color="text.secondary" sx={{ px: 3 }}>
+                      {asked
+                        ? t('metrics.askUnknown', { percent: Math.round((unknown / asked) * 100), total: asked })
+                        : t('metrics.askNone')}
                     </Typography>
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                      <Grid item xs={6}>
-                        <StatBlock label={t('metrics.pixPrepare')} value={String(pix('PIX_PREPARE'))} />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <StatBlock label={t('metrics.pixConfirm')} value={String(pix('PIX_CONFIRM'))} />
-                      </Grid>
-                    </Grid>
-                  </Box>
-                </SectionCard>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <SectionCard title={t('metrics.askTitle')}>
-                  <Typography variant="body2" color="text.secondary" sx={{ px: 3 }}>
-                    {asked
-                      ? t('metrics.askUnknown', { percent: Math.round((unknown / asked) * 100), total: asked })
-                      : t('metrics.askNone')}
-                  </Typography>
-                  <TableContainer sx={{ px: 1, pb: 1, overflowX: 'auto' }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>{t('metrics.intent')}</TableCell>
-                          <TableCell align="right">{t('metrics.count')}</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {questions.map((row) => (
-                          <TableRow key={row.intent}>
-                            <TableCell>{row.intent}</TableCell>
-                            <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                              {row.count}
-                            </TableCell>
+                    <TableContainer sx={{ px: 1, pb: 1, overflowX: 'auto' }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>{t('metrics.intent')}</TableCell>
+                            <TableCell align="right">{t('metrics.count')}</TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </SectionCard>
+                        </TableHead>
+                        <TableBody>
+                          {questions.map((row) => (
+                            <TableRow key={row.intent}>
+                              <TableCell>{t(`metrics.intents.${row.intent}`, { defaultValue: row.intent })}</TableCell>
+                              <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                                {row.count}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </SectionCard>
+                </Grid>
               </Grid>
-            </Grid>
+            </Box>
 
             <Box>
               <Button variant="outlined" onClick={runSync} disabled={busy}>

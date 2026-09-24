@@ -285,7 +285,9 @@ public final class FutureResponses {
             LocalDate nextDueDate,
             LocalDate lastDueDate,
             BigDecimal annualRate,
-            Instant lastSyncedAt
+            Instant lastSyncedAt,
+            BigDecimal interestRemaining,
+            BigDecimal nextInstallmentInterest
     ) {
     }
 

@@ -32,6 +32,7 @@ import Simulator from './Simulator';
 import Goals from './Goals';
 import AlertToggle from './AlertToggle';
 import Accuracy from './Accuracy';
+import CancelGuide from './CancelGuide';
 
 // Read by screen readers, invisible on screen (same rule as MUI's visuallyHidden).
 const visuallyHidden = {
@@ -409,7 +410,10 @@ export default function Future() {
                             <Collapse in={openGroup === group.category} unmountOnExit>
                               <Box sx={{ px: 3, pb: 1 }}>
                                 {group.items.map((event) => (
-                                  <EventRow key={`${event.reference}-${event.date}`} event={event} dense />
+                                  <Box key={`${event.reference}-${event.date}`}>
+                                    <EventRow event={event} dense />
+                                    {group.category === 'SUBSCRIPTION' && <CancelGuide label={event.label} />}
+                                  </Box>
                                 ))}
                               </Box>
                             </Collapse>

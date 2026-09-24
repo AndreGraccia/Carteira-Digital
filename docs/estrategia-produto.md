@@ -136,6 +136,32 @@ Comparação com os players da [pesquisa](pesquisa-mercado.md), seção 3. "Não
 
 O que um concorrente não copia rápido não é uma tela, é o conjunto: um banco não publica o erro da própria previsão nem promete não vender crédito, e um assistente de WhatsApp que registra gasto não tem o motor para projetar. O placar de precisão transforma "confie em nós" em número verificável, e é também o instrumento para saber se o produto funciona.
 
+## Sexta rodada: revisões independentes e o que o mercado ensina
+
+**Revisões.** Três revisões independentes (código, segurança, UX e acessibilidade) sobre tudo o que entrou desde o ADR 0004. Nenhum achado crítico. Os que mudavam número ou segurança foram corrigidos com teste:
+
+- O placar comparava a previsão do fim do dia com o saldo lido às 7h30, antes das contas do dia. Num vencimento de aluguel, isso contaria um "negativo evitado" que não foi evitado.
+- O cartão do limite mostrava três números negativos diferentes para a mesma pergunta. Agora separa o que falta no banco, o que custa manter os envelopes e o menor saldo no ritmo de gasto da pessoa.
+- Um navegador compartilhado passava os alertas de uma conta para a próxima que entrasse.
+- As migrações nunca eram testadas. Agora o CI aplica todas num Postgres vazio a cada push.
+
+**Pesquisa de mercado.** Warren, bancos e PFMs brasileiros, YNAB, Monzo, Rocket Money, Emma, Simplifi e outros. Monzo, Emma e Simplifi têm um "saldo livre", mas nenhum projeta dia a dia com plano de saída do negativo nem publica o próprio erro. O que entrou nesta rodada:
+
+| Ideia | De onde veio | Como ficou no Wall.ia |
+| --- | --- | --- |
+| Transparência de custo | Warren mostra quanto o cliente paga a ela | **Quanto este dinheiro custa:** juros da próxima parcela e juros até o fim de cada empréstimo, calculados com o saldo devedor, a parcela e a taxa do banco |
+| Meta com plano | Simulador de objetivos da Warren, Targets do YNAB | **Ver se cabe:** antes de criar a meta, o motor diz se ela cria dias negativos em 90 dias |
+| Cancelar assinatura | Rocket Money, que cobra 35% a 60% da economia | **Como cancelar:** passos, mensagem pronta e consumidor.gov.br, sem comissão e sem agir pela pessoa |
+
+Próximas da lista, por nota (dor x diferencial / esforço):
+
+1. **Painel de dívidas** com o relatório SCR do Registrato (fonte oficial e gratuita). Começar com entrada manual.
+2. **Tarifas e IOF no mês**, lidos do extrato com a lista das linhas encontradas. Depende de dado real, porque o sandbox não tem tarifa.
+3. **Planejador de quitação do cartão** (avalanche ou bola de neve), sem oferecer empréstimo para quitar.
+4. **Divisor da renda na chegada**: quando o salário cai, sugerir a divisão entre envelopes, sempre com confirmação.
+
+Não fazer, com motivo: adiantamento de salário e cobertura de negativo (é crédito, regra 3), sugestão de caixinha ou investimento (é venda, regra 3), poupança automática que move dinheiro sozinha (regra 1), assistente que responde com número de modelo de linguagem (regra 2).
+
 ## Próximos passos, em ordem
 
 Feitos na quinta rodada ([ADR 0006](adr/0006-sync-diario-e-push-sem-sdk.md)): sync diário automático, contagem do clique em "Preparar Pix", avisos por push no navegador e painel da métrica principal para o time.

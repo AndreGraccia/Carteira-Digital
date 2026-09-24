@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import Envelopes from './Envelopes';
 import Accuracy from '../future/Accuracy';
+import Goals from '../future/Goals';
 import { DailyLimitCard, ExitPlanList } from '../../components/future-ui';
 import ThemeProvider from '../../theme';
 import HttpService from '../../services/HttpService';
@@ -183,4 +184,31 @@ test('the daily limit card separates what the bank lacks, what keeping the envel
   expect(text()).toMatch(/future\.limit\.shortPaceLowest:-R\$\s792,67/);
   expect(text()).toContain('future.limit.bestWay');
   expect(button('future.limit.seeWayOut')).toBeDefined();
+});
+
+test('a goal is checked against the projection before it is created', async () => {
+  HttpService.getWithAuth.mockResolvedValue([]);
+  const summary = (negativeDays) => ({
+    minBalance90: negativeDays ? -120 : 80,
+    minDate: '2026-10-03',
+    firstNegativeDate: negativeDays ? '2026-10-03' : null,
+    negativeDays,
+  });
+  HttpService.postWithAuth.mockResolvedValue({ baseline: summary(0), scenario: summary(3) });
+  await render(<Goals onChanged={() => {}} />);
+  const [, amount, day] = container.querySelectorAll('input');
+
+  await act(async () => type(amount, '800'));
+  await act(async () => type(day, '10'));
+  await act(async () => Simulate.click(button('future.goals.checkFit')));
+
+  expect(HttpService.postWithAuth).toHaveBeenCalledWith('/future/scenarios', {
+    type: 'SAVINGS',
+    amount: 800,
+    dayOfMonth: 10,
+  });
+  expect(text()).toContain('future.goals.fitNo');
+  // Changing the amount drops the answer: it was about R$ 800.
+  await act(async () => type(amount, '80'));
+  expect(text()).not.toContain('future.goals.fitNo');
 });

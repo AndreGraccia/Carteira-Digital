@@ -298,6 +298,22 @@ const resources = {
         english: 'Inglês',
       },
       future: {
+        cancel: {
+          open: 'Como cancelar {{label}}',
+          title: 'Cancelar {{label}}',
+          step1:
+            'Peça pelo mesmo canal em que assinou (app, site ou telefone). O pedido feito no SAC tem de ser atendido na hora (Decreto 11.034/2022).',
+          step2: 'Anote o número de protocolo e a data.',
+          step3: 'Se cobrarem de novo depois do cancelamento, registre a reclamação em',
+          step4:
+            'Depois de cancelar, desfaça a confirmação dessa assinatura nas perguntas, para a projeção deixar de contar com ela.',
+          messageTitle: 'Mensagem pronta',
+          message:
+            'Olá. Quero cancelar a assinatura {{label}} a partir de hoje. Peço o número de protocolo e a confirmação de que não haverá novas cobranças.',
+          copy: 'Copiar mensagem',
+          copied: 'Mensagem copiada.',
+          note: 'A Wall.ia não cancela por você e não recebe nada de ninguém por isso.',
+        },
         pix: {
           prepare: 'Preparar Pix',
           title: 'Pix agendado (simulação)',
@@ -376,6 +392,14 @@ const resources = {
           verify: 'Confirmar e-mail',
         },
         goals: {
+          checkFit: 'Ver se cabe',
+          fitYes: 'Cabe: nenhum dia fica abaixo de zero em 90 dias. O menor saldo seria {{amount}}, em {{date}}.',
+          fitSameHole:
+            'Não piora os dias negativos que já existem. O menor saldo em 90 dias seria {{amount}}, em {{date}}.',
+          fitNo_one:
+            'Não cabe agora: com essa meta, o saldo fica abaixo de zero em mais 1 dia, a partir de {{date}}, chegando a {{amount}}.',
+          fitNo:
+            'Não cabe agora: com essa meta, o saldo fica abaixo de zero em mais {{count}} dias, a partir de {{date}}, chegando a {{amount}}.',
           title: 'Metas',
           help: 'Quanto você quer guardar por mês. A meta entra na projeção como compromisso, e o limite diário já desconta esse valor.',
           empty: 'Nenhuma meta ainda. Que tal começar com uma reserva de emergência?',
@@ -673,6 +697,13 @@ const resources = {
         syncDone: '{{synced}} sincronizados, {{skipped}} pulados (consentimento vencido ou e-mail não verificado).',
       },
       commitments: {
+        costTitle: 'Quanto este dinheiro custa',
+        costNext:
+          'Da próxima parcela de {{installment}}, cerca de {{interest}} são juros e {{principal}} abatem a dívida.',
+        costRemaining_one: 'Até o fim, na última parcela, você ainda paga {{interest}} de juros.',
+        costRemaining: 'Até o fim, nas {{count}} parcelas que faltam, você ainda paga {{interest}} de juros.',
+        costHelp:
+          'Conta feita com o saldo devedor, a parcela e a taxa que o banco informou. Quitar ou amortizar antes reduz esse valor; pergunte ao banco o valor com desconto dos juros.',
         pageTitle: 'Cartões e dívidas | Wall.ia',
         heading: 'Cartões e dívidas',
         description: 'Faturas, parcelas e empréstimos, do jeito que as instituições informaram.',
@@ -1167,6 +1198,22 @@ const resources = {
         english: 'English',
       },
       future: {
+        cancel: {
+          open: 'How to cancel {{label}}',
+          title: 'Cancel {{label}}',
+          step1:
+            'Ask through the same channel you subscribed with (app, website or phone). A cancellation request made to customer service must be handled right away (Decree 11.034/2022).',
+          step2: 'Write down the protocol number and the date.',
+          step3: 'If they charge you again after the cancellation, file a complaint at',
+          step4:
+            'After cancelling, undo the confirmation of this subscription in the questions, so the projection stops counting it.',
+          messageTitle: 'Ready message',
+          message:
+            'Hello. I want to cancel the {{label}} subscription as of today. Please send the protocol number and confirm there will be no further charges.',
+          copy: 'Copy message',
+          copied: 'Message copied.',
+          note: 'Wall.ia does not cancel for you and gets nothing from anyone for it.',
+        },
         pix: {
           prepare: 'Prepare Pix',
           title: 'Scheduled Pix (simulation)',
@@ -1245,6 +1292,14 @@ const resources = {
           verify: 'Confirm e-mail',
         },
         goals: {
+          checkFit: 'Check if it fits',
+          fitYes: 'It fits: no day below zero in 90 days. The lowest balance would be {{amount}}, on {{date}}.',
+          fitSameHole:
+            'It does not add negative days to the ones already there. The lowest balance in 90 days would be {{amount}}, on {{date}}.',
+          fitNo_one:
+            'It does not fit now: with this goal the balance goes below zero on 1 more day, from {{date}}, down to {{amount}}.',
+          fitNo:
+            'It does not fit now: with this goal the balance goes below zero on {{count}} more days, from {{date}}, down to {{amount}}.',
           title: 'Goals',
           help: 'How much you want to set aside each month. The goal enters the projection as a commitment, and the daily limit already leaves it out.',
           empty: 'No goals yet. How about starting with an emergency fund?',
@@ -1539,6 +1594,13 @@ const resources = {
         syncDone: '{{synced}} synced, {{skipped}} skipped (expired consent or unverified e-mail).',
       },
       commitments: {
+        costTitle: 'What this money costs',
+        costNext:
+          'Of the next instalment of {{installment}}, about {{interest}} is interest and {{principal}} pays down the debt.',
+        costRemaining_one: 'Until the end, in the last instalment, you still pay {{interest}} in interest.',
+        costRemaining: 'Until the end, over the {{count}} instalments left, you still pay {{interest}} in interest.',
+        costHelp:
+          'Calculated from the outstanding balance, the instalment and the rate your bank reported. Paying off early lowers it; ask your bank for the amount with the interest discount.',
         pageTitle: 'Cards and debts | Wall.ia',
         heading: 'Cards and debts',
         description: 'Bills, instalments and loans, as the institutions reported them.',

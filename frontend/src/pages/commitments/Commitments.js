@@ -219,6 +219,34 @@ function LoanSection({ loan }) {
             })}`}
         </Typography>
       </Stack>
+      {/* What the money costs: the fee transparency investment apps show, turned toward the one who owes. */}
+      {(loan.nextInstallmentInterest != null || Number(loan.interestRemaining) > 0) && (
+        <Box sx={{ mt: 2.5, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="overline" color="text.secondary" component="p">
+            {t('commitments.costTitle')}
+          </Typography>
+          {loan.nextInstallmentInterest != null && (
+            <Typography variant="body2">
+              {t('commitments.costNext', {
+                interest: money(loan.nextInstallmentInterest, lang),
+                principal: money(Number(loan.installmentAmount) - Number(loan.nextInstallmentInterest), lang),
+                installment: money(loan.installmentAmount, lang),
+              })}
+            </Typography>
+          )}
+          {Number(loan.interestRemaining) > 0 && (
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              {t('commitments.costRemaining', {
+                interest: money(loan.interestRemaining, lang),
+                count: loan.installmentsRemaining,
+              })}
+            </Typography>
+          )}
+          <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5 }}>
+            {t('commitments.costHelp')}
+          </Typography>
+        </Box>
+      )}
     </Card>
   );
 }

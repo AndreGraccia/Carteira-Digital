@@ -26,6 +26,7 @@ import com.github.yildizmy.service.future.CashEventPlanner;
 import com.github.yildizmy.service.future.CashEventPlanner.ConfirmedRecurrence;
 import com.github.yildizmy.service.future.DailySpending;
 import com.github.yildizmy.service.future.ExitPlan;
+import com.github.yildizmy.service.future.LoanCost;
 import com.github.yildizmy.service.future.LoanPlan;
 import com.github.yildizmy.service.future.ProjectionEngine;
 import com.github.yildizmy.service.future.QuestionParser;
@@ -284,7 +285,11 @@ public class FutureService {
                             loan.getNextDueDate(),
                             dues.isEmpty() ? null : dues.get(dues.size() - 1),
                             loan.getAnnualRate(),
-                            loan.getLastSyncedAt()
+                            loan.getLastSyncedAt(),
+                            LoanCost.interestRemaining(loan.getInstallmentAmount(), plan.remainingInstallments(),
+                                    loan.getOutstandingBalance()),
+                            LoanCost.nextInstallmentInterest(loan.getOutstandingBalance(), loan.getAnnualRate(),
+                                    loan.getInstallmentAmount())
                     );
                 })
                 .toList();

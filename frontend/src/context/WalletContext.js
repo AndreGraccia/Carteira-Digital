@@ -1,13 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/AuthService';
 import HttpService from '../services/HttpService';
 import { errorKey, normalizeTransactions } from '../utils/wallet';
 
 const WalletContext = createContext(null);
 export function WalletProvider({ children }) {
-  const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
   const userId = user?.id;
   const [data, setData] = useState({ wallets: [], transactions: [] });
@@ -23,15 +21,12 @@ export function WalletProvider({ children }) {
       ]);
       setData({ wallets: Array.isArray(wallets) ? wallets : [], transactions: normalizeTransactions(transactions) });
     } catch (failure) {
+      // 401 is handled once for every screen in HttpService.
       setError(errorKey(failure));
-      if (failure.response?.status === 401) {
-        AuthService.logout();
-        navigate('/login', { replace: true });
-      }
     } finally {
       setLoading(false);
     }
-  }, [navigate, userId]);
+  }, [userId]);
   useEffect(() => {
     refresh();
   }, [refresh]);

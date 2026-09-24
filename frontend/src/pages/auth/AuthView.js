@@ -21,6 +21,7 @@ import LanguageSelector from '../../components/language-selector';
 import { WalliaLogo } from '../../components/brand';
 import { WalletIcon } from '../../components/wallet-ui';
 import AuthService from '../../services/AuthService';
+import { safeReturnPath } from '../../services/HttpService';
 import { errorKey } from '../../utils/wallet';
 
 export default function AuthView({ signup = false }) {
@@ -53,13 +54,9 @@ export default function AuthView({ signup = false }) {
         navigate('/login', { replace: true });
       } else {
         await AuthService.login({ username: values.username.trim(), password: values.password });
-        const from = location.state?.from;
-        navigate(
-          typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') && !from.startsWith('/login')
-            ? from
-            : '/',
-          { replace: true }
-        );
+        // `state.from` comes from PrivateRoute, `?from=` from an expired session (HttpService).
+        const from = location.state?.from ?? new URLSearchParams(location.search).get('from');
+        navigate(safeReturnPath(from), { replace: true });
       }
     } catch (failure) {
       setError(!signup && failure.response?.status === 401 ? 'app.errors.credentials' : errorKey(failure));

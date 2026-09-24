@@ -134,5 +134,5 @@ export function localDate(isoDay) {
 }
 export const dayLabel = (isoDay, language, options = { day: '2-digit', month: '2-digit' }) =>
   isoDay ? new Intl.DateTimeFormat(localeFor(language), options).format(localDate(isoDay)) : '—';
-export const monthLabel = (isoMonth, language) =>
-  new Intl.DateTimeFormat(localeFor(language), { month: 'long', year: 'numeric' }).format(localDate(`${isoMonth}-01`));
+export const monthLabel = (isoMonth, language, options = { month: 'long', year: 'numeric' }) =>
+  new Intl.DateTimeFormat(localeFor(language), options).format(localDate(`${isoMonth}-01`));

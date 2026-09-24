@@ -20,7 +20,7 @@ import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { PageHeading, WalletIcon } from '../../components/wallet-ui';
 import HttpService from '../../services/HttpService';
-import { errorKey, money, projectRegularDeposits } from '../../utils/wallet';
+import { dateTime, errorKey, monthLabel, money, projectRegularDeposits } from '../../utils/wallet';
 
 const PERIODS = [1, 3, 6, 12];
 
@@ -91,12 +91,8 @@ export default function Insights() {
     }
   };
 
-  const formatMonth = (value) => {
-    const [year, month] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat(i18n.language, { month: 'short', year: '2-digit' }).format(
-      new Date(Date.UTC(year, month - 1, 1))
-    );
-  };
+  // "2026-09" is a calendar month: built as a local date so UTC-3 does not turn it into August.
+  const formatMonth = (value) => monthLabel(value, i18n.language, { month: 'short', year: '2-digit' });
 
   return (
     <>
@@ -196,9 +192,7 @@ export default function Insights() {
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                   {t('insights.generatedAt', {
-                    date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'short', timeStyle: 'short' }).format(
-                      new Date(report.generatedAt)
-                    ),
+                    date: dateTime(report.generatedAt, i18n.language),
                   })}
                 </Typography>
               </Stack>

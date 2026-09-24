@@ -11,7 +11,9 @@ import com.github.yildizmy.service.insight.InsightNarrativeGenerator;
 import com.github.yildizmy.service.insight.InsightRateLimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
@@ -19,7 +21,7 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.YearMonth;
-import java.time.ZoneOffset;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,15 +38,24 @@ public class InsightsService {
     private final InsightNarrativeGenerator narrativeGenerator;
     private final InsightRateLimiter rateLimiter;
     private final Clock clock;
+    private final TransactionOperations readOnly;
 
     @Autowired
     public InsightsService(
             TransactionRepository transactionRepository,
             WalletRepository walletRepository,
             InsightNarrativeGenerator narrativeGenerator,
-            InsightRateLimiter rateLimiter
+            InsightRateLimiter rateLimiter,
+            PlatformTransactionManager transactionManager
     ) {
-        this(transactionRepository, walletRepository, narrativeGenerator, rateLimiter, Clock.systemUTC());
+        this(transactionRepository, walletRepository, narrativeGenerator, rateLimiter, Clock.systemUTC(),
+                readOnly(transactionManager));
+    }
+
+    private static TransactionOperations readOnly(PlatformTransactionManager transactionManager) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setReadOnly(true);
+        return template;
     }
 
     InsightsService(
@@ -52,18 +63,23 @@ public class InsightsService {
             WalletRepository walletRepository,
             InsightNarrativeGenerator narrativeGenerator,
             InsightRateLimiter rateLimiter,
-            Clock clock
+            Clock clock,
+            TransactionOperations readOnly
     ) {
         this.transactionRepository = transactionRepository;
         this.walletRepository = walletRepository;
         this.narrativeGenerator = narrativeGenerator;
         this.rateLimiter = rateLimiter;
         this.clock = clock;
+        this.readOnly = readOnly;
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * Not transactional as a whole: the snapshot is read in a short read-only transaction and the AI call (up to
+     * 20 s) happens after it, so a slow provider never holds a database connection.
+     */
     public InsightReportResponse generate(Long userId, int months, String language) {
-        FinancialSnapshot snapshot = createSnapshot(userId, months);
+        FinancialSnapshot snapshot = readOnly.execute(status -> createSnapshot(userId, months));
         GeneratedNarrative narrative = localNarrative(snapshot, language);
         String provider = "LOCAL";
         Map<String, String> research = researchContext("en".equals(language));
@@ -86,9 +102,46 @@ public class InsightsService {
         return toResponse(snapshot, narrative, provider, language);
     }
 
+    /**
+     * Open Finance imports each side of a move between the user's own accounts separately: a Withdrawal in one
+     * wallet and a Deposit in another, same value, same day. Those pairs are neither income nor expense.
+     * ponytail: matched by value and day only; a real income and an unrelated expense of the exact same value on
+     * the same day in two different accounts would be paired too. Upgrade: match on the counterparty when the
+     * import keeps it.
+     */
+    static Set<Transaction> ownAccountPairs(List<Transaction> transactions) {
+        Map<String, List<Transaction>> deposits = new LinkedHashMap<>();
+        for (Transaction transaction : transactions) {
+            if ("Deposit".equals(transaction.getType().getName())) {
+                deposits.computeIfAbsent(pairKey(transaction), key -> new ArrayList<>()).add(transaction);
+            }
+        }
+        // Identity, not equals: entities compare by id and unsaved ones would all look the same.
+        Set<Transaction> paired = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        for (Transaction withdrawal : transactions) {
+            if (!"Withdrawal".equals(withdrawal.getType().getName())) continue;
+            List<Transaction> candidates = deposits.getOrDefault(pairKey(withdrawal), List.of());
+            candidates.stream()
+                    .filter(deposit -> !paired.contains(deposit)
+                            && !deposit.getToWallet().getId().equals(withdrawal.getFromWallet().getId()))
+                    .findFirst()
+                    .ifPresent(deposit -> {
+                        paired.add(deposit);
+                        paired.add(withdrawal);
+                    });
+        }
+        return paired;
+    }
+
+    private static String pairKey(Transaction transaction) {
+        LocalDate day = LocalDate.ofInstant(transaction.getCreatedAt(), FutureService.ZONE);
+        return day + ":" + money(transaction.getAmount()).toPlainString();
+    }
+
     private FinancialSnapshot createSnapshot(Long userId, int months) {
-        YearMonth currentMonth = YearMonth.now(clock);
-        Instant start = currentMonth.minusMonths(months - 1L).atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        // Months close in Brasília time, the same calendar the Futuro screen uses.
+        YearMonth currentMonth = YearMonth.now(clock.withZone(FutureService.ZONE));
+        Instant start = currentMonth.minusMonths(months - 1L).atDay(1).atStartOfDay(FutureService.ZONE).toInstant();
         Set<Long> walletIds = walletRepository.findByUserId(userId).stream()
                 .map(wallet -> wallet.getId())
                 .collect(Collectors.toSet());
@@ -103,20 +156,27 @@ public class InsightsService {
         BigDecimal internalTransfers = BigDecimal.ZERO;
         long count = 0;
 
-        for (Transaction transaction : transactionRepository.findAllByUserId(userId)) {
-            if (transaction.getStatus() != Status.SUCCESS || transaction.getCreatedAt().isBefore(start)) continue;
+        List<Transaction> relevant = transactionRepository.findAllByUserId(userId).stream()
+                .filter(transaction -> transaction.getStatus() == Status.SUCCESS && !transaction.getCreatedAt().isBefore(start))
+                .filter(transaction -> !"Initial balance".equals(transaction.getType().getName()))
+                .toList();
+        Set<Transaction> ownAccountPairs = ownAccountPairs(relevant);
+
+        for (Transaction transaction : relevant) {
             String type = transaction.getType().getName();
-            if ("Initial balance".equals(type)) continue;
 
             boolean fromOwned = walletIds.contains(transaction.getFromWallet().getId());
             boolean toOwned = walletIds.contains(transaction.getToWallet().getId());
             BigDecimal amount = money(transaction.getAmount());
-            YearMonth month = YearMonth.from(transaction.getCreatedAt().atZone(ZoneOffset.UTC));
+            YearMonth month = YearMonth.from(transaction.getCreatedAt().atZone(FutureService.ZONE));
             MutableFlow flow = monthly.get(month);
             if (flow == null) continue;
 
             count++;
-            if ("Deposit".equals(type)) {
+            if (ownAccountPairs.contains(transaction)) {
+                // Half of an imported move between two of the user's own accounts: count the pair once, as internal.
+                if ("Deposit".equals(type)) internalTransfers = internalTransfers.add(amount);
+            } else if ("Deposit".equals(type)) {
                 inflow = inflow.add(amount);
                 flow.inflow = flow.inflow.add(amount);
             } else if ("Withdrawal".equals(type)) {
@@ -300,7 +360,7 @@ public class InsightsService {
         return sources;
     }
 
-    private BigDecimal money(BigDecimal value) {
+    private static BigDecimal money(BigDecimal value) {
         return value.setScale(2, RoundingMode.HALF_EVEN);
     }
 

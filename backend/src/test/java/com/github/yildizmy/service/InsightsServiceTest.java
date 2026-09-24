@@ -44,7 +44,8 @@ class InsightsServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-09-20T12:00:00Z"), ZoneOffset.UTC);
-        service = new InsightsService(transactionRepository, walletRepository, narrativeGenerator, rateLimiter, clock);
+        service = new InsightsService(transactionRepository, walletRepository, narrativeGenerator, rateLimiter, clock,
+                org.springframework.transaction.support.TransactionOperations.withoutTransaction());
         primary = wallet(1L);
         reserve = wallet(2L);
         when(walletRepository.findByUserId(7L)).thenReturn(List.of(primary, reserve));
@@ -104,6 +105,66 @@ class InsightsServiceTest {
 
         assertEquals("LOCAL", report.provider());
         verify(narrativeGenerator, never()).generate(any(), any(), any(Map.class));
+    }
+
+    @Test
+    void moveBetweenOwnImportedAccountsIsNeitherIncomeNorSpending() {
+        when(narrativeGenerator.isEnabled()).thenReturn(false);
+        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of(
+                transaction("300.00", "Withdrawal", primary, primary, "2026-09-05T13:00:00Z", Status.SUCCESS),
+                transaction("300.00", "Deposit", reserve, reserve, "2026-09-05T13:00:05Z", Status.SUCCESS),
+                transaction("40.00", "Withdrawal", primary, primary, "2026-09-06T13:00:00Z", Status.SUCCESS)
+        ));
+
+        var report = service.generate(7L, 1, "pt-BR");
+
+        assertEquals(new BigDecimal("0.00"), report.metrics().inflow());
+        assertEquals(new BigDecimal("40.00"), report.metrics().outflow());
+        assertEquals(new BigDecimal("300.00"), report.metrics().internalTransfers());
+    }
+
+    @Test
+    void monthClosesInBrasiliaTime() {
+        Clock clock = Clock.fixed(Instant.parse("2026-10-01T02:00:00Z"), ZoneOffset.UTC); // 30/09, 23h in Brasília
+        service = new InsightsService(transactionRepository, walletRepository, narrativeGenerator, rateLimiter, clock,
+                org.springframework.transaction.support.TransactionOperations.withoutTransaction());
+        when(narrativeGenerator.isEnabled()).thenReturn(false);
+        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of(
+                transaction("70.00", "Deposit", primary, primary, "2026-10-01T01:30:00Z", Status.SUCCESS)));
+
+        var report = service.generate(7L, 1, "pt-BR");
+
+        assertEquals(List.of("2026-09"), report.monthlyFlow().stream().map(item -> item.month()).toList());
+        assertEquals(new BigDecimal("70.00"), report.metrics().inflow());
+    }
+
+    @Test
+    void theAiCallHappensAfterTheDatabaseTransactionEnds() {
+        boolean[] inTransaction = {false};
+        service = new InsightsService(transactionRepository, walletRepository, narrativeGenerator, rateLimiter,
+                Clock.fixed(Instant.parse("2026-09-20T12:00:00Z"), ZoneOffset.UTC),
+                new org.springframework.transaction.support.TransactionOperations() {
+                    @Override
+                    public <T> T execute(org.springframework.transaction.support.TransactionCallback<T> action) {
+                        inTransaction[0] = true;
+                        try {
+                            return action.doInTransaction(null);
+                        } finally {
+                            inTransaction[0] = false;
+                        }
+                    }
+                });
+        when(narrativeGenerator.isEnabled()).thenReturn(true);
+        when(rateLimiter.tryGlobal()).thenReturn(true);
+        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of());
+        when(narrativeGenerator.generate(any(), any(), any(Map.class))).thenAnswer(invocation -> {
+            org.junit.jupiter.api.Assertions.assertFalse(inTransaction[0], "no connection held during the AI call");
+            return Optional.empty();
+        });
+
+        service.generate(7L, 1, "pt-BR");
+
+        verify(narrativeGenerator).generate(any(), any(), any(Map.class));
     }
 
     private Wallet wallet(Long id) {

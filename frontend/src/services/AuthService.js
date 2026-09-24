@@ -9,7 +9,7 @@ const login = async (body) => {
   const user = response.data;
 
   if (typeof user?.token !== 'string' || !user.token.trim()) {
-    throw new Error('O servidor não retornou um token válido.');
+    throw Object.assign(new Error('Login response without a token'), { code: 'INVALID_TOKEN' });
   }
 
   sessionStorage.setItem('user', JSON.stringify(user));

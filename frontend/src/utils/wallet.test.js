@@ -1,4 +1,4 @@
-import { dayLabel, localDate, monthLabel, projectRegularDeposits } from './wallet';
+import { dayLabel, errorKey, localDate, monthLabel, projectRegularDeposits } from './wallet';
 
 test('projects zero-rate monthly deposits without inventing earnings', () => {
   expect(projectRegularDeposits('100', 1, '0')).toEqual({
@@ -24,4 +24,16 @@ test('calendar days from the API keep their day in any timezone', () => {
   expect(dayLabel('2026-10-03', 'en')).toBe('10/03');
   expect(monthLabel('2026-10', 'pt-BR')).toBe('outubro de 2026');
   expect(dayLabel(null, 'pt-BR')).toBe('—');
+});
+
+test('server and client error codes reach their own message', () => {
+  expect(errorKey({ response: { status: 400, data: { code: 'INVALID_PERIOD' } } })).toBe('app.errors.INVALID_PERIOD');
+  expect(errorKey({ response: { status: 422, data: { code: 'INITIAL_BALANCE_NOT_ALLOWED' } } })).toBe(
+    'app.errors.INITIAL_BALANCE_NOT_ALLOWED'
+  );
+  // A login answer without a token is a contract problem, not "check your network".
+  expect(errorKey({ code: 'INVALID_TOKEN' })).toBe('app.errors.INVALID_TOKEN');
+  // axios' own codes are not ours: they keep the status/network fallback.
+  expect(errorKey({ code: 'ERR_NETWORK' })).toBe('app.errors.network');
+  expect(errorKey({ code: 'ERR_BAD_RESPONSE', response: { status: 500 } })).toBe('app.errors.server');
 });

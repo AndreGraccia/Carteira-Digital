@@ -77,7 +77,8 @@ export function normalizeTransactions(response) {
   );
 }
 export function errorKey(error) {
-  const code = error.response?.data?.code;
+  // Server codes come in the body; INVALID_TOKEN is raised by the client itself (AuthService.login).
+  const code = error.response?.data?.code ?? error.code;
   if (code === 'AUTH_RATE_LIMIT') return 'app.errors.authRateLimit';
   if (code === 'INSIGHT_RATE_LIMIT') return 'app.errors.insightRateLimit';
   if (code === 'ASK_RATE_LIMIT') return 'app.errors.askRateLimit';
@@ -112,6 +113,9 @@ export function errorKey(error) {
       'PUSH_INVALID_SUBSCRIPTION',
       'PUSH_LIMIT',
       'INVALID_HORIZON',
+      'INVALID_PERIOD',
+      'INITIAL_BALANCE_NOT_ALLOWED',
+      'INVALID_TOKEN',
     ].includes(code)
   )
     return `app.errors.${code}`;

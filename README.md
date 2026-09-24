@@ -28,7 +28,8 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 - **Limite diário:** quanto dá para gastar por dia até a próxima renda sem nenhum dia negativo, ou quanto falta quando só as contas já não cabem. Com o ritmo do dia a dia confirmado, diz quanto sobra ou quanto cortar por dia.
 - **Gastos do dia a dia como pergunta:** a média de mercado, transporte e farmácia dos últimos 90 dias, com a evidência. Só entra na projeção se o usuário confirmar (ou informar o próprio valor). O mesmo vale para as compras à vista no cartão, que entram na fatura em que cada dia cai.
-- **Plano de saída do buraco:** até três ações calculadas pelo motor (combinar outra data para uma conta, gastar menos por dia, ou quanto falta). Fatura e empréstimo nunca são sugeridos para adiar.
+- **Plano de saída do buraco:** até três ações calculadas pelo motor (combinar outra data para uma conta, gastar menos por dia, ou quanto falta). Fatura e empréstimo nunca são sugeridos para adiar. Quando a saída é combinar outra data, "Preparar Pix" monta o Pix agendado com destinatário, valor e data, em modo simulação: nada é enviado.
+- **Quanto a Wall.ia acertou:** a cada sincronização a previsão fica guardada e, de 7 a 30 dias depois, é comparada com o saldo real. A tela mostra o erro médio, para que lado a previsão tem errado, os negativos evitados e os negativos que ela não viu.
 - **Metas:** um valor por mês que entra na projeção como compromisso; o limite diário já desconta.
 - **Alertas por e-mail**, opcionais: um aviso por janela negativa nova, com o link para a saída.
 - Saldo agora, quanto já tem destino (separando confirmado de estimado) e margem livre.
@@ -36,6 +37,10 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 - Alerta de janela negativa ("entre 03/10 e 04/10 seu saldo pode ficar em -R$ 324,87") e "ver por quê", que lista as contas que causam o buraco e a entrada que o fecha, com o custo máximo do cheque especial no período (teto legal de 8% ao mês).
 - Perguntas rápidas sobre recorrências detectadas, com evidência (valor, dia, vezes, conta de origem) e resposta em um toque.
 - Modo Futuro: simula compra à vista ou parcelada, guardar todo mês ou perder uma renda, sem gravar nada.
+
+**Envelopes**
+
+- Separe parte do saldo para o que a projeção não conhece (viagem, IPVA, reserva). O dinheiro não se move; o limite diário passa a ser o que dá para gastar sem mexer nos envelopes. Substitui a antiga tela Movimentar.
 
 **Pergunte ao Wall.ia**
 
@@ -51,7 +56,7 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 - Cadastro e login com JWT (usuário sem diferenciar maiúsculas, ou e-mail), limite de tentativas e de cadastros.
 - Trilha de auditoria de todo acesso administrativo, inclusive tentativas negadas.
-- Carteiras, transferências e extrato, com autorização por dono da carteira.
+- Carteiras e extrato, com autorização por dono da carteira.
 - Conexão Open Finance protegida por código de 8 dígitos enviado ao e-mail cadastrado ([roteiro de teste](docs/open-finance-email-tests.md)).
 - Análise do extrato com regras locais ou Gemini, sem enviar o extrato bruto ([segurança e IA](docs/security-and-ai-reports.md)).
 - Interface em português e inglês, tema escuro, responsiva, validada em 1440 px e 390 px.
@@ -59,9 +64,9 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 ## Próximos passos
 
-A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, decisões em aberto e métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Decisões técnicas nos ADRs [0001](docs/adr/0001-motor-futuro-deterministico.md), [0002](docs/adr/0002-limite-diario-e-perguntas.md), [0003](docs/adr/0003-saida-do-buraco-metas-e-alertas.md) e [0004](docs/adr/0004-auditoria-admin-e-ledger.md).
+A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, decisões em aberto e métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Decisões técnicas nos ADRs [0001](docs/adr/0001-motor-futuro-deterministico.md), [0002](docs/adr/0002-limite-diario-e-perguntas.md), [0003](docs/adr/0003-saida-do-buraco-metas-e-alertas.md), [0004](docs/adr/0004-auditoria-admin-e-ledger.md) e [0005](docs/adr/0005-envelopes-placar-e-pix-simulado.md).
 
-Em aberto, para o dono do produto decidir: o futuro da tela Movimentar e a iniciação de pagamento pelo Open Finance, que é também o gatilho do ledger de dupla entrada.
+Em aberto, para o dono do produto decidir: credenciar a iniciação de pagamento pelo Open Finance, que tiraria o Pix do modo simulação e é também o gatilho do ledger de dupla entrada.
 
 ## Tecnologias
 

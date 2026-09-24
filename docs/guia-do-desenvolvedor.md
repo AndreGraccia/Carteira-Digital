@@ -192,7 +192,7 @@ Espere `Compiled successfully!` e abra o endereço que aparecer (http://localhos
 
 ## 8. Primeiro uso
 
-1. Clique em **Criar conta**. Usuário de 3 a 20 caracteres, senha de 10 a 100.
+1. Clique em **Criar conta**. Usuário de 3 a 20 caracteres (letras, números, ponto, hífen e sublinhado; sem `@`), senha de 10 a 100.
 2. Entre com o usuário criado.
 3. Abra **Open Finance** e clique em **Conectar dados de teste**.
 4. Abra http://localhost:8025, copie o código de 8 dígitos e cole na tela.
@@ -201,6 +201,22 @@ Espere `Compiled successfully!` e abra o endereço que aparecer (http://localhos
 7. Depois de confirmar, o gráfico mostra o saldo dia a dia e, se houver, a janela em que ele fica negativo, com o botão "ver por quê".
 
 O roteiro completo, com as proteções do código por e-mail, está em [open-finance-email-tests.md](open-finance-email-tests.md).
+
+8. O código do passo 4 também confirma o e-mail. Só depois dele o aviso por e-mail da tela Futuro pode ser ligado.
+9. **Envelopes** separa parte do saldo; o limite diário do Futuro passa a deixar esse valor de fora.
+10. **Quanto a Wall.ia acertou** aparece depois do primeiro sync com perguntas respondidas. A primeira comparação sai 7 dias depois do sync seguinte.
+
+### Ter um administrador
+
+Desde a V19 não existe admin pronto: as contas `johndoe` e `lindacalvin` do template original tinham senha pública e foram desativadas. Para promover uma conta sua, no banco local:
+
+```sql
+INSERT INTO user_role (user_id, role_id)
+SELECT u.id, r.id FROM "user" u, role r
+WHERE lower(u.username) = 'seu_usuario' AND r.type = 'ROLE_ADMIN';
+```
+
+Entre de novo para o token trazer o papel novo. Todo acesso de admin fica em `admin_audit` ([ADR 0004](adr/0004-auditoria-admin-e-ledger.md)).
 
 ## Problemas comuns
 

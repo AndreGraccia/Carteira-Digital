@@ -43,6 +43,9 @@ Critérios: **dor** (quanto resolve de um problema com número por trás), **pro
 | Medição e limite do Pergunte | Sem saber o que as pessoas perguntam, não dá para decidir o próximo passo | Mede sem guardar texto | Interno | P | **Feito** (ADR 0003) |
 | Classificador de intenção com LLM para o Pergunte | Frases fora do padrão voltam UNKNOWN | IA só escolhe o cálculo | Nenhum | P | Quando a medição pedir |
 | Ledger de dupla entrada | Base para dinheiro real | Correção por estorno | Interno | G | Proposto, com gatilho (ADR 0004) |
+| Envelopes no lugar de Movimentar | Tela sem uso real | Pergunta em vez de supor | YNAB tem envelopes, sem projeção diária | M | **Feito** (ADR 0005) |
+| Placar de precisão da previsão | Estrela-guia sem medição; confiança no número | Explica com número, inclusive o próprio erro | Nenhum player pesquisado | M | **Feito** (ADR 0005) |
+| Pix agendado a partir do plano de saída | Ver o futuro sem poder agir | Sugere, o usuário decide | Magie faz Pix, sem projeção | M | **Simulado** (ADR 0005); real depende de credenciamento |
 | Trilha de auditoria administrativa | Admin lista dados de todos sem deixar rastro | Transparência | Interno | P | **Feito** (ADR 0004) |
 | Marketplace de crédito | Receita | **Viola a regra 3** | Guiabolso fechou com esse modelo | M | **Não fazer** |
 | Registro de gasto por WhatsApp | Menos atrito para anotar | Com Open Finance, anotar à mão é o problema errado | Commodity (Magie, ZapGastos, Focca) | M | **Não fazer** |
@@ -94,18 +97,57 @@ Tela nova (`/ask`) com cinco perguntas sugeridas e campo livre. Exemplos reais d
 - **Spring Boot 3.0.4 para 3.5.16:** a versão antiga estava sem suporte e com CVEs conhecidos. O upgrade encontrou um uso de API do Java 19 que quebraria no JRE 17 de produção.
 - **Ledger de dupla entrada, proposto:** hoje nenhum real se move dentro do Wall.ia (carteira local nasce com zero, não há depósito, Open Finance é só leitura). O desenho está pronto no ADR 0004, para quando houver dinheiro em movimento.
 
-## Decisões de produto em aberto
+## Quarta rodada (ADR 0005 e revisão de segurança)
 
-1. **O que fazer com a tela Movimentar.** Carteiras locais nunca recebem dinheiro, então transferir e retirar não têm uso real. Opções: dar um propósito (separar dinheiro em envelopes simulados, que entrariam na projeção) ou retirar a tela. A regra do projeto é não remover funcionalidade sem decisão do dono.
-2. **Iniciação de pagamento (Pix pelo Open Finance).** É o que transformaria o Wall.ia de "ver o futuro" em "agir sobre ele" e o gatilho do ledger. Exige credenciamento e muda a regulação aplicável. Decisão de negócio antes de técnica.
+Análise feita em 24/09/2026. Duas revisões independentes (frontend das telas novas e segurança do que entrou depois da última auditoria) e uma leitura das migrações herdadas.
 
-## Próximos passos técnicos, em ordem
+**O que estava errado e foi corrigido**
 
-1. **Classificador de intenção** para o Pergunte, quando a medição mostrar muitas perguntas sem resposta.
-2. **Push no navegador** para os alertas, reaproveitando o mesmo job.
-3. **Estimativa por cartão** quando houver usuários com mais de um cartão ativo.
-4. **Limites em Redis** (login, Gemini, Pergunte) antes de rodar mais de uma instância da API.
-5. **Ledger**, no dia do gatilho acima.
+| Achado | Gravidade | Correção |
+| --- | --- | --- |
+| V2/V4 do template criavam `johndoe` e `lindacalvin` como ADMIN, com hash público, em todo ambiente | Alta | V19 desativa as contas demo e tira o papel de admin |
+| Alerta por e-mail podia ser apontado para o e-mail de outra pessoa (cadastro não confirma e-mail) com texto livre no nome | Média | Alerta exige e-mail verificado pelo código do Open Finance; o nome no corpo vira uma palavra só de letras |
+| Atrás do nginx, o limite de cadastro por IP virava limite global | Média | `forward-headers-strategy: native`, nginx sobrescreve `X-Forwarded-For`, backend só em 127.0.0.1 |
+| Usuário com formato de e-mail sombreava o login por e-mail de outra pessoa | Baixa | Usuário sem `@`; login com `@` procura o e-mail primeiro |
+| Busca ignora maiúsculas, índice único não | Baixa | V19 cria índices em `lower(username)` e `lower(email)` |
+| A sugestão em inglês do próprio Pergunte ("R$ 4,000 in 10x") voltava "quanto?" | Defeito | Interpretador entende agrupamento com vírgula |
+| Futuro: trocar 30/60/90 rápido deixava a projeção errada na tela; usuário sem dados via R$ 0,00 e um gráfico reto | Defeito | Resposta atrasada é descartada; estado "ainda não há o que projetar" |
+| Mais 10 defeitos de tela (tabela sem rolagem em 390 px, R$ 0,00 exibido como traço, alerta que parecia desligado quando falhava, limite de cartão zero virando 250000%) | Defeito | Corrigidos; 7 testes de tela novos travam os principais |
+
+**O que foi construído**
+
+- **Envelopes**, no lugar de Movimentar. Dinheiro separado vira piso do limite diário; a projeção continua no saldo real.
+- **Quanto a Wall.ia acertou.** Cada sync guarda o saldo real e a projeção; 7 a 30 dias depois, a previsão é comparada com o real. É a métrica estrela-guia medida por usuário.
+- **Pix agendado, simulado.** O plano de saída monta a proposta com o que o motor calculou e diz que nada é enviado.
+
+## Onde o Wall.ia se diferencia, com o que existe hoje
+
+Comparação com os players da [pesquisa](pesquisa-mercado.md), seção 3. "Não" quer dizer que a funcionalidade não aparece no material público consultado.
+
+| Capacidade | Mobills / Organizze | Assistentes de WhatsApp (Magie, Financinha) | PFM dos bancos | Wall.ia |
+| --- | --- | --- | --- | --- |
+| Saldo projetado dia a dia, não só no fim do mês | Fim do mês | "Antecipa riscos" (Financinha), sem detalhe público | Não | Sim, 30/60/90 dias |
+| Cada número com origem e grau de certeza | Não | Não | Não | Confirmado, estimado ou hipotético em toda linha |
+| Pergunta antes de supor recorrência ou gasto diário | Não | Registra o que a pessoa manda | Não | Sim, com a evidência |
+| Limite diário até a próxima entrada | Não | Não | Não | Sim, com o dia que o define |
+| Plano de saída testado pelo motor | Não | Não | Não | Até 3 ações, nunca adiar fatura ou empréstimo |
+| Mostra o próprio erro de previsão | Não | Não | Não | Sim, com os negativos que não previu |
+| Vende crédito | Mobills é do Santander | Magie migra para B2B | Sim | Não, e isso é regra |
+
+O que um concorrente não copia rápido não é uma tela, é o conjunto: um banco não publica o erro da própria previsão nem promete não vender crédito, e um assistente de WhatsApp que registra gasto não tem o motor para projetar. O placar de precisão transforma "confie em nós" em número verificável, e é também o instrumento para saber se o produto funciona.
+
+## Próximos passos, em ordem
+
+Critério: primeiro o que aumenta a confiança no número, depois o alcance, por último a escala.
+
+1. **Sync diário automático.** O placar e os alertas dependem de saldo fresco; hoje só existem nos dias em que a pessoa sincroniza. Com Open Finance real, é um job; o registro do placar muda de lugar sem mudar de forma.
+2. **Contar o clique em "Preparar Pix".** Uma linha na métrica que já existe para o Pergunte. É o número que justifica (ou não) o credenciamento.
+3. **Push no navegador** para os alertas, reaproveitando o mesmo job.
+4. **Painel da estrela-guia** para o time: agregado de `forecast_snapshot` (negativos evitados por usuário ativo por mês, erro médio, negativos sem aviso).
+5. **Classificador de intenção** para o Pergunte, quando a medição mostrar muitas perguntas sem resposta.
+6. **Estimativa por cartão** quando houver usuários com mais de um cartão ativo.
+7. **Limites em Redis** (login, Gemini, Pergunte) antes de rodar mais de uma instância da API.
+8. **Credenciamento como iniciador de pagamento e ledger**, se o item 2 mostrar demanda. Decisão de negócio antes de técnica.
 
 ## Métricas
 

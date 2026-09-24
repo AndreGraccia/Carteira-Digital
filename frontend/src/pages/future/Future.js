@@ -91,7 +91,13 @@ export default function Future() {
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const [horizon, setHorizon] = useState(30);
-  const [state, setState] = useState({ loading: true, error: null, overview: null, recurrences: [] });
+  const [state, setState] = useState({
+    loading: true,
+    error: null,
+    overview: null,
+    recurrences: [],
+    recurrencesError: null,
+  });
   const [why, setWhy] = useState(null);
   const [showDays, setShowDays] = useState(false);
   const [openGroup, setOpenGroup] = useState(null);
@@ -103,19 +109,24 @@ export default function Future() {
     latest.current += 1;
     const request = latest.current;
     setState((previous) => ({ ...previous, loading: true, error: null }));
-    try {
-      const [overview, recurrences] = await Promise.all([
-        HttpService.getWithAuth(`/future/overview?horizon=${horizon}`),
-        HttpService.getWithAuth('/future/recurrences'),
-      ]);
-      if (request === latest.current) {
-        setState({ loading: false, error: null, overview, recurrences });
-        setAnnounce(t('future.horizonUpdated', { days: horizon }));
-      }
-    } catch (failure) {
-      if (request === latest.current)
-        setState((previous) => ({ ...previous, loading: false, error: errorKey(failure), overview: null }));
+    // The questions are one section: when /recurrences fails, the projection still stands.
+    const [overview, recurrences] = await Promise.allSettled([
+      HttpService.getWithAuth(`/future/overview?horizon=${horizon}`),
+      HttpService.getWithAuth('/future/recurrences'),
+    ]);
+    if (request !== latest.current) return;
+    if (overview.status === 'rejected') {
+      setState((previous) => ({ ...previous, loading: false, error: errorKey(overview.reason), overview: null }));
+      return;
     }
+    setState((previous) => ({
+      loading: false,
+      error: null,
+      overview: overview.value,
+      recurrences: recurrences.status === 'fulfilled' ? recurrences.value : previous.recurrences,
+      recurrencesError: recurrences.status === 'rejected' ? errorKey(recurrences.reason) : null,
+    }));
+    setAnnounce(t('future.horizonUpdated', { days: horizon }));
     // t is stable per language; horizon is what changes the request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [horizon]);
@@ -139,14 +150,27 @@ export default function Future() {
   // The card answers the first negative window itself; separate alerts only when there is no card.
   const showCard = Boolean(overview?.spendingLimit) && forecastReady({ sources });
   const firstRisk = projection?.riskWindows[0];
-  const questions = overview && (
-    <Questions
-      recurrences={recurrences}
-      dailySpending={overview.dailySpending}
-      cardSpending={overview.cardSpending}
-      onAnswered={load}
-    />
-  );
+  const questions =
+    overview &&
+    (state.recurrencesError ? (
+      <Alert
+        severity="error"
+        action={
+          <Button color="inherit" onClick={load}>
+            {t('app.retry')}
+          </Button>
+        }
+      >
+        {t('future.questionsError')} {t(state.recurrencesError)}
+      </Alert>
+    ) : (
+      <Questions
+        recurrences={recurrences}
+        dailySpending={overview.dailySpending}
+        cardSpending={overview.cardSpending}
+        onAnswered={load}
+      />
+    ));
 
   return (
     <>

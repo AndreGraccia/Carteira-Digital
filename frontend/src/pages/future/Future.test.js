@@ -122,3 +122,22 @@ test('everyday spending without history can still be declined, and "yes" is not 
   expect(button('future.daily.no')).toBeDefined();
   expect(button('future.daily.yes')).toBeUndefined();
 });
+
+test('a failure in /recurrences keeps the projection and shows the error only in the questions section', async () => {
+  HttpService.getWithAuth.mockImplementation((url) =>
+    url.startsWith('/future/overview')
+      ? Promise.resolve(overview({ balance: 4242 }))
+      : Promise.reject(Object.assign(new Error('boom'), { response: { status: 500 } }))
+  );
+  await renderPage();
+
+  expect(text()).toContain('4.242,00');
+  expect(text()).toContain('future.questionsError');
+  expect(text()).toContain('app.errors.server');
+
+  HttpService.getWithAuth.mockImplementation((url) =>
+    Promise.resolve(url.startsWith('/future/overview') ? overview({ balance: 4242 }) : [])
+  );
+  await act(async () => Simulate.click(button('app.retry')));
+  expect(text()).not.toContain('future.questionsError');
+});

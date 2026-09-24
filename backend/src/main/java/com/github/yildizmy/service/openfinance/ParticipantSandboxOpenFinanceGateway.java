@@ -32,6 +32,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Reads one real sandbox consent through a pre-issued access token.
+ * <p>
+ * The token and the consent belong to one person, so the gateway is bound to one Wall.ia user
+ * ({@code app.open-finance.owner-user-id}). Any other user is refused: without that, every account would import
+ * the same bank data. Serving many users needs the authorisation flow (FAPI redirect + per-user tokens), which a
+ * dev sandbox does not have.
+ */
 @Component
 @ConditionalOnProperty(name = "app.open-finance.mode", havingValue = "participant-sandbox")
 public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway {
@@ -43,6 +51,7 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
     private final String accessToken;
     private final String consentId;
     private final String configuredInstitutionId;
+    private final long ownerUserId;
 
     public ParticipantSandboxOpenFinanceGateway(
             ObjectMapper objectMapper,
@@ -52,22 +61,31 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
             @Value("${app.open-finance.consent-id}") String consentId,
             @Value("${app.open-finance.institution-id:participant-sandbox}") String institutionId,
             @Value("${app.open-finance.key-store-path:}") String keyStorePath,
-            @Value("${app.open-finance.key-store-password:}") String keyStorePassword) {
+            @Value("${app.open-finance.key-store-password:}") String keyStorePassword,
+            @Value("${app.open-finance.owner-user-id:0}") long ownerUserId) {
         this.objectMapper = objectMapper;
         this.clock = clock;
         this.baseUrl = baseUrl.replaceAll("/+$", "");
         this.accessToken = accessToken;
         this.consentId = consentId;
         this.configuredInstitutionId = institutionId;
+        this.ownerUserId = ownerUserId;
         this.client = httpClient(keyStorePath, keyStorePassword);
         if (this.baseUrl.isBlank() || accessToken.isBlank() || consentId.isBlank()) {
             throw new IllegalStateException(
                     "participant-sandbox requires base-url, access-token and consent-id configuration");
         }
+        if (ownerUserId <= 0) {
+            throw new IllegalStateException(
+                    "participant-sandbox requires owner-user-id: the configured consent belongs to one user");
+        }
     }
 
     @Override
     public OpenFinanceSnapshot fetch(long userId) {
+        if (userId != ownerUserId) {
+            throw new OpenFinanceUnavailableException("This sandbox consent belongs to another user");
+        }
         JsonNode accountsPayload = getJson("/accounts");
         List<OpenFinanceSnapshot.Account> accounts = new ArrayList<>();
         String institutionName = "Open Finance Sandbox";

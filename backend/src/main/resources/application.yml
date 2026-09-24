@@ -114,6 +114,8 @@ app:
     institution-id: ${open_finance_institution_id:participant-sandbox}
     key-store-path: ${open_finance_key_store_path:}
     key-store-password: ${open_finance_key_store_password:}
+    # participant-sandbox only: the one Wall.ia user id the configured token and consent belong to.
+    owner-user-id: ${open_finance_owner_user_id:0}
     verification:
       code-ttl-minutes: ${open_finance_code_ttl_minutes:10}
       resend-cooldown-seconds: ${open_finance_resend_cooldown_seconds:60}

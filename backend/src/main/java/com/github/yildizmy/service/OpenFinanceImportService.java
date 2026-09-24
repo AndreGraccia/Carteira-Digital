@@ -169,6 +169,7 @@ public class OpenFinanceImportService {
 
     private void importLoans(long userId, OpenFinanceSnapshot snapshot, Instant syncedAt) {
         if (snapshot.loans() == null) return;
+        java.util.Set<String> received = new java.util.HashSet<>();
         for (OpenFinanceSnapshot.LoanContract source : snapshot.loans()) {
             validateLoan(source);
             String externalId = snapshot.institutionId() + ":" + source.contractId();
@@ -184,9 +185,29 @@ public class OpenFinanceImportService {
             loan.setInstallmentsPaid(source.paidInstallments());
             loan.setNextDueDate(source.nextDueDate());
             loan.setAnnualRate(source.annualRate());
+            loan.setDueDay(dueDay(source, loan.getDueDay()));
+            loan.setAmortizationSystem(truncate(source.amortizationSystem(), 30));
             loan.setLastSyncedAt(syncedAt);
             loanRepository.save(loan);
+            received.add(externalId);
         }
+        // A contract the institution no longer reports was paid off: it must stop producing instalments.
+        loanRepository.findByUserIdOrderById(userId).stream()
+                .filter(loan -> loan.getExternalId().startsWith(snapshot.institutionId() + ":"))
+                .filter(loan -> !received.contains(loan.getExternalId()))
+                .forEach(loanRepository::delete);
+    }
+
+    /**
+     * The contractual due day. When the institution only sends the next due date and it is the last day of a
+     * short month (28/02 for a contract due on the 31st), the day already known is kept.
+     */
+    static Integer dueDay(OpenFinanceSnapshot.LoanContract source, Integer known) {
+        if (source.dueDay() != null) return source.dueDay();
+        if (source.nextDueDate() == null) return known;
+        int day = source.nextDueDate().getDayOfMonth();
+        boolean lastOfMonth = day == source.nextDueDate().lengthOfMonth();
+        return lastOfMonth && known != null && known > day ? known : Integer.valueOf(day);
     }
 
     private void validateCard(OpenFinanceSnapshot.CreditCardAccount card) {

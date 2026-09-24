@@ -53,6 +53,13 @@ public class Loan {
 
     private BigDecimal annualRate;
 
+    /** Contractual day of month; the next due date alone loses it after a short month. */
+    private Integer dueDay;
+
+    /** Open Finance amortizationScheduled: SAC, PRICE, SAM, SEM_SISTEMA_AMORTIZACAO, OUTROS. */
+    @Column(length = 30)
+    private String amortizationSystem;
+
     @Column(nullable = false)
     private Instant lastSyncedAt;
 }

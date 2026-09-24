@@ -98,7 +98,7 @@ class ContractSandboxOpenFinanceGatewayTest {
         var loanSource = snapshot.loans().get(0);
         var loan = new com.github.yildizmy.service.future.LoanPlan(1, loanSource.productName(), "Banco",
                 loanSource.outstandingBalance(), loanSource.installmentAmount(), loanSource.totalInstallments(),
-                loanSource.paidInstallments(), loanSource.nextDueDate());
+                loanSource.paidInstallments(), loanSource.nextDueDate(), loanSource.dueDay());
         LocalDate today = LocalDate.of(2026, 9, 22);
         BigDecimal balance = snapshot.accounts().stream()
                 .map(OpenFinanceSnapshot.Account::availableBalance)

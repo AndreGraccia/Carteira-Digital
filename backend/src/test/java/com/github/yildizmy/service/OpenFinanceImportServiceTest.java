@@ -156,6 +156,53 @@ class OpenFinanceImportServiceTest {
         verify(cards).save(card);
     }
 
+    @Test
+    void loanNoLongerReportedWasPaidOffAndLeavesTheProjection() {
+        User user = new User();
+        user.setId(7L);
+        Instant now = Instant.parse("2026-09-20T12:00:00Z");
+        var active = loan("institution-1:active");
+        var paidOff = loan("institution-1:paid-off");
+        var otherBank = loan("institution-2:other");
+        when(connections.findByUserIdAndInstitutionId(7L, "institution-1")).thenReturn(Optional.empty());
+        when(users.getReferenceById(7L)).thenReturn(user);
+        when(wallets.findByUserIdAndSourceAndExternalAccountId(any(), any(), any())).thenReturn(Optional.empty());
+        when(loans.findByUserIdAndExternalId(7L, "institution-1:active")).thenReturn(Optional.of(active));
+        when(loans.findByUserIdOrderById(7L)).thenReturn(List.of(active, paidOff, otherBank));
+        var base = snapshot("CREDITO", now);
+        var contract = new OpenFinanceSnapshot.LoanContract("active", "Pessoal", new BigDecimal("1000.00"),
+                new BigDecimal("500.00"), new BigDecimal("100.00"), 10, 5, java.time.LocalDate.of(2026, 10, 5),
+                null, null, null);
+
+        service.importSnapshot(7L, new OpenFinanceSnapshot(base.institutionId(), base.institutionName(),
+                base.consentId(), base.authorisedAt(), base.expiresAt(), base.accounts(), List.of(), List.of(contract)), now);
+
+        verify(loans).delete(paidOff);
+        verify(loans, never()).delete(active);
+        verify(loans, never()).delete(otherBank);
+    }
+
+    @Test
+    void dueDayKeepsTheContractualDayWhenOnlyAShortMonthDateArrives() {
+        assertEquals(31, OpenFinanceImportService.dueDay(contract(java.time.LocalDate.of(2027, 2, 28), null), 31));
+        assertEquals(28, OpenFinanceImportService.dueDay(contract(java.time.LocalDate.of(2027, 2, 28), null), null));
+        assertEquals(10, OpenFinanceImportService.dueDay(contract(java.time.LocalDate.of(2027, 3, 10), null), 31),
+                "a date in the middle of the month is a real change of due day");
+        assertEquals(15, OpenFinanceImportService.dueDay(contract(java.time.LocalDate.of(2027, 2, 28), 15), 31),
+                "the institution's own due day wins");
+    }
+
+    private OpenFinanceSnapshot.LoanContract contract(java.time.LocalDate next, Integer dueDay) {
+        return new OpenFinanceSnapshot.LoanContract("c", "Pessoal", BigDecimal.TEN, BigDecimal.ONE, BigDecimal.ONE,
+                10, 1, next, null, dueDay, null);
+    }
+
+    private com.github.yildizmy.domain.entity.Loan loan(String externalId) {
+        var loan = new com.github.yildizmy.domain.entity.Loan();
+        loan.setExternalId(externalId);
+        return loan;
+    }
+
     private OpenFinanceSnapshot snapshot(String direction, Instant now) {
         var entry = new OpenFinanceSnapshot.Entry(
                 "transaction-1", direction, "Recebimento", "PIX", new BigDecimal("100.00"), now.minusSeconds(60));

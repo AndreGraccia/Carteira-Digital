@@ -286,8 +286,8 @@ public class FutureService {
                             dues.isEmpty() ? null : dues.get(dues.size() - 1),
                             loan.getAnnualRate(),
                             loan.getLastSyncedAt(),
-                            LoanCost.interestRemaining(loan.getInstallmentAmount(), plan.remainingInstallments(),
-                                    loan.getOutstandingBalance()),
+                            LoanCost.interestRemaining(loan.getAmortizationSystem(), loan.getInstallmentAmount(),
+                                    plan.remainingInstallments(), loan.getOutstandingBalance(), loan.getAnnualRate()),
                             LoanCost.nextInstallmentInterest(loan.getOutstandingBalance(), loan.getAnnualRate(),
                                     loan.getInstallmentAmount())
                     );
@@ -618,7 +618,8 @@ public class FutureService {
                 loan.getInstallmentAmount(),
                 loan.getInstallmentsTotal(),
                 loan.getInstallmentsPaid(),
-                loan.getNextDueDate()
+                loan.getNextDueDate(),
+                loan.getDueDay()
         );
     }
 

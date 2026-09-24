@@ -150,7 +150,7 @@ public class ContractSandboxOpenFinanceGateway implements OpenFinanceGateway {
         BigDecimal outstanding = presentValue(installment, total - paid, new BigDecimal("0.022"));
         return new OpenFinanceSnapshot.LoanContract(
                 "loan-personal-demo", "Empréstimo pessoal", new BigDecimal("12000.00"), outstanding,
-                installment, total, paid, nextDue, new BigDecimal("29.8400"));
+                installment, total, paid, nextDue, new BigDecimal("29.8400"), 25, "PRICE");
     }
 
     private BigDecimal presentValue(BigDecimal installment, int remaining, BigDecimal monthlyRate) {

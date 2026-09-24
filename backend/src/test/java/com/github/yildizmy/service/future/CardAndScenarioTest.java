@@ -54,9 +54,18 @@ class CardAndScenarioTest {
     @Test
     void loanProjectsOnlyRemainingInstalmentsKeepingTheDueDay() {
         var loan = new LoanPlan(1, "Empréstimo pessoal", "Banco", new BigDecimal("5000"), new BigDecimal("612.48"),
-                24, 22, LocalDate.of(2026, 1, 31));
+                24, 22, LocalDate.of(2026, 1, 31), null);
 
         assertEquals(List.of(LocalDate.of(2026, 1, 31), LocalDate.of(2026, 2, 28)), loan.dueDates());
+    }
+
+    @Test
+    void contractualDueDaySurvivesAShortMonth() {
+        var loan = new LoanPlan(1, "Empréstimo pessoal", "Banco", new BigDecimal("5000"), new BigDecimal("612.48"),
+                24, 21, LocalDate.of(2027, 2, 28), 31);
+
+        assertEquals(List.of(LocalDate.of(2027, 2, 28), LocalDate.of(2027, 3, 31), LocalDate.of(2027, 4, 30)),
+                loan.dueDates());
     }
 
     @Test

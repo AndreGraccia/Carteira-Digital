@@ -16,7 +16,8 @@ public record LoanPlan(
         BigDecimal installmentAmount,
         int installmentsTotal,
         int installmentsPaid,
-        LocalDate nextDueDate
+        LocalDate nextDueDate,
+        Integer dueDay
 ) {
 
     public int remainingInstallments() {
@@ -27,7 +28,8 @@ public record LoanPlan(
     public List<LocalDate> dueDates() {
         List<LocalDate> dates = new ArrayList<>();
         if (nextDueDate == null) return dates;
-        int day = nextDueDate.getDayOfMonth();
+        // The contractual day survives short months: due on the 31st, reported as 28/02, is 31/03 next.
+        int day = dueDay != null ? dueDay : nextDueDate.getDayOfMonth();
         for (int i = 0; i < remainingInstallments(); i++) {
             LocalDate month = nextDueDate.plusMonths(i);
             dates.add(month.withDayOfMonth(Math.min(day, month.lengthOfMonth())));

@@ -16,7 +16,10 @@ public record OpenFinanceSnapshot(
         List<LoanContract> loans
 ) {
 
-    /** Accounts-only consent (the scope of the Accounts API). */
+    /**
+     * Accounts-only consent (the scope of the Accounts API). Cards and loans are null, meaning "not read",
+     * so the import leaves them alone instead of treating them as paid off.
+     */
     public OpenFinanceSnapshot(
             String institutionId,
             String institutionName,
@@ -24,7 +27,7 @@ public record OpenFinanceSnapshot(
             Instant authorisedAt,
             Instant expiresAt,
             List<Account> accounts) {
-        this(institutionId, institutionName, consentId, authorisedAt, expiresAt, accounts, List.of(), List.of());
+        this(institutionId, institutionName, consentId, authorisedAt, expiresAt, accounts, null, null);
     }
 
     public record Account(
@@ -80,6 +83,8 @@ public record OpenFinanceSnapshot(
             int totalInstallments,
             int paidInstallments,
             LocalDate nextDueDate,
-            BigDecimal annualRate
+            BigDecimal annualRate,
+            Integer dueDay,
+            String amortizationSystem
     ) {}
 }

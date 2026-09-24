@@ -57,7 +57,8 @@ const resources = {
           'A carteira começa com R$ 0,00. Depois, use Adicionar para colocar saldo fictício. O código é criado automaticamente.',
         sources: 'Referências oficiais',
         authHeadline: 'Veja o futuro antes de mexer no dinheiro.',
-        authDescription: 'A Wall.ia entende seus compromissos, mostra de onde vem cada número e deixa você testar uma decisão antes de tomá-la.',
+        authDescription:
+          'A Wall.ia entende seus compromissos, mostra de onde vem cada número e deixa você testar uma decisão antes de tomá-la.',
         pillars: { clarity: 'Clareza', control: 'Controle', trust: 'Confiança' },
         passwordHelp: 'Use pelo menos 10 caracteres e evite senhas reutilizadas.',
         errors: {
@@ -98,7 +99,8 @@ const resources = {
           ENVELOPE_NOT_FOUND: 'Esse envelope não existe mais.',
           GOAL_LIMIT: 'Você já tem 10 metas. Remova uma para criar outra.',
           GOAL_NOT_FOUND: 'Essa meta não existe mais.',
-          ALERT_EMAIL_NOT_VERIFIED: 'Para receber alertas, confirme seu e-mail com o código da tela Open Finance ou ative os avisos neste navegador.',
+          ALERT_EMAIL_NOT_VERIFIED:
+            'Para receber alertas, confirme seu e-mail com o código da tela Open Finance ou ative os avisos neste navegador.',
           PUSH_UNAVAILABLE: 'Os avisos no navegador não estão disponíveis neste ambiente.',
           PUSH_INVALID_SUBSCRIPTION: 'O navegador enviou uma inscrição que a Wall.ia não aceita.',
           PUSH_LIMIT: 'Você já recebe avisos em 5 navegadores. Desative em um deles para ativar aqui.',
@@ -228,7 +230,8 @@ const resources = {
           years_one: '{{count}} ano',
           years_other: '{{count}} anos',
           annualRate: 'Taxa anual hipotética (%)',
-          suggestion: 'Nenhuma compra é classificada automaticamente como boa ou ruim, e esse valor não é enviado à IA.',
+          suggestion:
+            'Nenhuma compra é classificada automaticamente como boa ou ruim, e esse valor não é enviado à IA.',
           estimatedValue: 'Valor futuro estimado',
           contributed: 'Total aportado',
           earnings: 'Rendimento matemático',
@@ -272,7 +275,8 @@ const resources = {
           confirm: 'Confirmar conexão',
           enterCode: 'Digitar código',
           expires: 'Válido até {{date}}.',
-          safety: 'Ao confirmar, você autoriza a consulta das contas, saldos e transações de teste. Nunca compartilhe este código.',
+          safety:
+            'Ao confirmar, você autoriza a consulta das contas, saldos e transações de teste. Nunca compartilhe este código.',
         },
         status: {
           AUTHORISED: 'Consentimento ativo',
@@ -301,16 +305,20 @@ const resources = {
           date: 'Data',
           from: 'De',
           fromValue: 'Sua conta conectada pelo Open Finance',
-          steps: 'Antes, combine a nova data com {{label}}. Depois, o Pix sairia em {{date}}, já com a entrada na conta, e você autorizaria no app do seu banco.',
-          simulated: 'Isto é uma simulação. A Wall.ia ainda não é credenciada para iniciar pagamentos e nada será enviado.',
+          steps:
+            'Antes, combine a nova data com {{label}}. Depois, o Pix sairia em {{date}}, já com a entrada na conta, e você autorizaria no app do seu banco.',
+          simulated:
+            'Isto é uma simulação. A Wall.ia ainda não é credenciada para iniciar pagamentos e nada será enviado.',
           done: 'Simulação concluída. Nenhum dinheiro saiu. Na versão com pagamentos, o Pix ficaria agendado para {{date}} e a projeção já contaria com ele.',
           cancel: 'Agora não',
           confirm: 'Simular agendamento',
         },
         accuracy: {
           title: 'Quanto a Wall.ia acertou',
-          waiting: 'A Wall.ia guarda a previsão a cada sincronização desde {{since}}. A primeira comparação com o saldo real sai a partir de {{first}}.',
-          needsAnswers: 'Responda às perguntas e sincronize de novo: a previsão só é guardada depois que você confirma o que se repete.',
+          waiting:
+            'A Wall.ia guarda a previsão a cada sincronização desde {{since}}. A primeira comparação com o saldo real sai a partir de {{first}}.',
+          needsAnswers:
+            'Responda às perguntas e sincronize de novo: a previsão só é guardada depois que você confirma o que se repete.',
           error: 'Erro médio',
           errorHelp_one: 'Em {{count}} dia comparado, com previsões feitas de 7 a 30 dias antes.',
           errorHelp: 'Em {{count}} dias comparados, com previsões feitas de 7 a 30 dias antes.',
@@ -338,8 +346,10 @@ const resources = {
         horizonShort: '{{days}}d',
         horizonOption: 'Próximos {{days}} dias',
         noData: 'Ainda não há o que projetar',
-        noDataHelp: 'Conecte uma conta pelo Open Finance. A Wall.ia lê o histórico, pergunta o que se repete e só então mostra o futuro do seu saldo.',
-        freeNegativeHelp: 'O que já tem destino nos próximos 30 dias passa do saldo. Veja abaixo quando falta e o que fazer.',
+        noDataHelp:
+          'Conecte uma conta pelo Open Finance. A Wall.ia lê o histórico, pergunta o que se repete e só então mostra o futuro do seu saldo.',
+        freeNegativeHelp:
+          'O que já tem destino nos próximos 30 dias passa do saldo. Veja abaixo quando falta e o que fazer.',
         balanceNow: 'Saldo agora',
         balanceNowHelp: 'Soma das suas carteiras e contas conectadas.',
         committed: 'Já tem destino',
@@ -394,11 +404,14 @@ const resources = {
         },
         cardDaily: {
           title: 'Compras do dia a dia no cartão',
-          question: 'No cartão, você gasta em média {{amount}} por dia em compras à vista. Considerar nas próximas faturas?',
-          evidence: '{{total}} em {{times}} compras à vista nos últimos {{days}} dias. Compras parceladas já estão nas faturas.',
+          question:
+            'No cartão, você gasta em média {{amount}} por dia em compras à vista. Considerar nas próximas faturas?',
+          evidence:
+            '{{total}} em {{times}} compras à vista nos últimos {{days}} dias. Compras parceladas já estão nas faturas.',
           confirmed: 'Considerando {{amount}} por dia nas próximas faturas',
           rejected: 'Compras no cartão fora da projeção',
-          noHistory: 'Ainda não há histórico no cartão para estimar. Informe quanto você costuma gastar por dia no cartão.',
+          noHistory:
+            'Ainda não há histórico no cartão para estimar. Informe quanto você costuma gastar por dia no cartão.',
         },
         limit: {
           reserved: 'O limite deixa de fora os {{amount}} guardados nos seus envelopes.',
@@ -408,10 +421,12 @@ const resources = {
           canSpend: 'Você pode gastar até {{amount}} por dia',
           canSpendHelp: 'Sem nenhum dia abaixo de zero. O dia mais apertado é {{binding}}.',
           paceOk: 'Seu ritmo no dia a dia é {{pace}} por dia. Sobram {{margin}} por dia.',
-          paceOver: 'Seu ritmo no dia a dia é {{pace}} por dia. Para não ficar negativo, gaste {{cut}} a menos por dia.',
+          paceOver:
+            'Seu ritmo no dia a dia é {{pace}} por dia. Para não ficar negativo, gaste {{cut}} a menos por dia.',
           paceUnknown: 'Confirme seus gastos do dia a dia nas perguntas para comparar com o seu ritmo.',
           short: 'Faltam {{amount}} mesmo sem gastar nada',
-          shortHelp: 'As contas que vencem antes da próxima entrada passam do saldo. O dia mais apertado é {{binding}}.',
+          shortHelp:
+            'As contas que vencem antes da próxima entrada passam do saldo. O dia mais apertado é {{binding}}.',
           shortPace: 'Com o seu ritmo de {{pace}} por dia, o buraco fica maior.',
           cost: 'Se o banco cobrir com cheque especial, os juros podem chegar a {{amount}} (teto legal de 8% ao mês).',
           ask: 'Pergunte ao Wall.ia',
@@ -419,7 +434,8 @@ const resources = {
         daily: {
           title: 'Gastos do dia a dia',
           question: 'Você gasta em média {{amount}} por dia no dia a dia. Considerar na projeção?',
-          evidence: '{{total}} em {{times}} compras nos últimos {{days}} dias, fora contas fixas, faturas e empréstimos.',
+          evidence:
+            '{{total}} em {{times}} compras nos últimos {{days}} dias, fora contas fixas, faturas e empréstimos.',
           where: 'Para onde foi',
           whereItem: '{{name}}: {{amount}} em {{times}} compras',
           yes: 'Sim, considerar',
@@ -432,7 +448,8 @@ const resources = {
           noHistory: 'Ainda não há histórico para estimar. Informe quanto você costuma gastar por dia.',
         },
         noCommitments: 'Nenhuma saída prevista nos próximos 30 dias.',
-        noCommitmentsHelp: 'Conecte o Open Finance e responda às perguntas para a Wall.ia considerar suas contas fixas.',
+        noCommitmentsHelp:
+          'Conecte o Open Finance e responda às perguntas para a Wall.ia considerar suas contas fixas.',
         categories: {
           SALARY: 'Salário',
           OTHER_INCOME: 'Outra renda',
@@ -459,7 +476,8 @@ const resources = {
         },
         riskTitle: 'Seu saldo pode ficar negativo',
         risk: 'Entre {{start}} e {{end}}, seu saldo pode ficar abaixo de zero em aproximadamente {{amount}}.',
-        riskUntilHorizon: 'A partir de {{start}}, seu saldo pode ficar abaixo de zero (até {{amount}}) e não há entrada prevista no período.',
+        riskUntilHorizon:
+          'A partir de {{start}}, seu saldo pode ficar abaixo de zero (até {{amount}}) e não há entrada prevista no período.',
         riskReason: 'Algumas contas vencem antes da próxima entrada.',
         whyButton: 'Ver por quê',
         whyTitle: 'Por que a projeção fica negativa',
@@ -477,7 +495,8 @@ const resources = {
         chartZero: 'Zero',
         chartScenario: 'Com a decisão',
         chartBaseline: 'Hoje',
-        chartLegend: 'Inclui valores confirmados pela instituição e estimativas que você confirmou. Gastos do dia a dia só entram se você confirmar.',
+        chartLegend:
+          'Inclui valores confirmados pela instituição e estimativas que você confirmou. Gastos do dia a dia só entram se você confirmar.',
         showDays: 'Ver movimentos previstos',
         hideDays: 'Ocultar movimentos previstos',
         tableDate: 'Data',
@@ -558,9 +577,12 @@ const resources = {
         negativeDays: 'Dias abaixo de zero',
         monthlyCommitment: 'Novo compromisso mensal',
         noneValue: '—',
-        summaryNegative_one: 'Com essa decisão, seu saldo fica abaixo de zero por 1 dia, em {{date}}. O ponto mais baixo seria {{amount}}.',
-        summaryNegative: 'Com essa decisão, seu saldo fica abaixo de zero por {{count}} dias a partir de {{date}}. O ponto mais baixo seria {{amount}}.',
-        summaryPositive: 'Com essa decisão, seu saldo continua positivo nos próximos 90 dias. O menor saldo seria {{amount}}, em {{date}}.',
+        summaryNegative_one:
+          'Com essa decisão, seu saldo fica abaixo de zero por 1 dia, em {{date}}. O ponto mais baixo seria {{amount}}.',
+        summaryNegative:
+          'Com essa decisão, seu saldo fica abaixo de zero por {{count}} dias a partir de {{date}}. O ponto mais baixo seria {{amount}}.',
+        summaryPositive:
+          'Com essa decisão, seu saldo continua positivo nos próximos 90 dias. O menor saldo seria {{amount}}, em {{date}}.',
         summaryInstallments: 'Você adiciona {{amount}} por mês durante {{count}} meses ao cartão {{card}}.',
         summaryInstallmentsNoCard: 'Você adiciona {{amount}} por mês durante {{count}} meses.',
         summarySavings: 'Guardar {{amount}} por mês sai do saldo disponível.',
@@ -569,7 +591,8 @@ const resources = {
       envelopes: {
         pageTitle: 'Envelopes | Wall.ia',
         heading: 'Envelopes',
-        description: 'Separe parte do saldo para o que a projeção não conhece: viagem, IPVA, reserva. O dinheiro fica onde está; o limite diário passa a não contar com ele.',
+        description:
+          'Separe parte do saldo para o que a projeção não conhece: viagem, IPVA, reserva. O dinheiro fica onde está; o limite diário passa a não contar com ele.',
         balance: 'Saldo agora',
         balanceHelp: 'Soma das suas contas.',
         reserved: 'Nos envelopes',
@@ -577,7 +600,8 @@ const resources = {
         free: 'Sem destino',
         freeHelp: 'Saldo menos os envelopes. As contas do mês saem daqui.',
         seeLimit: 'Ver o limite diário',
-        unbacked: '{{amount}} dos envelopes não estão no saldo de hoje. O limite diário mostra quanto falta para cobri-los.',
+        unbacked:
+          '{{amount}} dos envelopes não estão no saldo de hoje. O limite diário mostra quanto falta para cobri-los.',
         listTitle: 'Seus envelopes',
         help: 'Aluguel, faturas e parcelas que você já confirmou não precisam de envelope: a Wall.ia já tira esse dinheiro do limite.',
         empty: 'Nenhum envelope ainda.',
@@ -594,20 +618,24 @@ const resources = {
       metrics: {
         pageTitle: 'Métricas | Wall.ia',
         heading: 'Métricas do produto',
-        description: 'Números agregados, sem nenhum usuário identificado. Cada acesso a esta tela fica na trilha de auditoria.',
+        description:
+          'Números agregados, sem nenhum usuário identificado. Cada acesso a esta tela fica na trilha de auditoria.',
         northStar: 'Negativos evitados por usuário ativo, por mês',
-        northStarHelp: 'Dias previstos abaixo de zero que ficaram acima, comparando a previsão feita 7 a 30 dias antes com o saldo real. Ativo é quem sincronizou no período.',
+        northStarHelp:
+          'Dias previstos abaixo de zero que ficaram acima, comparando a previsão feita 7 a 30 dias antes com o saldo real. Ativo é quem sincronizou no período.',
         activeUsers: 'Usuários ativos',
         gradedUsers: 'Com previsão avaliada',
         avoided: 'Negativos evitados',
         missed: 'Negativos sem aviso',
         meanError: 'Erro médio',
         pixTitle: 'Interesse no Pix de verdade',
-        pixHelp: 'Quantas vezes o Pix simulado foi aberto e confirmado. É o número que justifica ou não o credenciamento como iniciador de pagamento.',
+        pixHelp:
+          'Quantas vezes o Pix simulado foi aberto e confirmado. É o número que justifica ou não o credenciamento como iniciador de pagamento.',
         pixPrepare: 'Abriram',
         pixConfirm: 'Confirmaram',
         askTitle: 'O que perguntam',
-        askUnknown: '{{percent}}% de {{total}} perguntas ficaram sem resposta. Acima de 20%, vale o classificador de intenção.',
+        askUnknown:
+          '{{percent}}% de {{total}} perguntas ficaram sem resposta. Acima de 20%, vale o classificador de intenção.',
         askNone: 'Nenhuma pergunta no período.',
         intent: 'Tipo',
         count: 'Vezes',
@@ -632,7 +660,8 @@ const resources = {
         cardsTitle: 'Cartões',
         loansTitle: 'Empréstimos',
         cardFinal: 'final {{digits}}',
-        limitUnknown: '{{used}} já estão comprometidos em faturas e parcelas. O banco não informou o limite deste cartão.',
+        limitUnknown:
+          '{{used}} já estão comprometidos em faturas e parcelas. O banco não informou o limite deste cartão.',
         limitUse: '{{used}} de {{limit}} do limite já estão comprometidos em faturas e parcelas.',
         limitLabel: 'Limite comprometido',
         nextInvoiceHighlight: 'Já existem {{amount}} comprometidos na fatura de {{month}}.',
@@ -710,7 +739,8 @@ const resources = {
         committed: '{{total}} já têm destino até {{date}}: {{confirmed}} confirmados e {{estimated}} estimados.',
         nextIncome: 'Próxima entrada: {{label}}, em {{date}}, de {{amount}}.',
         noIncome: 'Nenhuma renda confirmada nos próximos 60 dias. Confirme seu salário nas perguntas do Futuro.',
-        unknown: 'Ainda não sei responder isso. Pergunte sobre uma compra, quanto gastar por dia, saldo negativo, o que já tem destino ou a próxima renda.',
+        unknown:
+          'Ainda não sei responder isso. Pergunte sobre uma compra, quanto gastar por dia, saldo negativo, o que já tem destino ou a próxima renda.',
         source: 'Calculado pelo motor do Wall.ia com os seus dados. Nenhum modelo de linguagem definiu estes números.',
         openFuture: 'Ver no Futuro',
       },
@@ -874,7 +904,8 @@ const resources = {
           'Your wallet starts at R$0.00. Use Add to add simulated funds. A wallet code is created automatically.',
         sources: 'Official sources',
         authHeadline: 'See the future before you touch your money.',
-        authDescription: 'Wall.ia understands your commitments, shows where every number comes from and lets you try a decision before making it.',
+        authDescription:
+          'Wall.ia understands your commitments, shows where every number comes from and lets you try a decision before making it.',
         pillars: { clarity: 'Clarity', control: 'Control', trust: 'Trust' },
         passwordHelp: 'Use at least 10 characters and avoid reused passwords.',
         errors: {
@@ -916,7 +947,8 @@ const resources = {
           ENVELOPE_NOT_FOUND: 'This envelope no longer exists.',
           GOAL_LIMIT: 'You already have 10 goals. Remove one to create another.',
           GOAL_NOT_FOUND: 'This goal no longer exists.',
-          ALERT_EMAIL_NOT_VERIFIED: 'To receive alerts, confirm your e-mail with the code on the Open Finance page or turn on alerts in this browser.',
+          ALERT_EMAIL_NOT_VERIFIED:
+            'To receive alerts, confirm your e-mail with the code on the Open Finance page or turn on alerts in this browser.',
           PUSH_UNAVAILABLE: 'Browser alerts are not available in this environment.',
           PUSH_INVALID_SUBSCRIPTION: 'The browser sent a subscription Wall.ia does not accept.',
           PUSH_LIMIT: 'You already get alerts in 5 browsers. Turn one off to turn this one on.',
@@ -1046,7 +1078,8 @@ const resources = {
           years_one: '{{count}} year',
           years_other: '{{count}} years',
           annualRate: 'Hypothetical annual rate (%)',
-          suggestion: 'No purchase is automatically labeled good or bad, and this value is not sent to the AI provider.',
+          suggestion:
+            'No purchase is automatically labeled good or bad, and this value is not sent to the AI provider.',
           estimatedValue: 'Estimated future value',
           contributed: 'Total contributions',
           earnings: 'Mathematical earnings',
@@ -1090,7 +1123,8 @@ const resources = {
           confirm: 'Confirm connection',
           enterCode: 'Enter code',
           expires: 'Valid until {{date}}.',
-          safety: 'By confirming, you authorize access to test accounts, balances and transactions. Never share this code.',
+          safety:
+            'By confirming, you authorize access to test accounts, balances and transactions. Never share this code.',
         },
         status: {
           AUTHORISED: 'Consent active',
@@ -1119,7 +1153,8 @@ const resources = {
           date: 'Date',
           from: 'From',
           fromValue: 'Your account connected through Open Finance',
-          steps: 'First, agree on the new date with {{label}}. Then the Pix would go out on {{date}}, with the income already in, and you would authorise it in your bank app.',
+          steps:
+            'First, agree on the new date with {{label}}. Then the Pix would go out on {{date}}, with the income already in, and you would authorise it in your bank app.',
           simulated: 'This is a simulation. Wall.ia is not yet accredited to start payments and nothing will be sent.',
           done: 'Simulation done. No money left your account. With payments enabled, the Pix would be scheduled for {{date}} and the projection would already count it.',
           cancel: 'Not now',
@@ -1127,8 +1162,10 @@ const resources = {
         },
         accuracy: {
           title: 'How right Wall.ia was',
-          waiting: 'Wall.ia keeps the forecast at every sync since {{since}}. The first comparison with the real balance comes from {{first}}.',
-          needsAnswers: 'Answer the questions and sync again: the forecast is only kept after you confirm what repeats.',
+          waiting:
+            'Wall.ia keeps the forecast at every sync since {{since}}. The first comparison with the real balance comes from {{first}}.',
+          needsAnswers:
+            'Answer the questions and sync again: the forecast is only kept after you confirm what repeats.',
           error: 'Average miss',
           errorHelp_one: 'Over {{count}} day compared, with forecasts made 7 to 30 days before.',
           errorHelp: 'Over {{count}} days compared, with forecasts made 7 to 30 days before.',
@@ -1150,14 +1187,17 @@ const resources = {
         },
         pageTitle: 'Future | Wall.ia',
         heading: 'Future',
-        description: 'What already has a destination, how your balance should move and what happens if you decide something.',
+        description:
+          'What already has a destination, how your balance should move and what happens if you decide something.',
         horizon: 'Next {{days}} days',
         horizonLabel: 'Projection period',
         horizonShort: '{{days}}d',
         horizonOption: 'Next {{days}} days',
         noData: 'Nothing to project yet',
-        noDataHelp: 'Connect an account through Open Finance. Wall.ia reads the history, asks what repeats and only then shows the future of your balance.',
-        freeNegativeHelp: 'What already has a destination in the next 30 days is more than the balance. See below when it runs short and what to do.',
+        noDataHelp:
+          'Connect an account through Open Finance. Wall.ia reads the history, asks what repeats and only then shows the future of your balance.',
+        freeNegativeHelp:
+          'What already has a destination in the next 30 days is more than the balance. See below when it runs short and what to do.',
         balanceNow: 'Balance now',
         balanceNowHelp: 'Sum of your wallets and connected accounts.',
         committed: 'Already has a destination',
@@ -1203,7 +1243,8 @@ const resources = {
         },
         exit: {
           title: 'How to get out of the hole',
-          POSTPONE: 'Agree to move the payment of {{label}} ({{amount}}) from {{from}} to {{to}}, after the income arrives.',
+          POSTPONE:
+            'Agree to move the payment of {{label}} ({{amount}}) from {{from}} to {{to}}, after the income arrives.',
           CUT_DAILY: 'Spend {{amount}} less per day until {{to}} (at most {{daily}} a day).',
           GAP: '{{amount}} short until {{to}}. Only extra income or money kept outside the connected accounts closes it.',
           solves: 'No day goes below zero.',
@@ -1212,11 +1253,14 @@ const resources = {
         },
         cardDaily: {
           title: 'Everyday card purchases',
-          question: 'On your card, you spend {{amount}} a day on average in one-off purchases. Include it in the next invoices?',
-          evidence: '{{total}} in {{times}} one-off purchases over the last {{days}} days. Instalment purchases are already on the invoices.',
+          question:
+            'On your card, you spend {{amount}} a day on average in one-off purchases. Include it in the next invoices?',
+          evidence:
+            '{{total}} in {{times}} one-off purchases over the last {{days}} days. Instalment purchases are already on the invoices.',
           confirmed: 'Including {{amount}} a day in the next invoices',
           rejected: 'Card purchases left out of the projection',
-          noHistory: 'There is no card history to estimate yet. Tell us how much you usually spend per day on the card.',
+          noHistory:
+            'There is no card history to estimate yet. Tell us how much you usually spend per day on the card.',
         },
         limit: {
           reserved: 'The limit leaves out the {{amount}} kept in your envelopes.',
@@ -1237,7 +1281,8 @@ const resources = {
         daily: {
           title: 'Everyday spending',
           question: 'You spend {{amount}} a day on average in everyday purchases. Include it in the projection?',
-          evidence: '{{total}} in {{times}} purchases over the last {{days}} days, excluding fixed bills, invoices and loans.',
+          evidence:
+            '{{total}} in {{times}} purchases over the last {{days}} days, excluding fixed bills, invoices and loans.',
           where: 'Where it went',
           whereItem: '{{name}}: {{amount}} in {{times}} purchases',
           yes: 'Yes, include it',
@@ -1277,13 +1322,15 @@ const resources = {
         },
         riskTitle: 'Your balance may go negative',
         risk: 'Between {{start}} and {{end}}, your balance may drop below zero by about {{amount}}.',
-        riskUntilHorizon: 'From {{start}}, your balance may drop below zero (down to {{amount}}) and no income is expected in the period.',
+        riskUntilHorizon:
+          'From {{start}}, your balance may drop below zero (down to {{amount}}) and no income is expected in the period.',
         riskReason: 'Some bills are due before the next income.',
         whyButton: 'See why',
         whyTitle: 'Why the projection goes negative',
         whyIntro: 'These outflows happen after the last income and before the lowest point:',
         whyRelief: 'Next expected income: {{label}}, on {{date}} ({{amount}}).',
-        whyNoRelief: 'No income expected in the period. Confirm your income in the questions to improve the projection.',
+        whyNoRelief:
+          'No income expected in the period. Confirm your income in the questions to improve the projection.',
         whyFooter: 'Deterministic calculation by Wall.ia. No AI set these values.',
         allClear: 'No day below zero in the next {{days}} days.',
         allClearHelp: 'The lowest expected balance is {{amount}}, on {{date}}.',
@@ -1295,7 +1342,8 @@ const resources = {
         chartZero: 'Zero',
         chartScenario: 'With the decision',
         chartBaseline: 'Today',
-        chartLegend: 'Includes values confirmed by the institution and estimates you confirmed. Everyday spending is only included if you confirm it.',
+        chartLegend:
+          'Includes values confirmed by the institution and estimates you confirmed. Everyday spending is only included if you confirm it.',
         showDays: 'Show expected movements',
         hideDays: 'Hide expected movements',
         tableDate: 'Date',
@@ -1376,9 +1424,12 @@ const resources = {
         negativeDays: 'Days below zero',
         monthlyCommitment: 'New monthly commitment',
         noneValue: '—',
-        summaryNegative_one: 'With this decision, your balance stays below zero for 1 day, on {{date}}. The lowest point would be {{amount}}.',
-        summaryNegative: 'With this decision, your balance stays below zero for {{count}} days from {{date}}. The lowest point would be {{amount}}.',
-        summaryPositive: 'With this decision, your balance stays positive for the next 90 days. The lowest balance would be {{amount}}, on {{date}}.',
+        summaryNegative_one:
+          'With this decision, your balance stays below zero for 1 day, on {{date}}. The lowest point would be {{amount}}.',
+        summaryNegative:
+          'With this decision, your balance stays below zero for {{count}} days from {{date}}. The lowest point would be {{amount}}.',
+        summaryPositive:
+          'With this decision, your balance stays positive for the next 90 days. The lowest balance would be {{amount}}, on {{date}}.',
         summaryInstallments: 'You add {{amount}} per month for {{count}} months to the {{card}} card.',
         summaryInstallmentsNoCard: 'You add {{amount}} per month for {{count}} months.',
         summarySavings: 'Saving {{amount}} per month comes out of your available balance.',
@@ -1387,7 +1438,8 @@ const resources = {
       envelopes: {
         pageTitle: 'Envelopes | Wall.ia',
         heading: 'Envelopes',
-        description: 'Set part of the balance aside for what the projection does not know: a trip, the car tax, a reserve. The money stays where it is; the daily limit stops counting on it.',
+        description:
+          'Set part of the balance aside for what the projection does not know: a trip, the car tax, a reserve. The money stays where it is; the daily limit stops counting on it.',
         balance: 'Balance now',
         balanceHelp: 'Sum of your accounts.',
         reserved: 'In envelopes',
@@ -1395,7 +1447,8 @@ const resources = {
         free: 'Unassigned',
         freeHelp: 'Balance minus envelopes. The bills of the month come out of this.',
         seeLimit: 'See the daily limit',
-        unbacked: '{{amount}} of the envelopes is not in the balance today. The daily limit shows how much is missing to cover them.',
+        unbacked:
+          '{{amount}} of the envelopes is not in the balance today. The daily limit shows how much is missing to cover them.',
         listTitle: 'Your envelopes',
         help: 'Rent, card bills and instalments you already confirmed need no envelope: Wall.ia already takes that money out of the limit.',
         empty: 'No envelopes yet.',
@@ -1414,14 +1467,16 @@ const resources = {
         heading: 'Product metrics',
         description: 'Aggregated numbers, with no user identified. Every visit to this page goes to the audit trail.',
         northStar: 'Negatives avoided per active user, per month',
-        northStarHelp: 'Days forecast below zero that stayed above, comparing the forecast made 7 to 30 days before with the real balance. Active means synced in the period.',
+        northStarHelp:
+          'Days forecast below zero that stayed above, comparing the forecast made 7 to 30 days before with the real balance. Active means synced in the period.',
         activeUsers: 'Active users',
         gradedUsers: 'With a graded forecast',
         avoided: 'Negatives avoided',
         missed: 'Unwarned negatives',
         meanError: 'Average miss',
         pixTitle: 'Interest in a real Pix',
-        pixHelp: 'How many times the simulated Pix was opened and confirmed. This is the number that justifies, or not, accreditation as a payment initiator.',
+        pixHelp:
+          'How many times the simulated Pix was opened and confirmed. This is the number that justifies, or not, accreditation as a payment initiator.',
         pixPrepare: 'Opened',
         pixConfirm: 'Confirmed',
         askTitle: 'What people ask',
@@ -1438,7 +1493,8 @@ const resources = {
           UNKNOWN: 'No answer',
         },
         runSync: 'Sync everyone now',
-        runSyncHelp: 'The same job that runs every day at 7:30. Useful after starting the environment or to test the score.',
+        runSyncHelp:
+          'The same job that runs every day at 7:30. Useful after starting the environment or to test the score.',
         syncDone: '{{synced}} synced, {{skipped}} skipped (expired consent or unverified e-mail).',
       },
       commitments: {
@@ -1450,7 +1506,8 @@ const resources = {
         cardsTitle: 'Cards',
         loansTitle: 'Loans',
         cardFinal: 'ending {{digits}}',
-        limitUnknown: '{{used}} is already committed to bills and instalments. The bank did not report the limit of this card.',
+        limitUnknown:
+          '{{used}} is already committed to bills and instalments. The bank did not report the limit of this card.',
         limitUse: '{{used}} of {{limit}} of the limit is already committed to bills and instalments.',
         limitLabel: 'Committed limit',
         nextInvoiceHighlight: '{{amount}} is already committed to the {{month}} bill.',
@@ -1525,10 +1582,12 @@ const resources = {
         dailyShort: 'Until {{date}}, you are {{amount}} short even without spending anything.',
         whyNone: 'No day goes below zero in the next 60 days.',
         why: 'Between {{start}} and {{end}}, your balance may reach {{amount}}. These outflows come before the next income:',
-        committed: '{{total}} already has a destination until {{date}}: {{confirmed}} confirmed and {{estimated}} estimated.',
+        committed:
+          '{{total}} already has a destination until {{date}}: {{confirmed}} confirmed and {{estimated}} estimated.',
         nextIncome: 'Next income: {{label}}, on {{date}}, {{amount}}.',
         noIncome: 'No confirmed income in the next 60 days. Confirm your salary in the Future questions.',
-        unknown: 'I cannot answer that yet. Ask about a purchase, how much to spend per day, a negative balance, what is already committed or your next income.',
+        unknown:
+          'I cannot answer that yet. Ask about a purchase, how much to spend per day, a negative balance, what is already committed or your next income.',
         source: 'Calculated by the Wall.ia engine from your data. No language model set these numbers.',
         openFuture: 'See in Future',
       },

@@ -206,7 +206,9 @@ export default function OpenFinance() {
   const pending = !connected && verificationActive;
   const connectionStatus = pending
     ? 'PENDING_EMAIL_VERIFICATION'
-    : status?.status === 'PENDING_EMAIL_VERIFICATION' ? 'DISCONNECTED' : status?.status || 'DISCONNECTED';
+    : status?.status === 'PENDING_EMAIL_VERIFICATION'
+    ? 'DISCONNECTED'
+    : status?.status || 'DISCONNECTED';
   const statusColor = connected ? 'success' : pending ? 'warning' : 'default';
 
   return (
@@ -230,7 +232,8 @@ export default function OpenFinance() {
                   width: 220,
                   height: 220,
                   borderRadius: '50%',
-                  background: (theme) => `radial-gradient(circle, ${alpha(theme.palette.brand.horizon, 0.16)}, transparent 68%)`,
+                  background: (theme) =>
+                    `radial-gradient(circle, ${alpha(theme.palette.brand.horizon, 0.16)}, transparent 68%)`,
                   right: -70,
                   top: -90,
                 }}
@@ -238,10 +241,7 @@ export default function OpenFinance() {
               <Stack spacing={3} sx={{ position: 'relative' }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
                   <IconTile name="bank" />
-                  <Chip
-                    color={statusColor}
-                    label={t(`openFinance.status.${connectionStatus}`)}
-                  />
+                  <Chip color={statusColor} label={t(`openFinance.status.${connectionStatus}`)} />
                 </Stack>
                 <Box>
                   <Typography variant="overline" color="text.secondary">
@@ -281,7 +281,13 @@ export default function OpenFinance() {
                     onClick={connected ? sync : requestCode}
                     startIcon={<WalletIcon name={connected ? 'sync' : 'shield'} />}
                   >
-                    {t(connected ? 'openFinance.sync' : pending ? 'openFinance.verification.enterCode' : 'openFinance.connect')}
+                    {t(
+                      connected
+                        ? 'openFinance.sync'
+                        : pending
+                        ? 'openFinance.verification.enterCode'
+                        : 'openFinance.connect'
+                    )}
                   </LoadingButton>
                   {connected && (
                     <Button color="inherit" disabled={busy} onClick={disconnect}>

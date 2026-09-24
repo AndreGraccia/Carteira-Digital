@@ -109,8 +109,14 @@ const palette = {
   // Wallet card finishes (the physical-card metaphor). White text passes AA on every finish.
   cardFinishes: [
     'linear-gradient(135deg, #1D2330 0%, #0A0D13 100%)',
-    `radial-gradient(120% 90% at 100% 0%, ${alpha(primitives.volt, 0.28)} 0%, transparent 55%), linear-gradient(135deg, #1A2012 0%, #0A0D13 100%)`,
-    `radial-gradient(120% 90% at 100% 0%, ${alpha(primitives.horizon, 0.3)} 0%, transparent 55%), linear-gradient(135deg, #0F2A30 0%, #0A0D13 100%)`,
+    `radial-gradient(120% 90% at 100% 0%, ${alpha(
+      primitives.volt,
+      0.28
+    )} 0%, transparent 55%), linear-gradient(135deg, #1A2012 0%, #0A0D13 100%)`,
+    `radial-gradient(120% 90% at 100% 0%, ${alpha(
+      primitives.horizon,
+      0.3
+    )} 0%, transparent 55%), linear-gradient(135deg, #0F2A30 0%, #0A0D13 100%)`,
     'linear-gradient(135deg, #2B2240 0%, #0D0B14 100%)',
     'linear-gradient(135deg, #332414 0%, #0F0B07 100%)',
   ],

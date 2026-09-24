@@ -182,7 +182,9 @@ export default function AuthView({ signup = false }) {
                       minLength: signup ? (field === 'password' ? 10 : field === 'email' ? 6 : 3) : 1,
                       maxLength: field === 'password' ? 100 : field === 'username' && signup ? 20 : 50,
                       // Phones capitalize the first letter by default; "Gui_oliveira" used to fail the login.
-                      ...(field === 'username' || field === 'email' ? { autoCapitalize: 'none', spellCheck: false } : {}),
+                      ...(field === 'username' || field === 'email'
+                        ? { autoCapitalize: 'none', spellCheck: false }
+                        : {}),
                     }}
                     helperText={signup && field === 'password' ? t('app.passwordHelp') : undefined}
                     InputProps={

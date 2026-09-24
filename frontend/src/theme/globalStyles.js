@@ -1,6 +1,4 @@
-import {
-  GlobalStyles as MUIGlobalStyles,
-} from '@mui/material';
+import { GlobalStyles as MUIGlobalStyles } from '@mui/material';
 
 export default function GlobalStyles() {
   return (
@@ -29,8 +27,7 @@ export default function GlobalStyles() {
           width: '100%',
           minHeight: '100%',
           color: theme.palette.text.primary,
-          backgroundColor:
-            theme.palette.background.default,
+          backgroundColor: theme.palette.background.default,
 
           fontFamily: theme.typography.fontFamily,
           WebkitFontSmoothing: 'antialiased',

@@ -179,9 +179,7 @@ export default function Ask() {
               {t('ask.thinking')}
             </Typography>
           )}
-          {!turns.length && !busy && (
-            <Typography color="text.secondary">{t('ask.empty')}</Typography>
-          )}
+          {!turns.length && !busy && <Typography color="text.secondary">{t('ask.empty')}</Typography>}
           <Stack spacing={2}>
             {turns.map((turn) => (
               <Card key={turn.id} component="article" sx={{ p: { xs: 2.5, md: 3 } }}>

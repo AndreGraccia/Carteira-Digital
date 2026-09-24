@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { WalletIcon } from '../wallet-ui';
 import { money } from '../../utils/wallet';
 
-
 const FINISH_COUNT = 5; // theme.palette.cardFinishes.length
 
 export default function WalletCard({ wallet, index = 0, selected = false, onClick, href, hideBalance = false }) {

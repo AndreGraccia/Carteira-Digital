@@ -25,7 +25,13 @@ export function responsiveFontSizes({ sm, md, lg }) {
 const SYSTEM = ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'];
 export const FONT_PRIMARY = ['"Inter Variable"', 'Inter', ...SYSTEM].join(',');
 export const FONT_DISPLAY = ['"Space Grotesk Variable"', '"Space Grotesk"', ...SYSTEM].join(',');
-export const FONT_MONO = ['"JetBrains Mono Variable"', '"JetBrains Mono"', 'ui-monospace', 'Consolas', 'monospace'].join(',');
+export const FONT_MONO = [
+  '"JetBrains Mono Variable"',
+  '"JetBrains Mono"',
+  'ui-monospace',
+  'Consolas',
+  'monospace',
+].join(',');
 
 const typography = {
   fontFamily: FONT_PRIMARY,

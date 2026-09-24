@@ -29,7 +29,14 @@ export function WalliaMark({ size = 32, title }) {
         [22.55, 17.75],
         [24.05, 14.15],
       ].map(([cx, cy]) => (
-        <Box key={cx} component="circle" cx={cx} cy={cy} r="1.3" sx={{ fill: (theme) => theme.palette.brand.horizon }} />
+        <Box
+          key={cx}
+          component="circle"
+          cx={cx}
+          cy={cy}
+          r="1.3"
+          sx={{ fill: (theme) => theme.palette.brand.horizon }}
+        />
       ))}
       <Box component="circle" cx="25.6" cy="10.4" r="2.6" sx={{ fill: (theme) => theme.palette.brand.volt }} />
     </Box>

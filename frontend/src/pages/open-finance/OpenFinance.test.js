@@ -43,7 +43,15 @@ afterEach(() => {
   container.remove();
 });
 async function renderPage() {
-  await act(async () => root.render(<HelmetProvider><ThemeProvider><OpenFinance /></ThemeProvider></HelmetProvider>));
+  await act(async () =>
+    root.render(
+      <HelmetProvider>
+        <ThemeProvider>
+          <OpenFinance />
+        </ThemeProvider>
+      </HelmetProvider>
+    )
+  );
 }
 
 test('pending connection reopens its code dialog without sending another email', async () => {
@@ -61,7 +69,11 @@ test('confirmation sends one request even on double click and refreshes imported
   await act(async () => Simulate.click(button('openFinance.verification.enterCode')));
   act(() => Simulate.change(document.querySelector('input'), { target: { value: '12345678' } }));
   let finish;
-  HttpService.postWithAuth.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+  HttpService.postWithAuth.mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
   const confirm = button('openFinance.verification.confirm');
   act(() => {
     Simulate.click(confirm);
@@ -76,7 +88,9 @@ test('confirmation sends one request even on double click and refreshes imported
 });
 
 test('expired pending code requests a fresh challenge instead of trapping the user', async () => {
-  HttpService.getWithAuth.mockResolvedValue(status({ ...challenge(), expiresAt: new Date(Date.now() - 1000).toISOString() }));
+  HttpService.getWithAuth.mockResolvedValue(
+    status({ ...challenge(), expiresAt: new Date(Date.now() - 1000).toISOString() })
+  );
   await renderPage();
   HttpService.postWithAuth.mockResolvedValue(challenge());
   HttpService.getWithAuth.mockResolvedValue(status(challenge()));
@@ -90,7 +104,9 @@ test('an invalid code keeps the dialog available with the specific error', async
   await renderPage();
   await act(async () => Simulate.click(button('openFinance.verification.enterCode')));
   act(() => Simulate.change(document.querySelector('input'), { target: { value: '11111111' } }));
-  HttpService.postWithAuth.mockRejectedValue({ response: { status: 400, data: { code: 'OPEN_FINANCE_CODE_INVALID' } } });
+  HttpService.postWithAuth.mockRejectedValue({
+    response: { status: 400, data: { code: 'OPEN_FINANCE_CODE_INVALID' } },
+  });
   await act(async () => Simulate.click(button('openFinance.verification.confirm')));
   expect(document.body.textContent).toContain('app.errors.OPEN_FINANCE_CODE_INVALID');
   expect(button('openFinance.verification.confirm').disabled).toBe(false);

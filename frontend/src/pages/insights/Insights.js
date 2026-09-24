@@ -176,7 +176,10 @@ export default function Insights() {
               sx={{
                 p: { xs: 3, md: 4 },
                 background: (theme) =>
-                  `radial-gradient(120% 120% at 100% 0%, ${alpha(theme.palette.brand.horizon, 0.14)} 0%, transparent 50%), ${theme.palette.background.paper}`,
+                  `radial-gradient(120% 120% at 100% 0%, ${alpha(
+                    theme.palette.brand.horizon,
+                    0.14
+                  )} 0%, transparent 50%), ${theme.palette.background.paper}`,
               }}
             >
               <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2}>
@@ -187,7 +190,9 @@ export default function Insights() {
                     sx={{ mb: 2, bgcolor: 'background.raised' }}
                   />
                   <Typography variant="h4">{report.headline}</Typography>
-                  <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 700 }}>{report.summary}</Typography>
+                  <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 700 }}>
+                    {report.summary}
+                  </Typography>
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                   {t('insights.generatedAt', {
@@ -203,7 +208,11 @@ export default function Insights() {
               {[
                 ['inflow', report.metrics.inflow, 'success.main'],
                 ['outflow', report.metrics.outflow, 'text.primary'],
-                ['netFlow', report.metrics.netFlow, Number(report.metrics.netFlow) >= 0 ? 'success.main' : 'error.main'],
+                [
+                  'netFlow',
+                  report.metrics.netFlow,
+                  Number(report.metrics.netFlow) >= 0 ? 'success.main' : 'error.main',
+                ],
                 ['transactionCount', report.metrics.transactionCount, 'text.primary'],
               ].map(([key, value, color]) => (
                 <Grid item xs={6} md={3} key={key}>
@@ -235,15 +244,35 @@ export default function Insights() {
                           </Typography>
                         </Stack>
                         <Stack spacing={0.5}>
-                          <Box sx={{ height: 7, width: `${(Number(flow.inflow) / maxFlow) * 100}%`, bgcolor: 'success.main', borderRadius: 4 }} />
-                          <Box sx={{ height: 7, width: `${(Number(flow.outflow) / maxFlow) * 100}%`, bgcolor: 'warning.main', borderRadius: 4 }} />
+                          <Box
+                            sx={{
+                              height: 7,
+                              width: `${(Number(flow.inflow) / maxFlow) * 100}%`,
+                              bgcolor: 'success.main',
+                              borderRadius: 4,
+                            }}
+                          />
+                          <Box
+                            sx={{
+                              height: 7,
+                              width: `${(Number(flow.outflow) / maxFlow) * 100}%`,
+                              bgcolor: 'warning.main',
+                              borderRadius: 4,
+                            }}
+                          />
                         </Stack>
                       </Box>
                     ))}
                   </Stack>
                   <Stack direction="row" spacing={2} sx={{ mt: 2.5 }}>
-                    <Typography variant="caption" color="text.secondary">● {t('insights.metrics.inflow')}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ '&::first-letter': { color: 'warning.main' } }}>
+                    <Typography variant="caption" color="text.secondary">
+                      ● {t('insights.metrics.inflow')}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ '&::first-letter': { color: 'warning.main' } }}
+                    >
                       ● {t('insights.metrics.outflow')}
                     </Typography>
                   </Stack>
@@ -388,7 +417,8 @@ export default function Insights() {
                       [{index + 1}] {reference.title}
                     </Link>
                     <Typography variant="body2" color="text.secondary">
-                      {reference.author}{reference.year ? `, ${reference.year}` : ''}. {reference.relevance}
+                      {reference.author}
+                      {reference.year ? `, ${reference.year}` : ''}. {reference.relevance}
                     </Typography>
                   </Box>
                 ))}
@@ -397,7 +427,9 @@ export default function Insights() {
 
             <Alert severity="info">
               <Typography variant="body2">{report.disclaimer}</Typography>
-              <Typography variant="caption" color="text.secondary">{report.privacyNotice}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {report.privacyNotice}
+              </Typography>
             </Alert>
           </Stack>
         )}

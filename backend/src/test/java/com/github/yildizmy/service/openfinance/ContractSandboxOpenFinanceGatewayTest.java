@@ -111,7 +111,7 @@ class ContractSandboxOpenFinanceGatewayTest {
         assertTrue(projection.endBalance().signum() > 0, "positive at the end of the window: " + projection.endBalance());
         assertEquals(1, projection.riskWindows().size(), "balance " + balance + " min " + projection.minBalance());
         var window = projection.riskWindows().get(0);
-        assertEquals(LocalDate.of(2026, 10, 3), window.start(), "card bill on the 3rd opens the gap");
+        assertEquals(LocalDate.of(2026, 10, 2), window.start(), "card bill on the 2nd opens the gap");
         assertEquals(LocalDate.of(2026, 10, 4), window.end(), "salary on the 5th closes it");
         assertEquals("Concentrix S.A.", window.relief().label());
         assertEquals(new BigDecimal("-324.87"), window.lowestBalance());

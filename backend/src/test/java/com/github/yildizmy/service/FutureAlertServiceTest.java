@@ -50,6 +50,9 @@ class FutureAlertServiceTest {
         assertEquals(FutureAlertService.Decision.SEND, FutureAlertService.decide(START, START.plusDays(30)));
         assertEquals(FutureAlertService.Decision.CLEAR, FutureAlertService.decide(START, null));
         assertEquals(FutureAlertService.Decision.NONE, FutureAlertService.decide(null, null));
+        assertEquals(FutureAlertService.Decision.NONE, FutureAlertService.decide(START, START.plusDays(2)),
+                "the same hole drifting a couple of days is not announced again");
+        assertEquals(FutureAlertService.Decision.NONE, FutureAlertService.decide(START, START.minusDays(3)));
     }
 
     @Test

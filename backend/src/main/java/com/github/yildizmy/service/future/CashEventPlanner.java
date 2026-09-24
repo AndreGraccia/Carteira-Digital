@@ -65,7 +65,7 @@ public final class CashEventPlanner {
         if (daily == null || daily.signum() <= 0 || card == null) return events;
         java.util.Map<LocalDate, Integer> daysByDue = new java.util.TreeMap<>();
         for (LocalDate day = today.plusDays(1); !day.isAfter(end); day = day.plusDays(1)) {
-            LocalDate due = card.dueDate(card.invoiceFor(day));
+            LocalDate due = BusinessDays.onOrAfter(card.dueDate(card.invoiceFor(day)));
             if (due.isAfter(end)) break;
             daysByDue.merge(due, 1, Integer::sum);
         }
@@ -107,8 +107,11 @@ public final class CashEventPlanner {
                     || java.time.temporal.ChronoUnit.DAYS.between(lastSeen, date) < RecurrenceDetector.MIN_GAP_DAYS) continue;
             if (date.isAfter(end)) break;
             boolean income = pattern.direction() == Direction.IN;
+            // Closed bank day: income arrives the business day before, a bill is paid the business day after.
+            LocalDate effective = income ? BusinessDays.onOrBefore(date) : BusinessDays.onOrAfter(date);
+            if (effective.isBefore(today) || effective.isAfter(end)) continue;
             events.add(new CashEvent(
-                    date,
+                    effective,
                     income ? pattern.typicalAmount() : pattern.typicalAmount().negate(),
                     pattern.counterparty(),
                     income ? Kind.INCOME : Kind.RECURRING_EXPENSE,
@@ -124,7 +127,7 @@ public final class CashEventPlanner {
     static List<CashEvent> fromCard(CardPlan card, LocalDate today, LocalDate end) {
         List<CashEvent> events = new ArrayList<>();
         for (YearMonth invoice = YearMonth.from(today); !invoice.atDay(1).isAfter(end); invoice = invoice.plusMonths(1)) {
-            LocalDate due = card.dueDate(invoice);
+            LocalDate due = BusinessDays.onOrAfter(card.dueDate(invoice));
             if (due.isBefore(today) || due.isAfter(end)) continue;
             BigDecimal total = card.invoiceTotal(invoice);
             if (total.signum() == 0) continue;
@@ -144,6 +147,7 @@ public final class CashEventPlanner {
 
     static List<CashEvent> fromLoan(LoanPlan loan, LocalDate today, LocalDate end) {
         return loan.dueDates().stream()
+                .map(BusinessDays::onOrAfter)
                 .filter(date -> !date.isBefore(today) && !date.isAfter(end))
                 .map(date -> new CashEvent(
                         date,

@@ -43,10 +43,11 @@ class CardAndScenarioTest {
     }
 
     @Test
+    // 03/10/2026 is a Saturday: the invoice is paid on Monday, 05/10.
     void cardInvoicesBecomeConfirmedEventsOnDueDates() {
         var events = CashEventPlanner.fromCard(CARD, TODAY, TODAY.plusDays(90));
 
-        assertEquals(List.of(LocalDate.of(2026, 10, 3), LocalDate.of(2026, 11, 3), LocalDate.of(2026, 12, 3)),
+        assertEquals(List.of(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 11, 3), LocalDate.of(2026, 12, 3)),
                 events.stream().map(CashEvent::date).toList());
         assertTrue(events.stream().allMatch(event -> event.certainty() == CashEvent.Certainty.CONFIRMED));
     }

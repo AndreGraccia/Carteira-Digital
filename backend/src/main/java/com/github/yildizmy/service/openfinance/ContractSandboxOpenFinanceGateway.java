@@ -35,7 +35,7 @@ public class ContractSandboxOpenFinanceGateway implements OpenFinanceGateway {
     private static final BigDecimal CHECKING_OPENING = new BigDecimal("350.00");
     private static final BigDecimal SAVINGS_OPENING = new BigDecimal("400.00");
     private static final int HISTORY_MONTHS = 3;
-    private static final CardPlan CARD_CALENDAR = new CardPlan(0, "", "", 25, 3, List.of());
+    private static final CardPlan CARD_CALENDAR = new CardPlan(0, "", "", 25, 2, List.of());
 
     private final Clock clock;
 
@@ -63,7 +63,7 @@ public class ContractSandboxOpenFinanceGateway implements OpenFinanceGateway {
             add(checking, today, month, 1, "rent-" + m, "DEBITO", "Imobiliária Lar Seguro", "PIX", "1500.00");
             BigDecimal invoice = invoiceTotal(cardTransactions, month);
             if (invoice.signum() > 0) {
-                add(checking, today, month, 3, "card-bill-" + m, "DEBITO", "Pagamento fatura Aurora Card", "BOLETO",
+                add(checking, today, month, 2, "card-bill-" + m, "DEBITO", "Pagamento fatura Aurora Card", "BOLETO",
                         invoice.toPlainString());
             }
             add(checking, today, month, 5, "salary-" + m, "CREDITO", "Concentrix S.A.", "TED", "4200.00");

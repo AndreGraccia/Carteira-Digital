@@ -145,10 +145,18 @@ public class FutureAlertService {
         return true;
     }
 
+    /**
+     * A window drifts a few days as everyday spending is estimated again; it is still the same hole.
+     * ponytail: fixed tolerance, not window overlap; upgrade to overlap if two real holes a week apart get merged.
+     */
+    static final int SAME_WINDOW_DAYS = 7;
+
     /** SEND for a window not announced yet, CLEAR when the hole is gone (so a future one is announced), NONE otherwise. */
     static Decision decide(LocalDate lastAnnounced, LocalDate currentWindowStart) {
         if (currentWindowStart == null) return lastAnnounced == null ? Decision.NONE : Decision.CLEAR;
-        return currentWindowStart.equals(lastAnnounced) ? Decision.NONE : Decision.SEND;
+        if (lastAnnounced == null) return Decision.SEND;
+        long drift = Math.abs(java.time.temporal.ChronoUnit.DAYS.between(lastAnnounced, currentWindowStart));
+        return drift <= SAME_WINDOW_DAYS ? Decision.NONE : Decision.SEND;
     }
 
     static String body(String firstName, FutureResponses.RiskWindow window, FutureResponses.SpendingLimit limit, String url) {

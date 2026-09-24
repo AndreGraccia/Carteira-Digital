@@ -43,7 +43,8 @@ class CashEventPlannerTest {
         var dates = CashEventPlanner.fromRecurrence(rent, LocalDate.parse("2027-02-01"), LocalDate.parse("2027-04-30"))
                 .stream().map(CashEvent::date).toList();
 
-        assertEquals(List.of(LocalDate.parse("2027-02-28"), LocalDate.parse("2027-03-31"), LocalDate.parse("2027-04-30")), dates);
+        // 28/02/2027 is a Sunday: income arrives on Friday 26/02.
+        assertEquals(List.of(LocalDate.parse("2027-02-26"), LocalDate.parse("2027-03-31"), LocalDate.parse("2027-04-30")), dates);
     }
 
     @Test

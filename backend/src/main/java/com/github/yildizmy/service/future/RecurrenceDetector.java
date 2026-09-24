@@ -84,8 +84,8 @@ public final class RecurrenceDetector {
         boolean stableAmount = ratio(max, min).compareTo(STABLE_RATIO) <= 0;
         if (!stableAmount) return java.util.Optional.empty();
 
-        List<Integer> daysOfMonth = sorted.stream().map(movement -> movement.date().getDayOfMonth()).sorted().toList();
-        int typicalDay = daysOfMonth.get(daysOfMonth.size() / 2);
+        List<Integer> daysOfMonth = circularDays(sorted.stream().map(movement -> movement.date().getDayOfMonth()).toList());
+        int typicalDay = (daysOfMonth.get(daysOfMonth.size() / 2) - 1) % 31 + 1;
         int daySpread = daysOfMonth.get(daysOfMonth.size() - 1) - daysOfMonth.get(0);
         boolean fixedAmount = min.compareTo(max) == 0;
         Confidence confidence = sorted.size() >= 3 && daySpread <= 5 ? Confidence.HIGH : Confidence.MEDIUM;
@@ -107,6 +107,16 @@ public final class RecurrenceDetector {
                         .map(movement -> new Occurrence(movement.id(), movement.date(), movement.amount()))
                         .toList()
         ));
+    }
+
+    /**
+     * Days of month, sorted, treating the turn of the month as adjacent: a bill on the 30th that once
+     * landed on the 1st is read as 30, 30, 32, not 1, 30, 30. Values above 31 mean "early next month".
+     */
+    static List<Integer> circularDays(List<Integer> days) {
+        List<Integer> sorted = days.stream().sorted().toList();
+        if (sorted.get(sorted.size() - 1) - sorted.get(0) <= 15) return sorted;
+        return days.stream().map(day -> day < 15 ? day + 31 : day).sorted().toList();
     }
 
     private static Category suggest(RecurrencePattern pattern, List<RecurrencePattern> all) {

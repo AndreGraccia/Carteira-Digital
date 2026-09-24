@@ -101,8 +101,10 @@ public final class CashEventPlanner {
         List<CashEvent> events = new ArrayList<>();
         for (YearMonth month = YearMonth.from(today); !month.atDay(1).isAfter(end); month = month.plusMonths(1)) {
             LocalDate date = month.atDay(Math.min(pattern.typicalDay(), month.lengthOfMonth()));
-            // Already happened this month (or earlier): the balance already reflects it.
-            if (date.isBefore(today) || !YearMonth.from(date).isAfter(YearMonth.from(lastSeen))) continue;
+            // Already happened: the balance reflects it. Decided by distance to the last occurrence, not by
+            // calendar month, so a salary due on the 30th that landed on the 1st still counts for the next 30th.
+            if (date.isBefore(today)
+                    || java.time.temporal.ChronoUnit.DAYS.between(lastSeen, date) < RecurrenceDetector.MIN_GAP_DAYS) continue;
             if (date.isAfter(end)) break;
             boolean income = pattern.direction() == Direction.IN;
             events.add(new CashEvent(

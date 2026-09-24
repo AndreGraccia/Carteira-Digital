@@ -24,8 +24,12 @@ public final class ExitPlan {
     private ExitPlan() {
     }
 
+    /**
+     * @param reserved money set aside in envelopes: the new daily pace must not eat into it, the same floor the
+     *                 overview uses for its daily limit
+     */
     public static List<Action> suggest(LocalDate today, BigDecimal openingBalance, List<CashEvent> events,
-                                       int horizonDays, BigDecimal pace) {
+                                       int horizonDays, BigDecimal pace, BigDecimal reserved) {
         ProjectionEngine.Projection base = ProjectionEngine.project(today, openingBalance, events, horizonDays);
         if (base.riskWindows().isEmpty()) return List.of();
         ProjectionEngine.RiskWindow window = base.riskWindows().get(0);
@@ -52,10 +56,20 @@ public final class ExitPlan {
         // 2. Spend less per day until the next income, when bills alone fit.
         if (pace != null && pace.signum() > 0) {
             List<CashEvent> withoutDaily = events.stream().filter(event -> event.kind() != Kind.DAILY_SPENDING).toList();
-            SpendingLimit.Limit limit = SpendingLimit.compute(today, openingBalance, withoutDaily);
+            BigDecimal floor = reserved == null ? BigDecimal.ZERO : reserved;
+            SpendingLimit.Limit limit = SpendingLimit.compute(today, openingBalance.subtract(floor), withoutDaily);
             if (limit.shortfall().signum() == 0 && pace.compareTo(limit.daily()) > 0) {
+                // Run the projection again with the new pace until the income and the usual pace after it.
+                List<CashEvent> cut = new ArrayList<>(withoutDaily);
+                events.stream().filter(event -> event.kind() == Kind.DAILY_SPENDING)
+                        .map(event -> event.date().isBefore(limit.until())
+                                ? new CashEvent(event.date(), limit.daily().negate(), event.label(), event.kind(),
+                                event.category(), event.certainty(), event.origin(), event.reference())
+                                : event)
+                        .forEach(cut::add);
+                BigDecimal lowest = ProjectionEngine.project(today, openingBalance, cut, horizonDays).minBalance();
                 actions.add(new Action("CUT_DAILY", null, "DAILY_SPENDING", pace.subtract(limit.daily()),
-                        today.plusDays(1), limit.until(), limit.daily(), BigDecimal.ZERO, true));
+                        today.plusDays(1), limit.until(), limit.daily(), lowest, lowest.signum() >= 0));
             }
         }
 

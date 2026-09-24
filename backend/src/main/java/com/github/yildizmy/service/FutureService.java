@@ -116,7 +116,7 @@ public class FutureService {
         // Envelopes are a floor: the limit is what can be spent without touching them. The projection and the
         // negative windows keep the real balance, because the bank does not know about envelopes.
         SpendingLimit.Limit limit = SpendingLimit.compute(context.today(), context.balance().subtract(context.reserved()),
-                context.planFixed(context.today().plusDays(SpendingLimit.MAX_DAYS)));
+                context.planForLimit(context.today().plusDays(SpendingLimit.MAX_DAYS)));
         // "Already has a destination" is bills, invoices and instalments; future groceries are not committed yet.
         List<CashEvent> committedEvents = context.planFixed(committedUntil).stream()
                 .filter(event -> !event.isInflow())
@@ -152,7 +152,8 @@ public class FutureService {
                         context.dailyAmount() == null ? null : limit.daily().subtract(context.dailyAmount()),
                         limit.shortfall(),
                         context.reserved()),
-                ExitPlan.suggest(context.today(), context.balance(), events, horizonDays, context.dailyAmount()).stream()
+                ExitPlan.suggest(context.today(), context.balance(), events, horizonDays, context.dailyAmount(),
+                                context.reserved()).stream()
                         .map(action -> new FutureResponses.ExitAction(action.type(), action.label(), action.category(),
                                 action.amount(), action.from(), action.to(), action.newDaily(),
                                 action.resultingLowest(), action.solves()))
@@ -808,7 +809,18 @@ public class FutureService {
             return events;
         }
 
-        /** Bills, invoices, instalments and the user's goals: the base for the daily spending limit. */
+        /**
+         * The base for the daily spending limit: everything fixed plus the card purchases the user confirmed,
+         * which become an invoice before the next income. Only account everyday spending is left out, because
+         * that is what the limit answers.
+         */
+        List<CashEvent> planForLimit(LocalDate end) {
+            List<CashEvent> events = new ArrayList<>(planFixed(end));
+            events.addAll(CashEventPlanner.cardSpending(cardAmount, mainCard, today, end));
+            return events;
+        }
+
+        /** Bills, invoices, instalments and the user's goals. */
         List<CashEvent> planFixed(LocalDate end) {
             List<CashEvent> events = new ArrayList<>(CashEventPlanner.plan(today, end, confirmed, cardPlans, loanPlans));
             events.addAll(CashEventPlanner.goals(goals, today, end));

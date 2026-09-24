@@ -235,4 +235,17 @@ class DailySpendingAndLimitTest {
                 value.signum() > 0 ? Kind.INCOME : Kind.RECURRING_EXPENSE,
                 value.signum() > 0 ? "SALARY" : "BILL", Certainty.CONFIRMED, "teste", "ref");
     }
+
+    @Test
+    void incomeTomorrowDoesNotTurnTheWholeBalanceIntoADailyLimit() {
+        SpendingLimit.Limit limit = SpendingLimit.compute(TODAY, new BigDecimal("5000.00"), List.of(
+                new CashEvent(TODAY.plusDays(1), new BigDecimal("3000.00"), "Salário", CashEvent.Kind.INCOME, "SALARY",
+                        CashEvent.Certainty.ESTIMATED, "teste", "salary"),
+                new CashEvent(TODAY.plusDays(31), new BigDecimal("3000.00"), "Salário", CashEvent.Kind.INCOME, "SALARY",
+                        CashEvent.Certainty.ESTIMATED, "teste", "salary")));
+
+        assertEquals(TODAY.plusDays(31), limit.until(), "the limit runs to the income after tomorrow's");
+        assertEquals(30, limit.days());
+        assertTrue(limit.daily().compareTo(new BigDecimal("5000.00")) < 0, "was 5000/day: " + limit.daily());
+    }
 }

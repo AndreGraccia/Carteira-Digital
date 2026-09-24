@@ -24,7 +24,7 @@ class ExitPlanTest {
                 event(4, "-300.00", Kind.CARD_INVOICE, "CARD_INVOICE", "Fatura"),
                 event(6, "4000.00", Kind.INCOME, "SALARY", "Salário"));
 
-        List<ExitPlan.Action> actions = ExitPlan.suggest(TODAY, new BigDecimal("1000.00"), events, 30, null);
+        List<ExitPlan.Action> actions = ExitPlan.suggest(TODAY, new BigDecimal("1000.00"), events, 30, null, null);
 
         assertEquals(1, actions.size());
         ExitPlan.Action postpone = actions.get(0);
@@ -45,7 +45,7 @@ class ExitPlanTest {
                 event(10, "3000.00", Kind.INCOME, "SALARY", "Salário")));
         events.addAll(CashEventPlanner.dailySpending(new BigDecimal("60.00"), TODAY, TODAY.plusDays(30), "média"));
 
-        List<ExitPlan.Action> actions = ExitPlan.suggest(TODAY, new BigDecimal("1000.00"), events, 30, new BigDecimal("60.00"));
+        List<ExitPlan.Action> actions = ExitPlan.suggest(TODAY, new BigDecimal("1000.00"), events, 30, new BigDecimal("60.00"), null);
 
         ExitPlan.Action cut = actions.stream().filter(action -> action.type().equals("CUT_DAILY")).findFirst().orElseThrow();
         // The limit is 44.44 a day (400 over 9 days): 15.56 less than today's pace.
@@ -56,12 +56,44 @@ class ExitPlanTest {
     }
 
     @Test
+    void theNewPaceNeverEatsIntoEnvelopes() {
+        List<CashEvent> events = new ArrayList<>(List.of(
+                event(2, "-600.00", Kind.CARD_INVOICE, "CARD_INVOICE", "Fatura"),
+                event(10, "3000.00", Kind.INCOME, "SALARY", "Salário")));
+        events.addAll(CashEventPlanner.dailySpending(new BigDecimal("60.00"), TODAY, TODAY.plusDays(30), "média"));
+
+        ExitPlan.Action cut = ExitPlan.suggest(TODAY, new BigDecimal("1000.00"), events, 30, new BigDecimal("60.00"),
+                new BigDecimal("100.00")).stream().filter(action -> action.type().equals("CUT_DAILY")).findFirst().orElseThrow();
+
+        // 100 kept in envelopes: 300 over 9 days.
+        assertEquals(new BigDecimal("33.33"), cut.newDaily());
+    }
+
+    @Test
+    void cuttingUntilPaydayDoesNotClaimToSolveAHoleThatComesAfterIt() {
+        // Bills fit until the salary on day 10, but the rent on day 12 still breaks the month at the usual pace.
+        List<CashEvent> events = new ArrayList<>(List.of(
+                event(2, "-600.00", Kind.CARD_INVOICE, "CARD_INVOICE", "Fatura"),
+                event(10, "1000.00", Kind.INCOME, "SALARY", "Salário"),
+                event(12, "-1500.00", Kind.LOAN_INSTALLMENT, "LOAN", "Empréstimo")));
+        events.addAll(CashEventPlanner.dailySpending(new BigDecimal("60.00"), TODAY, TODAY.plusDays(30), "média"));
+
+        List<ExitPlan.Action> actions = ExitPlan.suggest(TODAY, new BigDecimal("1000.00"), events, 30,
+                new BigDecimal("60.00"), null);
+
+        ExitPlan.Action cut = actions.stream().filter(action -> action.type().equals("CUT_DAILY")).findFirst().orElseThrow();
+        assertTrue(cut.resultingLowest().signum() < 0, "reprojected, not assumed: " + cut.resultingLowest());
+        assertTrue(!cut.solves());
+        assertTrue(actions.stream().anyMatch(action -> action.type().equals("GAP")), "the missing money is still shown");
+    }
+
+    @Test
     void withNothingToMoveItSaysHowMuchIsMissing() {
         List<CashEvent> events = List.of(
                 event(2, "-500.00", Kind.LOAN_INSTALLMENT, "LOAN", "Empréstimo"),
                 event(5, "2000.00", Kind.INCOME, "SALARY", "Salário"));
 
-        List<ExitPlan.Action> actions = ExitPlan.suggest(TODAY, new BigDecimal("100.00"), events, 30, null);
+        List<ExitPlan.Action> actions = ExitPlan.suggest(TODAY, new BigDecimal("100.00"), events, 30, null, null);
 
         assertEquals(1, actions.size());
         assertEquals("GAP", actions.get(0).type());
@@ -70,7 +102,7 @@ class ExitPlanTest {
 
     @Test
     void noHoleNoPlan() {
-        assertTrue(ExitPlan.suggest(TODAY, new BigDecimal("100.00"), List.of(), 30, null).isEmpty());
+        assertTrue(ExitPlan.suggest(TODAY, new BigDecimal("100.00"), List.of(), 30, null, null).isEmpty());
     }
 
     private static CashEvent event(int day, String amount, Kind kind, String category, String label) {

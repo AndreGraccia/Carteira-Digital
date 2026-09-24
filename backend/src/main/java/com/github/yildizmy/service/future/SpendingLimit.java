@@ -32,7 +32,8 @@ public final class SpendingLimit {
         LocalDate nextIncome = fixedEvents.stream()
                 .filter(CashEvent::isInflow)
                 .map(CashEvent::date)
-                .filter(date -> date.isAfter(today) && !date.isAfter(today.plusDays(MAX_DAYS)))
+                // An income landing tomorrow leaves no spending day before it: the limit then runs to the income after.
+                .filter(date -> date.isAfter(today.plusDays(1)) && !date.isAfter(today.plusDays(MAX_DAYS)))
                 .min(Comparator.naturalOrder())
                 .orElse(null);
         LocalDate until = nextIncome != null ? nextIncome : today.plusDays(DEFAULT_DAYS);

@@ -204,8 +204,9 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
         )}
       </svg>
       {hover !== null && (
+        // Pointer-only detail: announcing every mouse move would drown the text alternative.
         <Box
-          role="status"
+          aria-hidden="true"
           sx={{
             position: 'absolute',
             top: series.length > 1 ? 32 : 8,

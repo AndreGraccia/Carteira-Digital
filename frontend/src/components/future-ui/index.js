@@ -13,7 +13,6 @@ import {
   DialogTitle,
   Link,
   Stack,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
@@ -35,23 +34,43 @@ const COLOR = {
 export function CertaintyChip({ certainty }) {
   const { t } = useTranslation();
   return (
-    <Tooltip title={t(`future.certaintyHelp.${certainty}`)}>
-      <Chip
-        size="small"
-        label={t(`future.certainty.${certainty}`)}
-        variant="outlined"
-        sx={{
-          height: 22,
-          fontSize: 11,
-          color: COLOR[certainty],
-          borderColor: COLOR[certainty],
-          borderStyle: BORDER[certainty],
-          bgcolor: 'transparent',
-        }}
-      />
-    </Tooltip>
+    <Chip
+      size="small"
+      label={t(`future.certainty.${certainty}`)}
+      variant="outlined"
+      sx={{
+        height: 22,
+        fontSize: 11,
+        color: COLOR[certainty],
+        borderColor: COLOR[certainty],
+        borderStyle: BORDER[certainty],
+        bgcolor: 'transparent',
+      }}
+    />
   );
 }
+/** What confirmed, estimated and simulated mean, always visible instead of hidden in tooltips. */
+export function CertaintyLegend() {
+  const { t } = useTranslation();
+  return (
+    <Box
+      component="dl"
+      sx={{ m: 0, mt: 1, display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 1.5, rowGap: 0.5 }}
+    >
+      {['CONFIRMED', 'ESTIMATED', 'HYPOTHETICAL'].map((certainty) => (
+        <Box key={certainty} sx={{ display: 'contents' }}>
+          <Box component="dt">
+            <CertaintyChip certainty={certainty} />
+          </Box>
+          <Typography component="dd" variant="caption" color="text.secondary" sx={{ m: 0, alignSelf: 'center' }}>
+            {t(`future.certaintyHelp.${certainty}`)}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
 CertaintyChip.propTypes = { certainty: PropTypes.oneOf(['CONFIRMED', 'ESTIMATED', 'HYPOTHETICAL']).isRequired };
 
 /** One expected movement with its provenance: when, what, from where, how sure, how much. */
@@ -104,7 +123,7 @@ export function EventRow({ event, dense = false }) {
 }
 EventRow.propTypes = { event: PropTypes.object.isRequired, dense: PropTypes.bool };
 
-export function StatBlock({ label, value, help, emphasis = false, negative = false, children }) {
+export function StatBlock({ label, value, help, emphasis = false, negative = false, compact = false, children }) {
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography variant="overline" color="text.secondary">
@@ -114,12 +133,13 @@ export function StatBlock({ label, value, help, emphasis = false, negative = fal
         component="p"
         sx={{
           fontFamily: (theme) => theme.typography.h2.fontFamily,
-          fontWeight: 700,
-          fontSize: { xs: 28, md: 32 },
+          // compact: supporting numbers that must not compete with the daily limit above them.
+          fontSize: compact ? { xs: 20, md: 22 } : { xs: 28, md: 32 },
           letterSpacing: '-0.03em',
           lineHeight: 1.15,
           fontVariantNumeric: 'tabular-nums',
-          color: negative ? 'error.main' : emphasis ? 'primary.main' : 'text.primary',
+          color: negative ? 'error.main' : 'text.primary',
+          fontWeight: emphasis ? 800 : 700,
           overflowWrap: 'anywhere',
         }}
       >
@@ -140,6 +160,7 @@ StatBlock.propTypes = {
   help: PropTypes.node,
   emphasis: PropTypes.bool,
   negative: PropTypes.bool,
+  compact: PropTypes.bool,
   children: PropTypes.node,
 };
 
@@ -190,7 +211,9 @@ function PixProposalDialog({ action, onClose }) {
             </Alert>
           </DialogContent>
           <DialogActions>
-            <Button onClick={close}>{t(confirmed ? 'common.close' : 'future.pix.cancel')}</Button>
+            <Button onClick={close} autoFocus={confirmed}>
+              {t(confirmed ? 'common.close' : 'future.pix.cancel')}
+            </Button>
             {!confirmed && (
               <Button
                 variant="contained"
@@ -210,6 +233,27 @@ function PixProposalDialog({ action, onClose }) {
 }
 PixProposalDialog.propTypes = { action: PropTypes.object, onClose: PropTypes.func.isRequired };
 
+/** One line per calculated way out: what changes and what it gives. Shared by the card and the dialog. */
+export function exitSentence(action, t, lang) {
+  const result = action.solves
+    ? t('future.exit.solves')
+    : t('future.exit.lowest', { amount: money(action.resultingLowest, lang) });
+  if (action.type === 'POSTPONE')
+    return `${t('future.exit.POSTPONE', {
+      label: action.label,
+      amount: money(action.amount, lang),
+      from: dayLabel(action.from, lang),
+      to: dayLabel(action.to, lang),
+    })} ${result}`;
+  if (action.type === 'CUT_DAILY')
+    return `${t('future.exit.CUT_DAILY', {
+      amount: money(action.amount, lang),
+      daily: money(action.newDaily, lang),
+      to: dayLabel(action.to, lang),
+    })} ${result}`;
+  return t('future.exit.GAP', { amount: money(action.amount, lang), to: dayLabel(action.to, lang) });
+}
+
 /**
  * Calculated ways out of the first negative window. Each line says what changes and what it gives;
  * the Wall.ia never acts for the user.
@@ -219,34 +263,15 @@ export function ExitPlanList({ actions }) {
   const lang = i18n.language;
   const [pix, setPix] = useState(null);
   if (!actions?.length) return null;
-  const sentence = (action) => {
-    const result = action.solves
-      ? t('future.exit.solves')
-      : t('future.exit.lowest', { amount: money(action.resultingLowest, lang) });
-    if (action.type === 'POSTPONE')
-      return `${t('future.exit.POSTPONE', {
-        label: action.label,
-        amount: money(action.amount, lang),
-        from: dayLabel(action.from, lang),
-        to: dayLabel(action.to, lang),
-      })} ${result}`;
-    if (action.type === 'CUT_DAILY')
-      return `${t('future.exit.CUT_DAILY', {
-        amount: money(action.amount, lang),
-        daily: money(action.newDaily, lang),
-        to: dayLabel(action.to, lang),
-      })} ${result}`;
-    return t('future.exit.GAP', { amount: money(action.amount, lang), to: dayLabel(action.to, lang) });
-  };
   return (
-    <Box component="section" aria-label={t('future.exit.title')} sx={{ mt: 2 }}>
-      <Typography variant="subtitle2" component="h3">
+    <Box component="section" aria-labelledby="exit-title" sx={{ mt: 2 }}>
+      <Typography id="exit-title" variant="subtitle2" component="h3">
         {t('future.exit.title')}
       </Typography>
       <Box component="ol" sx={{ m: 0, mt: 1, pl: 2.5 }}>
         {actions.map((action) => (
           <Typography component="li" variant="body2" key={`${action.type}-${action.label || ''}`} sx={{ py: 0.5 }}>
-            {sentence(action)}
+            {exitSentence(action, t, lang)}
             {/* Only a moved bill has a payee, an amount and a date to pay on. */}
             {action.type === 'POSTPONE' && (
               <Button
@@ -273,20 +298,45 @@ export function ExitPlanList({ actions }) {
 ExitPlanList.propTypes = { actions: PropTypes.array };
 
 /**
- * The first thing the Future page answers: how much can be spent per day until the next income,
- * or how much is missing when the bills alone do not fit. Everything below it supports this number.
+ * The first thing the Future page answers: how much can be spent per day until the next income, or how
+ * much is missing. It also carries the first negative window (so the page never shows three different
+ * negative numbers for one question), the best way out and the alert switch.
+ *
+ * Two shortfalls can differ and both are true: the limit keeps the envelopes out, the bank does not.
+ * With envelopes, "missing" is split into what the bank balance lacks and what keeping the envelopes costs.
  */
-export function DailyLimitCard({ limit, risk, onWhy }) {
+export function DailyLimitCard({ limit, risk, laterRisks = [], exitPlan = [], onWhy, children }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const short = Number(limit.shortfall) > 0;
+  const reserved = Number(limit.reserved) || 0;
+  const withEnvelopes = Number(limit.shortfall) || 0;
+  // shortfall is computed on balance - envelopes; without them it is exactly this (see SpendingLimit).
+  const realShort = Math.max(withEnvelopes - reserved, 0);
+  const short = withEnvelopes > 0;
   const over = limit.margin !== null && limit.margin !== undefined && Number(limit.margin) < 0;
   const binding = dayLabel(limit.bindingDate, lang);
   const tone = short || over ? 'warning' : 'success';
+  const firstWay = (short || over) && exitPlan.length ? exitPlan[0] : null;
+
+  let headline = t('future.limit.canSpend', { amount: money(limit.safeDaily, lang) });
+  let help = t('future.limit.canSpendHelp', { binding });
+  if (short && realShort > 0) {
+    headline = t('future.limit.short', { amount: money(realShort, lang) });
+    help = t('future.limit.shortHelp', { binding });
+  } else if (short) {
+    headline = t('future.limit.shortEnvelopes', { amount: money(withEnvelopes, lang) });
+    help = t('future.limit.shortEnvelopesHelp', { reserved: money(reserved, lang) });
+  }
 
   let pace = t('future.limit.paceUnknown');
   if (limit.pace !== null && limit.pace !== undefined) {
-    if (short) pace = t('future.limit.shortPace', { pace: money(limit.pace, lang) });
+    if (short && risk)
+      pace = t('future.limit.shortPaceLowest', {
+        pace: money(limit.pace, lang),
+        amount: money(risk.lowestBalance, lang),
+        date: dayLabel(risk.lowestDate, lang),
+      });
+    else if (short) pace = t('future.limit.shortPace', { pace: money(limit.pace, lang) });
     else if (over)
       pace = t('future.limit.paceOver', {
         pace: money(limit.pace, lang),
@@ -324,19 +374,22 @@ export function DailyLimitCard({ limit, risk, onWhy }) {
           color: short ? 'warning.main' : 'text.primary',
         }}
       >
-        {short
-          ? t('future.limit.short', { amount: money(limit.shortfall, lang) })
-          : t('future.limit.canSpend', { amount: money(limit.safeDaily, lang) })}
+        {headline}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-        {short ? t('future.limit.shortHelp', { binding }) : t('future.limit.canSpendHelp', { binding })}
+        {help}
       </Typography>
       <Typography variant="body2" sx={{ mt: 1.5 }}>
         {pace}
       </Typography>
-      {Number(limit.reserved) > 0 && (
+      {short && realShort > 0 && reserved > 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          {t('future.limit.reserved', { amount: money(limit.reserved, lang) })}{' '}
+          {t('future.limit.keepEnvelopes', { amount: money(withEnvelopes, lang), reserved: money(reserved, lang) })}
+        </Typography>
+      )}
+      {!short && reserved > 0 && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          {t('future.limit.reserved', { amount: money(reserved, lang) })}{' '}
           <Link component={RouterLink} to="/envelopes">
             {t('future.limit.reservedLink')}
           </Link>
@@ -347,17 +400,56 @@ export function DailyLimitCard({ limit, risk, onWhy }) {
           {t('future.limit.cost', { amount: money(risk.overdraftCostCap, lang) })}
         </Typography>
       )}
-      <Stack direction="row" flexWrap="wrap" sx={{ mt: 2, gap: 1 }}>
+      {firstWay && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="overline" color="text.secondary" component="p">
+            {t('future.limit.bestWay')}
+          </Typography>
+          <Typography variant="body1">{exitSentence(firstWay, t, lang)}</Typography>
+        </Box>
+      )}
+      {laterRisks.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            {t('future.limit.laterRisks')}
+          </Typography>
+          <Box component="ul" sx={{ m: 0, mt: 0.5, pl: 2.5 }}>
+            {laterRisks.map((later) => (
+              <Typography component="li" variant="body2" key={later.start}>
+                {t('future.limit.laterRisk', {
+                  start: dayLabel(later.start, lang),
+                  end: dayLabel(later.end, lang),
+                  amount: money(later.lowestBalance, lang),
+                })}
+              </Typography>
+            ))}
+          </Box>
+        </Box>
+      )}
+      <Stack direction="row" flexWrap="wrap" sx={{ mt: 2.5, gap: 1 }}>
+        {/* One primary action: the way out comes right after the problem. */}
         {risk && onWhy && (
-          <Button variant="outlined" color="inherit" onClick={() => onWhy(risk)}>
-            {t('future.whyButton')}
+          <Button
+            variant="contained"
+            onClick={() => onWhy(risk)}
+            aria-label={t('future.whyLabel', { start: dayLabel(risk.start, lang), end: dayLabel(risk.end, lang) })}
+          >
+            {t('future.limit.seeWayOut')}
           </Button>
         )}
         <Button component={RouterLink} to="/ask" color="inherit">
           {t('future.limit.ask')}
         </Button>
       </Stack>
+      {children && <Box sx={{ mt: 2.5, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>{children}</Box>}
     </Card>
   );
 }
-DailyLimitCard.propTypes = { limit: PropTypes.object.isRequired, risk: PropTypes.object, onWhy: PropTypes.func };
+DailyLimitCard.propTypes = {
+  limit: PropTypes.object.isRequired,
+  risk: PropTypes.object,
+  laterRisks: PropTypes.array,
+  exitPlan: PropTypes.array,
+  onWhy: PropTypes.func,
+  children: PropTypes.node,
+};

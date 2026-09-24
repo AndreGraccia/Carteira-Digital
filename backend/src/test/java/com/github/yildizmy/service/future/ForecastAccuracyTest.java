@@ -66,6 +66,20 @@ class ForecastAccuracyTest {
         assertNull(result.firstComparisonOn());
     }
 
+    @Test
+    void theMorningBalanceIsComparedWithTheForecastForTheEndOfThePreviousDay() {
+        // Rent of 2.000 due on day 10: the forecast goes from 1.500 (end of day 9) to -500 (end of day 10).
+        List<BigDecimal> forecast = new ArrayList<>(flat("1500"));
+        for (int day = 10; day <= 30; day++) forecast.set(day, new BigDecimal("-500"));
+        ForecastAccuracy.Result result = ForecastAccuracy.compare(List.of(
+                snapshot(0, "1500", forecast),
+                // The 7:30 sync of day 10 reads 1.500: the rent has not left yet. That is not an avoided negative.
+                snapshot(10, "1500", List.of())));
+
+        assertEquals(new BigDecimal("1500"), result.comparisons().get(0).projected());
+        assertEquals(0, result.avoided());
+    }
+
     private static ForecastAccuracy.Snapshot snapshot(int day, String balance, List<BigDecimal> projection) {
         return new ForecastAccuracy.Snapshot(DAY.plusDays(day), new BigDecimal(balance), projection);
     }

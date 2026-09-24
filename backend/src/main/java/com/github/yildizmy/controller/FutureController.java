@@ -81,10 +81,10 @@ public class FutureController {
      * Someone opened or confirmed the simulated Pix. Counted per day in the same table as the Pergunte
      * intents, with no user: the number that says whether accreditation as a payment initiator is worth it.
      */
-    // ponytail: no per-user limit; a user inflating the count only skews a product metric, never data.
     @PostMapping("/pix-interest")
-    public ResponseEntity<Void> pixInterest(@Valid @RequestBody FutureRequests.PixInterest request) {
-        askUsage.record("PIX_" + request.step());
+    public ResponseEntity<Void> pixInterest(@AuthenticationPrincipal UserDetailsImpl user,
+                                            @Valid @RequestBody FutureRequests.PixInterest request) {
+        askUsage.recordOncePerDay(user.getId(), "PIX_" + request.step());
         return ResponseEntity.noContent().build();
     }
 
@@ -106,7 +106,7 @@ public class FutureController {
 
     @GetMapping("/alerts")
     public ResponseEntity<FutureAlertService.Settings> alerts(@AuthenticationPrincipal UserDetailsImpl user) {
-        return noStore(new FutureAlertService.Settings(alertService.enabled(user.getId())));
+        return noStore(new FutureAlertService.Settings(alertService.enabled(user.getId()), alertService.deliverable(user.getId())));
     }
 
     @PutMapping("/alerts")
@@ -114,7 +114,7 @@ public class FutureController {
             @AuthenticationPrincipal UserDetailsImpl user,
             @RequestBody FutureAlertService.Settings request) {
         alertService.setEnabled(user.getId(), request.enabled());
-        return noStore(new FutureAlertService.Settings(request.enabled()));
+        return noStore(new FutureAlertService.Settings(request.enabled(), alertService.deliverable(user.getId())));
     }
 
     /** Runs the daily alert job now; for operations and tests. */
@@ -151,10 +151,14 @@ public class FutureController {
     }
 
     @PostMapping("/push/subscriptions")
-    public ResponseEntity<Void> subscribe(@AuthenticationPrincipal UserDetailsImpl user,
-                                          @Valid @RequestBody FutureRequests.PushSubscription request) {
-        pushService.subscribe(user.getId(), request.endpoint(), request.keys().p256dh(), request.keys().auth());
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<PushState> subscribe(@AuthenticationPrincipal UserDetailsImpl user,
+                                               @Valid @RequestBody FutureRequests.PushSubscription request) {
+        return noStore(new PushState(pushService.subscribe(user.getId(), request.endpoint(), request.keys().p256dh(),
+                request.keys().auth(), Boolean.TRUE.equals(request.refresh()))));
+    }
+
+    /** @param active this browser alerts the signed-in user */
+    public record PushState(boolean active) {
     }
 
     @PostMapping("/push/unsubscribe")

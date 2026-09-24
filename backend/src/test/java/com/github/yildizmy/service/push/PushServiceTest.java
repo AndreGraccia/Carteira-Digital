@@ -65,7 +65,7 @@ class PushServiceTest {
         PushService off = new PushService(repository, mock(UserService.class), clock, "", "", "mailto:x@y.z");
 
         assertNull(off.publicKey());
-        assertThrows(WalletRuleException.class, () -> off.subscribe(1L, FCM, P256DH, AUTH));
+        assertThrows(WalletRuleException.class, () -> off.subscribe(1L, FCM, P256DH, AUTH, false));
         assertEquals(0, off.send(1L, "t", "b", "/future"));
     }
 
@@ -75,9 +75,27 @@ class PushServiceTest {
         when(repository.findByEndpoint(FCM)).thenReturn(Optional.empty());
         when(repository.countByUserId(1L)).thenReturn(5L);
 
-        assertThrows(WalletRuleException.class, () -> service.subscribe(1L, FCM, P256DH, AUTH));
-        assertThrows(WalletRuleException.class, () -> service.subscribe(1L, FCM, "short", AUTH));
+        assertThrows(WalletRuleException.class, () -> service.subscribe(1L, FCM, P256DH, AUTH, false));
+        assertThrows(WalletRuleException.class, () -> service.subscribe(1L, FCM, "short", AUTH, false));
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void aBrowserOfAnotherAccountIsNeverTakenOnPageLoadAndMovingItCountsAgainstTheLimit() {
+        PushService service = service(201);
+        PushSubscription previousOwner = subscription(FCM);
+        previousOwner.setUserId(2L);
+        when(repository.findByEndpoint(FCM)).thenReturn(Optional.of(previousOwner));
+
+        assertFalse(service.subscribe(1L, FCM, P256DH, AUTH, true));
+        assertEquals(2L, previousOwner.getUserId());
+
+        when(repository.countByUserId(1L)).thenReturn(5L);
+        assertThrows(WalletRuleException.class, () -> service.subscribe(1L, FCM, P256DH, AUTH, false));
+
+        when(repository.countByUserId(1L)).thenReturn(0L);
+        assertTrue(service.subscribe(1L, FCM, P256DH, AUTH, false));
+        assertEquals(1L, previousOwner.getUserId());
     }
 
     @Test
@@ -93,8 +111,8 @@ class PushServiceTest {
         };
 
         assertEquals(1, service.send(1L, "Wall.ia", "A partir de 03/10.", "/future"));
-        verify(repository).delete(gone);
-        verify(repository, never()).delete(ok);
+        verify(repository).deleteById(gone.getId());
+        verify(repository, never()).deleteById(ok.getId());
     }
 
     private PushService service(int status) {
@@ -108,6 +126,7 @@ class PushServiceTest {
 
     private static PushSubscription subscription(String endpoint) {
         PushSubscription subscription = new PushSubscription();
+        subscription.setId((long) endpoint.hashCode());
         subscription.setUserId(1L);
         subscription.setEndpoint(endpoint);
         subscription.setP256dh(P256DH);

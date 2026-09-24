@@ -4,7 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import Envelopes from './Envelopes';
 import Accuracy from '../future/Accuracy';
-import { ExitPlanList } from '../../components/future-ui';
+import { DailyLimitCard, ExitPlanList } from '../../components/future-ui';
 import ThemeProvider from '../../theme';
 import HttpService from '../../services/HttpService';
 
@@ -79,7 +79,10 @@ test('a new envelope is sent in reais and an amount above the API ceiling is blo
 
   await act(async () => type(name, 'Viagem'));
   await act(async () => type(amount, '2000000'));
-  expect(button('envelopes.add').disabled).toBe(true);
+  await act(async () => Simulate.submit(container.querySelector('form')));
+  // The button stays enabled; the field says why nothing was sent.
+  expect(HttpService.postWithAuth).not.toHaveBeenCalled();
+  expect(text()).toContain('future.goals.amountInvalid');
 
   await act(async () => type(amount, '350,50'));
   await act(async () => Simulate.submit(container.querySelector('form')));
@@ -146,4 +149,38 @@ test('only a moved bill offers a Pix, and confirming it says nothing was sent', 
     ['/future/pix-interest', { step: 'PREPARE' }],
     ['/future/pix-interest', { step: 'CONFIRM' }],
   ]);
+});
+
+test('the daily limit card separates what the bank lacks, what keeping the envelopes costs and the lowest point', async () => {
+  await render(
+    <DailyLimitCard
+      limit={{
+        safeDaily: 0,
+        until: '2026-10-05',
+        untilIncome: true,
+        days: 10,
+        bindingDate: '2026-10-03',
+        pace: 28.78,
+        margin: -28.78,
+        shortfall: 804.87,
+        reserved: 300,
+      }}
+      risk={{
+        start: '2026-10-03',
+        end: '2026-10-04',
+        lowestBalance: -792.67,
+        lowestDate: '2026-10-03',
+        causes: [],
+        overdraftCostCap: 4,
+      }}
+      exitPlan={[{ type: 'CUT_DAILY', amount: 5, newDaily: 20, to: '2026-10-05', resultingLowest: 0, solves: true }]}
+      onWhy={() => {}}
+    />
+  );
+
+  expect(text()).toMatch(/future\.limit\.short:R\$\s504,87/);
+  expect(text()).toMatch(/future\.limit\.keepEnvelopes:R\$\s804,87/);
+  expect(text()).toMatch(/future\.limit\.shortPaceLowest:-R\$\s792,67/);
+  expect(text()).toContain('future.limit.bestWay');
+  expect(button('future.limit.seeWayOut')).toBeDefined();
 });

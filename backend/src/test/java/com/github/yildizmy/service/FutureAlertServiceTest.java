@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -101,6 +102,35 @@ class FutureAlertServiceTest {
         when(future.overview(3L, FutureAlertService.HORIZON_DAYS)).thenReturn(overview());
         assertEquals(0, service.runDaily());
         verify(mail, never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void theEmailShortfallLeavesTheEnvelopesOutBecauseTheBankDoesNotKnowThem() {
+        FutureResponses.SpendingLimit withEnvelopes = new FutureResponses.SpendingLimit(BigDecimal.ZERO,
+                LocalDate.of(2026, 10, 5), true, 11, START, null, null, new BigDecimal("3200.00"), new BigDecimal("3000.00"));
+
+        String body = FutureAlertService.body("Ana", window(), withEnvelopes, "http://localhost:3000");
+
+        assertTrue(body.contains("faltam R$"));
+        assertTrue(body.contains("200,00"));
+        assertFalse(body.contains("3.200,00"));
+    }
+
+    @Test
+    void aPushFailureAfterTheEmailStillMarksTheWindowSoTheEmailIsNotRepeated() {
+        FutureAlert alert = alert(6L);
+        when(alerts.findByEnabledTrue()).thenReturn(List.of(alert));
+        when(future.overview(6L, FutureAlertService.HORIZON_DAYS)).thenReturn(overview());
+        when(verification.isVerified(6L)).thenReturn(true);
+        when(push.hasSubscription(6L)).thenReturn(true);
+        when(push.send(org.mockito.ArgumentMatchers.eq(6L), any(), any(), any())).thenThrow(new IllegalStateException("db"));
+        User user = new User();
+        user.setEmail("ana@example.test");
+        user.setFirstName("Ana");
+        when(users.findById(6L)).thenReturn(Optional.of(user));
+
+        assertEquals(1, service.runDaily());
+        assertEquals(START, alert.getLastWindowStart());
     }
 
     @Test

@@ -26,6 +26,8 @@ public class AskUsage {
 
     // ponytail: in-memory, one instance only, like the other limiters. Move to Redis when the API scales out.
     private final ConcurrentHashMap<Long, Window> windows = new ConcurrentHashMap<>();
+    private final java.util.Set<String> seen = ConcurrentHashMap.newKeySet();
+    private volatile LocalDate seenDay;
     private final JdbcTemplate jdbc;
     private final Clock clock;
 
@@ -54,6 +56,20 @@ public class AskUsage {
                 INSERT INTO ask_metric (day, intent, count) VALUES (?, ?, 1)
                 ON CONFLICT (day, intent) DO UPDATE SET count = ask_metric.count + 1
                 """, LocalDate.now(clock.withZone(ZONE)), intent);
+    }
+
+    /**
+     * Counts an event at most once per user per day, so one person clicking in a loop cannot inflate a number
+     * that decides a product investment. The user is only kept in memory, never written.
+     */
+    // ponytail: in-memory like the limiter above; a restart can count someone twice on the same day.
+    public void recordOncePerDay(long userId, String event) {
+        LocalDate today = LocalDate.now(clock.withZone(ZONE));
+        if (!today.equals(seenDay)) {
+            seen.clear();
+            seenDay = today;
+        }
+        if (seen.add(userId + "|" + event)) record(event);
     }
 
     /** Totals per intent over the last {@code days} days, largest first. */

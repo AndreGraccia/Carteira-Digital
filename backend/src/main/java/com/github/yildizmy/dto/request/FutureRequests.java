@@ -39,7 +39,9 @@ public final class FutureRequests {
     }
 
     /** The browser's PushSubscription.toJSON(). */
-    public record PushSubscription(@NotBlank @Size(max = 1000) String endpoint, @NotNull @Valid PushKeys keys) {
+    /** @param refresh true when the page re-sends the browser's current subscription on load */
+    public record PushSubscription(@NotBlank @Size(max = 1000) String endpoint, @NotNull @Valid PushKeys keys,
+                                   Boolean refresh) {
     }
 
     public record PushKeys(@NotBlank @Size(max = 100) String p256dh, @NotBlank @Size(max = 50) String auth) {

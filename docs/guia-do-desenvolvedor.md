@@ -228,6 +228,26 @@ WHERE lower(u.username) = 'seu_usuario' AND r.type = 'ROLE_ADMIN';
 
 Entre de novo para o token trazer o papel novo. Todo acesso de admin fica em `admin_audit` ([ADR 0004](adr/0004-auditoria-admin-e-ledger.md)).
 
+### Antes de subir para produção
+
+**Duplicatas de maiúsculas (V19).** A V19 cria índices únicos em `lower(username)` e `lower(email)`. Se o banco de produção tiver "Gui" e "gui", o Flyway falha e a API não sobe. Rode antes:
+
+```sql
+SELECT lower(username), count(*) FROM "user" GROUP BY 1 HAVING count(*) > 1;
+SELECT lower(email), count(*) FROM "user" GROUP BY 1 HAVING count(*) > 1;
+```
+
+Com resultado, decida com o dono de cada conta qual fica e renomeie a outra antes do deploy.
+
+**IP real atrás de HTTPS.** Push exige https, e o nginx do container escuta 3000 sem TLS, então em produção haverá um proxy na frente (Caddy, nginx do host, Cloudflare). Sem ajuste, todo cliente chega com o IP desse proxy e os limites por IP (cadastro e login) viram limites globais. No `frontend/nginx.conf`, dentro do `server`, informe o IP ou a faixa do proxy:
+
+```nginx
+set_real_ip_from 10.0.0.0/8;   # troque pelo endereço do proxy TLS
+real_ip_header X-Forwarded-For;
+```
+
+O `proxy_set_header X-Forwarded-For $remote_addr` continua como está: depois do `real_ip`, `$remote_addr` já é o cliente. O proxy da frente precisa enviar o `X-Forwarded-For`.
+
 ## Problemas comuns
 
 ### "Não consigo criar conta" ou toda chamada dá erro de rede

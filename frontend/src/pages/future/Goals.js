@@ -65,7 +65,10 @@ export default function Goals({ onChanged }) {
         <Button
           color="inherit"
           size="small"
-          onClick={() => {
+          onClick={(event) => {
+            // closeSnackbar only starts the exit animation: a double click would restore it twice.
+            if (event.currentTarget.disabled) return;
+            event.currentTarget.disabled = true;
             closeSnackbar(key);
             run(
               () =>

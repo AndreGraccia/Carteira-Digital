@@ -22,6 +22,8 @@ import { PageHeading, SectionCard, WalletIcon } from '../../components/wallet-ui
 import { errorKey, money, parseAmount } from '../../utils/wallet';
 
 const EMPTY = { name: '', amount: '' };
+// Envelopes already restored from an undo, per page load.
+const restored = new Set();
 const MAX_CENTS = 100000000;
 
 /**
@@ -36,8 +38,10 @@ export default function Envelopes() {
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [form, setForm] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
+  const [tried, setTried] = useState(false);
 
   const load = useCallback(async () => {
+    setState((previous) => ({ ...previous, loading: true, error: null }));
     try {
       setState({ loading: false, error: null, data: await HttpService.getWithAuth('/future/envelopes') });
     } catch (failure) {
@@ -52,6 +56,8 @@ export default function Envelopes() {
   const cents = parseAmount(form.amount);
   const amountInvalid = form.amount !== '' && (cents === null || cents <= 0 || cents > MAX_CENTS);
   const valid = form.name.trim() && cents !== null && !amountInvalid;
+  const nameMissing = tried && !form.name.trim();
+  const amountMissing = tried && form.amount === '';
 
   const run = async (action, message, snackbarAction) => {
     setBusy(true);
@@ -70,7 +76,10 @@ export default function Envelopes() {
 
   const add = (event) => {
     event.preventDefault();
+    // The button stays enabled: a grey button does not say what is missing, the fields do.
+    setTried(true);
     if (!valid || busy) return;
+    setTried(false);
     run(async () => {
       await create({ name: form.name.trim(), amount: cents / 100 });
       setForm(EMPTY);
@@ -85,7 +94,11 @@ export default function Envelopes() {
         <Button
           color="inherit"
           size="small"
-          onClick={() => {
+          onClick={(event) => {
+            // closeSnackbar only starts the exit animation: a double click would restore it twice.
+            if (restored.has(envelope.id)) return;
+            restored.add(envelope.id);
+            event.currentTarget.disabled = true;
             closeSnackbar(key);
             run(() => create({ name: envelope.name, amount: envelope.amount }), 'envelopes.restored');
           }}
@@ -106,7 +119,7 @@ export default function Envelopes() {
       <Container maxWidth="lg">
         <PageHeading title={t('envelopes.heading')} description={t('envelopes.description')} />
 
-        {state.loading && (
+        {state.loading && !data && (
           <Typography role="status" color="text.secondary">
             {t('common.loading')}
           </Typography>
@@ -147,7 +160,6 @@ export default function Envelopes() {
                     label={t('envelopes.free')}
                     value={money(free, lang)}
                     help={t('envelopes.freeHelp')}
-                    emphasis={free >= 0}
                     negative={free < 0}
                   />
                 </Grid>
@@ -162,9 +174,6 @@ export default function Envelopes() {
             )}
 
             <SectionCard title={t('envelopes.listTitle')}>
-              <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 2 }}>
-                {t('envelopes.help')}
-              </Typography>
               {!data.items.length && (
                 <Typography variant="body2" sx={{ px: 3, pb: 2 }}>
                   {t('envelopes.empty')}
@@ -214,6 +223,8 @@ export default function Envelopes() {
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
                   inputProps={{ maxLength: 60 }}
+                  error={nameMissing}
+                  helperText={nameMissing ? t('envelopes.nameMissing') : undefined}
                   sx={{ flex: 2 }}
                 />
                 <TextField
@@ -222,14 +233,17 @@ export default function Envelopes() {
                   value={form.amount}
                   onChange={(event) => setForm({ ...form, amount: event.target.value })}
                   inputProps={{ inputMode: 'decimal' }}
-                  error={amountInvalid}
-                  helperText={amountInvalid ? t('future.goals.amountInvalid') : undefined}
+                  error={amountInvalid || amountMissing}
+                  helperText={amountInvalid || amountMissing ? t('future.goals.amountInvalid') : undefined}
                   sx={{ flex: 1 }}
                 />
-                <Button type="submit" variant="contained" disabled={!valid || busy} sx={{ flexShrink: 0 }}>
+                <Button type="submit" variant="contained" disabled={busy} sx={{ flexShrink: 0 }}>
                   {t('envelopes.add')}
                 </Button>
               </Stack>
+              <Typography variant="caption" color="text.secondary" component="p" sx={{ px: 3, pb: 2.5 }}>
+                {t('envelopes.help')}
+              </Typography>
             </SectionCard>
           </Stack>
         )}

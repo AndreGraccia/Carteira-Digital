@@ -285,6 +285,7 @@ export default function Questions({ recurrences, dailySpending, cardSpending, on
   const { t } = useTranslation();
   const pending = recurrences.filter((item) => item.status === 'PENDING');
   const answered = recurrences.filter((item) => item.status !== 'PENDING');
+  const [showAnswered, setShowAnswered] = useState(false);
   return (
     <SectionCard title={t('future.questionsTitle')}>
       <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 2 }}>
@@ -298,19 +299,23 @@ export default function Questions({ recurrences, dailySpending, cardSpending, on
         <Question key={item.key} item={item} onAnswered={onAnswered} />
       ))}
       {answered.length > 0 && (
-        <>
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            component="h3"
-            sx={{ display: 'block', px: 3, pt: 3, pb: 1 }}
+        <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+          {/* Already answered: kept one tap away so the page stays about what still needs a decision. */}
+          <Button
+            fullWidth
+            color="inherit"
+            onClick={() => setShowAnswered(!showAnswered)}
+            aria-expanded={showAnswered}
+            sx={{ justifyContent: 'space-between', px: 3, py: 1.5, borderRadius: 0 }}
           >
-            {t('future.answeredTitle')}
-          </Typography>
-          {answered.map((item) => (
-            <Question key={item.key} item={item} onAnswered={onAnswered} />
-          ))}
-        </>
+            {t(showAnswered ? 'future.hideAnswered' : 'future.showAnswered', { count: answered.length })}
+          </Button>
+          <Collapse in={showAnswered} unmountOnExit>
+            {answered.map((item) => (
+              <Question key={item.key} item={item} onAnswered={onAnswered} />
+            ))}
+          </Collapse>
+        </Box>
       )}
     </SectionCard>
   );

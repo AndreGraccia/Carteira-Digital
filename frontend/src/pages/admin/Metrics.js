@@ -5,6 +5,10 @@ import {
   Button,
   Card,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
   Stack,
   Table,
@@ -38,6 +42,7 @@ export default function Metrics() {
   const [days, setDays] = useState(30);
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [busy, setBusy] = useState(false);
+  const [confirmSync, setConfirmSync] = useState(false);
 
   const load = useCallback(async () => {
     setState((previous) => ({ ...previous, loading: true, error: null }));
@@ -53,6 +58,7 @@ export default function Metrics() {
   }, [load]);
 
   const runSync = async () => {
+    setConfirmSync(false);
     setBusy(true);
     try {
       const result = await HttpService.postWithAuth('/admin/open-finance/daily-sync');
@@ -85,7 +91,12 @@ export default function Metrics() {
           title={t('metrics.heading')}
           description={t('metrics.description')}
           action={
-            <ToggleButtonGroup exclusive size="small" value={days} onChange={(_, value) => value && setDays(value)}>
+            <ToggleButtonGroup
+              exclusive
+              value={days}
+              onChange={(_, value) => value && setDays(value)}
+              aria-label={t('metrics.periodLabel')}
+            >
               {[7, 30, 90].map((option) => (
                 <ToggleButton key={option} value={option} aria-label={t('future.horizonOption', { days: option })}>
                   {t('future.horizonShort', { days: option })}
@@ -94,6 +105,11 @@ export default function Metrics() {
             </ToggleButtonGroup>
           }
         />
+        {state.loading && !data && (
+          <Typography role="status" color="text.secondary">
+            {t('common.loading')}
+          </Typography>
+        )}
         {state.error && (
           <Alert
             severity="error"
@@ -113,7 +129,7 @@ export default function Metrics() {
                 label={t('metrics.northStar')}
                 value={
                   star.avoidedPerActiveUserMonth == null
-                    ? '—'
+                    ? t('common.noData')
                     : Number(star.avoidedPerActiveUserMonth).toLocaleString(lang)
                 }
                 help={t('metrics.northStarHelp')}
@@ -125,7 +141,10 @@ export default function Metrics() {
                   ['gradedUsers', star.gradedUsers],
                   ['avoided', star.avoided],
                   ['missed', star.missed],
-                  ['meanError', star.meanAbsoluteError == null ? '—' : money(star.meanAbsoluteError, lang)],
+                  [
+                    'meanError',
+                    star.meanAbsoluteError == null ? t('common.noData') : money(star.meanAbsoluteError, lang),
+                  ],
                 ].map(([key, value]) => (
                   <Grid item xs={6} md={2.4} key={key}>
                     <StatBlock
@@ -191,7 +210,8 @@ export default function Metrics() {
             </Box>
 
             <Box>
-              <Button variant="outlined" onClick={runSync} disabled={busy}>
+              {/* Heavy: it syncs every account. A text button and a confirmation keep it off the path of reading. */}
+              <Button onClick={() => setConfirmSync(true)} disabled={busy}>
                 {t('metrics.runSync')}
               </Button>
               <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1 }}>
@@ -201,6 +221,18 @@ export default function Metrics() {
           </Stack>
         )}
       </Container>
+      <Dialog open={confirmSync} onClose={() => setConfirmSync(false)} aria-labelledby="sync-title">
+        <DialogTitle id="sync-title">{t('metrics.runSync')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">{t('metrics.runSyncConfirm')}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmSync(false)}>{t('future.pix.cancel')}</Button>
+          <Button variant="contained" onClick={runSync}>
+            {t('metrics.runSyncGo')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

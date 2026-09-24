@@ -95,7 +95,9 @@ export function EmptyState({ title, description, action, icon = 'wallet' }) {
       <Box sx={{ p: 2, borderRadius: '22px', bgcolor: 'background.neutral', color: 'text.secondary' }}>
         <WalletIcon name={icon} sx={{ fontSize: 34 }} />
       </Box>
-      <Typography variant="h6">{title}</Typography>
+      <Typography variant="h6" component="h2">
+        {title}
+      </Typography>
       <Typography color="text.secondary" variant="body2" sx={{ maxWidth: 340 }}>
         {description}
       </Typography>
@@ -226,7 +228,10 @@ export function SectionCard({ title, action, children }) {
   return (
     <Card>
       <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ p: 3, pb: 1.5 }}>
-        <Typography variant="h6">{title}</Typography>
+        {/* h2 under the page h1: screen reader users move through long pages by headings. */}
+        <Typography variant="h6" component="h2">
+          {title}
+        </Typography>
         {action && <Box sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{action}</Box>}
       </Stack>
       {children}

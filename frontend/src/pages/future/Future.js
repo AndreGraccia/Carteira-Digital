@@ -24,7 +24,7 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import ProjectionChart from '../../components/projection-chart';
-import { DailyLimitCard, EventRow, ExitPlanList, StatBlock } from '../../components/future-ui';
+import { CertaintyLegend, DailyLimitCard, EventRow, ExitPlanList, StatBlock } from '../../components/future-ui';
 import { EmptyState, PageHeading, SectionCard, WalletIcon } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money } from '../../utils/wallet';
 import Questions from './Questions';
@@ -32,6 +32,19 @@ import Simulator from './Simulator';
 import Goals from './Goals';
 import AlertToggle from './AlertToggle';
 import Accuracy from './Accuracy';
+
+// Read by screen readers, invisible on screen (same rule as MUI's visuallyHidden).
+const visuallyHidden = {
+  border: 0,
+  clip: 'rect(0 0 0 0)',
+  height: '1px',
+  margin: '-1px',
+  overflow: 'hidden',
+  padding: 0,
+  position: 'absolute',
+  whiteSpace: 'nowrap',
+  width: '1px',
+};
 
 function WhyDialog({ risk, exitPlan, onClose }) {
   const { t, i18n } = useTranslation();
@@ -80,6 +93,7 @@ export default function Future() {
   const [why, setWhy] = useState(null);
   const [showDays, setShowDays] = useState(false);
   const [openGroup, setOpenGroup] = useState(null);
+  const [announce, setAnnounce] = useState('');
 
   // Clicking 30, 90, 60 quickly must not leave the 90-day answer under the 60 button.
   const latest = useRef(0);
@@ -92,11 +106,16 @@ export default function Future() {
         HttpService.getWithAuth(`/future/overview?horizon=${horizon}`),
         HttpService.getWithAuth('/future/recurrences'),
       ]);
-      if (request === latest.current) setState({ loading: false, error: null, overview, recurrences });
+      if (request === latest.current) {
+        setState({ loading: false, error: null, overview, recurrences });
+        setAnnounce(t('future.horizonUpdated', { days: horizon }));
+      }
     } catch (failure) {
       if (request === latest.current)
         setState((previous) => ({ ...previous, loading: false, error: errorKey(failure), overview: null }));
     }
+    // t is stable per language; horizon is what changes the request.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [horizon]);
 
   useEffect(() => {
@@ -115,6 +134,17 @@ export default function Future() {
     sources.pendingQuestions === 0 &&
     sources.cards === 0 &&
     sources.loans === 0;
+  // The card answers the first negative window itself; separate alerts only when there is no card.
+  const showCard = Boolean(overview?.spendingLimit) && sources?.confirmedRecurrences > 0;
+  const firstRisk = projection?.riskWindows[0];
+  const questions = overview && (
+    <Questions
+      recurrences={recurrences}
+      dailySpending={overview.dailySpending}
+      cardSpending={overview.cardSpending}
+      onAnswered={load}
+    />
+  );
 
   return (
     <>
@@ -128,7 +158,6 @@ export default function Future() {
           action={
             <ToggleButtonGroup
               exclusive
-              size="small"
               value={horizon}
               onChange={(_, value) => value && setHorizon(value)}
               aria-label={t('future.horizonLabel')}
@@ -142,6 +171,9 @@ export default function Future() {
           }
         />
 
+        <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          {announce}
+        </Box>
         {state.loading && !overview && (
           <Typography role="status" color="text.secondary">
             {t('common.loading')}
@@ -182,16 +214,34 @@ export default function Future() {
             sx={{ opacity: state.loading ? 0.6 : 1, transition: 'opacity 150ms' }}
           >
             {/* The one answer people open this page for; the numbers below explain it. */}
-            {overview.spendingLimit && overview.sources.confirmedRecurrences > 0 && (
-              <>
-                <DailyLimitCard limit={overview.spendingLimit} risk={projection.riskWindows[0]} onWhy={setWhy} />
+            {showCard && (
+              <DailyLimitCard
+                limit={overview.spendingLimit}
+                risk={firstRisk}
+                laterRisks={projection.riskWindows.slice(1)}
+                exitPlan={overview.exitPlan}
+                onWhy={setWhy}
+              >
                 <AlertToggle />
+              </DailyLimitCard>
+            )}
+            {/* Without answers there is no limit nor projection: the questions come first. */}
+            {overview.sources.confirmedRecurrences === 0 && (
+              <>
+                {overview.sources.pendingQuestions > 0 && (
+                  <Alert severity="info">
+                    <AlertTitle>{t('future.needsAnswers')}</AlertTitle>
+                    {t('future.needsAnswersHelp')}
+                  </Alert>
+                )}
+                {questions}
               </>
             )}
-            <Card sx={{ p: { xs: 3, md: 4 } }}>
-              <Grid container spacing={3}>
+            <Card sx={{ p: 3 }}>
+              <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
                   <StatBlock
+                    compact
                     label={t('future.balanceNow')}
                     value={money(overview.balance, lang)}
                     help={t('future.balanceNowHelp')}
@@ -199,6 +249,7 @@ export default function Future() {
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <StatBlock
+                    compact
                     label={t('future.committed')}
                     value={money(overview.committed.total, lang)}
                     help={t('future.committedHelp', { date: dayLabel(overview.committed.until, lang) })}
@@ -213,6 +264,7 @@ export default function Future() {
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <StatBlock
+                    compact
                     label={t('future.free')}
                     value={money(overview.freeAfterCommitments, lang)}
                     emphasis={Number(overview.freeAfterCommitments) >= 0}
@@ -223,28 +275,37 @@ export default function Future() {
               </Grid>
             </Card>
 
-            {projection.riskWindows.map((risk) => (
-              <Alert
-                key={risk.start}
-                severity="warning"
-                icon={<WalletIcon name="info" />}
-                action={
-                  <Button color="inherit" onClick={() => setWhy(risk)} sx={{ whiteSpace: 'nowrap' }}>
-                    {t('future.whyButton')}
-                  </Button>
-                }
-              >
-                <AlertTitle>{t('future.riskTitle')}</AlertTitle>
-                {t(risk.untilHorizon ? 'future.riskUntilHorizon' : 'future.risk', {
-                  start: dayLabel(risk.start, lang),
-                  end: dayLabel(risk.end, lang),
-                  amount: money(Math.abs(Number(risk.lowestBalance)), lang),
-                })}{' '}
-                {t('future.riskReason')}
-                {Number(risk.overdraftCostCap) > 0 &&
-                  ` ${t('future.limit.cost', { amount: money(risk.overdraftCostCap, lang) })}`}
-              </Alert>
-            ))}
+            {!showCard &&
+              projection.riskWindows.map((risk) => (
+                <Alert
+                  key={risk.start}
+                  severity="warning"
+                  icon={<WalletIcon name="info" />}
+                  action={
+                    <Button
+                      color="inherit"
+                      onClick={() => setWhy(risk)}
+                      sx={{ whiteSpace: 'nowrap' }}
+                      aria-label={t('future.whyLabel', {
+                        start: dayLabel(risk.start, lang),
+                        end: dayLabel(risk.end, lang),
+                      })}
+                    >
+                      {t('future.whyButton')}
+                    </Button>
+                  }
+                >
+                  <AlertTitle>{t('future.riskTitle')}</AlertTitle>
+                  {t(risk.untilHorizon ? 'future.riskUntilHorizon' : 'future.risk', {
+                    start: dayLabel(risk.start, lang),
+                    end: dayLabel(risk.end, lang),
+                    amount: money(Math.abs(Number(risk.lowestBalance)), lang),
+                  })}{' '}
+                  {t('future.riskReason')}
+                  {Number(risk.overdraftCostCap) > 0 &&
+                    ` ${t('future.limit.cost', { amount: money(risk.overdraftCostCap, lang) })}`}
+                </Alert>
+              ))}
             {!projection.riskWindows.length && overview.sources.confirmedRecurrences > 0 && (
               <Alert severity="success">
                 <AlertTitle>{t('future.allClear', { days: horizon })}</AlertTitle>
@@ -252,12 +313,6 @@ export default function Future() {
                   amount: money(projection.minBalance, lang),
                   date: dayLabel(projection.minDate, lang),
                 })}
-              </Alert>
-            )}
-            {overview.sources.confirmedRecurrences === 0 && overview.sources.pendingQuestions > 0 && (
-              <Alert severity="info">
-                <AlertTitle>{t('future.needsAnswers')}</AlertTitle>
-                {t('future.needsAnswersHelp')}
               </Alert>
             )}
 
@@ -268,11 +323,22 @@ export default function Future() {
                   <SectionCard title={t('future.chartTitle')}>
                     <Box sx={{ px: { xs: 1, sm: 3 }, pb: 2 }}>
                       <ProjectionChart
-                        ariaLabel={t('future.chartLabel', {
-                          amount: money(projection.minBalance, lang),
-                          date: dayLabel(projection.minDate, lang),
-                          end: money(projection.endBalance, lang),
-                        })}
+                        ariaLabel={
+                          firstRisk
+                            ? t('future.chartLabelNegative', {
+                                days: horizon,
+                                start: dayLabel(firstRisk.start, lang),
+                                end: dayLabel(firstRisk.end, lang),
+                                amount: money(projection.minBalance, lang),
+                                date: dayLabel(projection.minDate, lang),
+                                endBalance: money(projection.endBalance, lang),
+                              })
+                            : t('future.chartLabelClear', {
+                                days: horizon,
+                                amount: money(projection.minBalance, lang),
+                                date: dayLabel(projection.minDate, lang),
+                              })
+                        }
                         series={[
                           {
                             key: 'projection',
@@ -290,6 +356,9 @@ export default function Future() {
                       >
                         {t('future.chartLegend')}
                       </Typography>
+                      <Box sx={{ px: { xs: 2, sm: 0 } }}>
+                        <CertaintyLegend />
+                      </Box>
                       <Button
                         size="small"
                         onClick={() => setShowDays(!showDays)}
@@ -365,14 +434,9 @@ export default function Future() {
             </Box>
 
             <Accuracy />
-            <Questions
-              recurrences={recurrences}
-              dailySpending={overview.dailySpending}
-              cardSpending={overview.cardSpending}
-              onAnswered={load}
-            />
-            <Goals onChanged={load} />
+            {overview.sources.confirmedRecurrences > 0 && questions}
             <Simulator incomes={incomes} hasCard={overview.sources.cards > 0} />
+            <Goals onChanged={load} />
           </Stack>
         )}
       </Container>

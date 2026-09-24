@@ -65,6 +65,12 @@ public class FutureAlertService {
         this.appUrl = appUrl;
     }
 
+    /** False when neither a verified e-mail nor a browser can receive the alert: the switch is on but silent. */
+    @Transactional(readOnly = true)
+    public boolean deliverable(long userId) {
+        return emailVerification.isVerified(userId) || pushService.hasSubscription(userId);
+    }
+
     @Transactional(readOnly = true)
     public boolean enabled(long userId) {
         return alertRepository.findById(userId).map(FutureAlert::isEnabled).orElse(false);
@@ -126,9 +132,9 @@ public class FutureAlertService {
                 log.warn("Alert e-mail failed for one user; trying push");
             }
         }
-        // Lock-screen text: the date only, never amounts.
-        if (push && pushService.send(alert.getUserId(), "Wall.ia: seu saldo pode ficar negativo",
-                "A partir de %s. Toque para ver por quê e como sair.".formatted(window.start().format(DAY)), "/future") > 0) {
+        // Lock-screen text: the date only, never amounts. A push failure must not undo an e-mail already sent.
+        if (push && sendPush(alert.getUserId(), "Wall.ia: seu saldo pode ficar negativo",
+                "A partir de %s. Toque para ver por quê e como sair.".formatted(window.start().format(DAY)), "/future")) {
             delivered = true;
         }
         // Nothing got through: keep the window unannounced so tomorrow tries again.
@@ -153,15 +159,19 @@ public class FutureAlertService {
                 : "";
         String relief = window.relief() == null ? ""
                 : "\nA próxima entrada prevista é %s, em %s.".formatted(window.relief().label(), window.relief().date().format(DAY));
-        String gap = limit != null && limit.shortfall() != null && limit.shortfall().signum() > 0
-                ? "\nMesmo sem gastar nada no dia a dia, faltam %s até a próxima entrada.".formatted(currency.format(limit.shortfall()))
+        // The limit keeps the envelopes out; the e-mail talks about the bank balance, so envelopes come back in.
+        java.math.BigDecimal missing = limit == null || limit.shortfall() == null ? java.math.BigDecimal.ZERO
+                : limit.shortfall().subtract(limit.reserved() == null ? java.math.BigDecimal.ZERO : limit.reserved())
+                .max(java.math.BigDecimal.ZERO);
+        String gap = missing.signum() > 0
+                ? "\nMesmo sem gastar nada no dia a dia, faltam %s até a próxima entrada.".formatted(currency.format(missing))
                 : "";
         return """
                 %s
 
                 Pela projeção da Wall.ia, seu saldo pode ficar abaixo de zero entre %s e %s, chegando a %s.%s%s%s
 
-                Veja por quê e as opções calculadas para sair do buraco:
+                Veja por quê e as opções calculadas para evitar o negativo:
                 %s/future
 
                 Você recebe este aviso porque ativou os alertas na tela Futuro. Para parar, desative lá.
@@ -198,6 +208,16 @@ public class FutureAlertService {
     enum Decision { SEND, CLEAR, NONE }
 
     /** Body of GET and PUT /future/alerts. */
-    public record Settings(boolean enabled) {
+    private boolean sendPush(long userId, String title, String body, String url) {
+        try {
+            return pushService.send(userId, title, body, url) > 0;
+        } catch (RuntimeException exception) {
+            log.warn("Alert push failed for one user: {}", exception.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    /** @param deliverable response only: whether a verified e-mail or a browser can receive it */
+    public record Settings(boolean enabled, Boolean deliverable) {
     }
 }

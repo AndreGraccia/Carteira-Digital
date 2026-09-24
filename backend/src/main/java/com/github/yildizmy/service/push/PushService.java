@@ -68,25 +68,38 @@ public class PushService {
         return enabled() && repository.existsByUserId(userId);
     }
 
+    /**
+     * Saves the browser for this user and returns whether it now alerts this user.
+     *
+     * @param refresh the page re-sending what the browser already has: it updates keys but never moves a browser
+     *                that belongs to another account, so whoever signs in next on a shared device does not take
+     *                the previous user's alerts without asking
+     */
     @Transactional
-    public void subscribe(long userId, String endpoint, String p256dh, String auth) {
+    public boolean subscribe(long userId, String endpoint, String p256dh, String auth, boolean refresh) {
         if (!enabled()) throw new WalletRuleException("PUSH_UNAVAILABLE");
         if (!allowedEndpoint(endpoint) || !validKey(p256dh, 65) || !validKey(auth, 16)) {
             throw new WalletRuleException("PUSH_INVALID_SUBSCRIPTION");
         }
         userService.lockForUpdate(userId);
         PushSubscription subscription = repository.findByEndpoint(endpoint).orElse(null);
-        if (subscription == null) {
+        boolean mine = subscription != null && subscription.getUserId() == userId;
+        if (!mine) {
+            if (refresh) return false;
+            // New or moved from another account: both count against this user's limit.
             if (repository.countByUserId(userId) >= MAX_PER_USER) throw new WalletRuleException("PUSH_LIMIT");
-            subscription = new PushSubscription();
-            subscription.setEndpoint(endpoint);
+            if (subscription == null) {
+                subscription = new PushSubscription();
+                subscription.setEndpoint(endpoint);
+            }
         }
-        // The same browser signed in with another account now belongs to this one.
+        // An explicit "turn on here" takes the browser even if another account had it.
         subscription.setUserId(userId);
         subscription.setP256dh(p256dh);
         subscription.setAuth(auth);
         subscription.setCreatedAt(clock.instant());
         repository.save(subscription);
+        return true;
     }
 
     @Transactional
@@ -101,7 +114,6 @@ public class PushService {
      * revoked (404/410) is removed. The text is fixed by the caller and never carries amounts, because
      * it shows on the lock screen.
      */
-    @Transactional
     public int send(long userId, String title, String body, String url) {
         if (!enabled()) return 0;
         String payload = "{\"title\":%s,\"body\":%s,\"url\":%s,\"tag\":\"wallia-alert\"}"
@@ -117,11 +129,19 @@ public class PushService {
                 log.warn("Push failed for one browser: {}", exception.getClass().getSimpleName());
                 continue;
             }
-            if (status == 404 || status == 410) repository.delete(subscription);
+            if (status == 404 || status == 410) forget(subscription.getId());
             else if (status >= 200 && status < 300) delivered++;
             else log.warn("Push service answered {}", status);
         }
         return delivered;
+    }
+
+    private void forget(Long id) {
+        try {
+            repository.deleteById(id);
+        } catch (org.springframework.dao.EmptyResultDataAccessException alreadyGone) {
+            // Unsubscribed while we were sending: nothing left to do.
+        }
     }
 
     /** One HTTP call to the push service; overridden in tests. */

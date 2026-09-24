@@ -55,12 +55,15 @@ public final class ForecastAccuracy {
             Snapshot forecast = null;
             for (Snapshot candidate : snapshots) {
                 long lead = ChronoUnit.DAYS.between(candidate.takenOn(), actual.takenOn());
-                if (lead < MIN_LEAD_DAYS || lead > MAX_LEAD_DAYS || candidate.projection().size() <= lead) continue;
+                if (lead < MIN_LEAD_DAYS || lead > MAX_LEAD_DAYS || candidate.projection().size() < lead) continue;
                 // The latest forecast in the window is the one the user was looking at.
                 if (forecast == null || candidate.takenOn().isAfter(forecast.takenOn())) forecast = candidate;
             }
             if (forecast == null) continue;
-            BigDecimal projected = forecast.projection().get((int) ChronoUnit.DAYS.between(forecast.takenOn(), actual.takenOn()));
+            // projection[k] is the balance at the END of day k, and the sync that recorded the real balance runs in
+            // the morning (7:30), before that day's bills: it is the end of the previous day. Comparing with
+            // projection[k] would count every rent due on day D as "avoided".
+            BigDecimal projected = forecast.projection().get((int) ChronoUnit.DAYS.between(forecast.takenOn(), actual.takenOn()) - 1);
             comparisons.add(new Comparison(actual.takenOn(), forecast.takenOn(), projected, actual.balance(),
                     actual.balance().subtract(projected)));
             if (projected.signum() < 0 && actual.balance().signum() >= 0) avoided++;

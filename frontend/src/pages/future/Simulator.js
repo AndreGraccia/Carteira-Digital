@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   Alert,
@@ -73,10 +73,12 @@ export default function Simulator({ incomes, hasCard }) {
     months: 2,
   });
   const [state, setState] = useState({ loading: false, error: null, result: null, request: null });
+  const latest = useRef(0);
   // A result next to a changed form would answer a question nobody asked any more.
   const set = (field) => (event) => {
+    latest.current += 1;
     setForm({ ...form, [field]: event.target.value });
-    setState((previous) => (previous.result ? { ...previous, result: null } : previous));
+    setState((previous) => ({ ...previous, loading: false, result: null }));
   };
 
   const amountCents = parseAmount(form.amount);
@@ -98,12 +100,15 @@ export default function Simulator({ incomes, hasCard }) {
     if (type === 'SAVINGS') Object.assign(request, { amount: amountCents / 100, dayOfMonth: Number(form.dayOfMonth) });
     if (type === 'INCOME_LOSS')
       Object.assign(request, { months: Number(form.months), incomeKey: form.incomeKey || undefined });
+    latest.current += 1;
+    const mine = latest.current;
     setState({ loading: true, error: null, result: null, request });
     try {
       const result = await HttpService.postWithAuth('/future/scenarios', request);
-      setState({ loading: false, error: null, result, request });
+      // The form changed (or another simulation started) while this one was in flight: drop it.
+      if (mine === latest.current) setState({ loading: false, error: null, result, request });
     } catch (failure) {
-      setState({ loading: false, error: errorKey(failure), result: null, request });
+      if (mine === latest.current) setState({ loading: false, error: errorKey(failure), result: null, request });
     }
   };
 

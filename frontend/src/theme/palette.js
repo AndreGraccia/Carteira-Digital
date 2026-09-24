@@ -9,7 +9,8 @@ export const primitives = {
   surface2: '#161B25',
   surface3: '#1D2330',
   line: '#232A37',
-  lineStrong: '#56607A',
+  // 3:1 against surface1-3 (WCAG 1.4.11): field borders must be seen to be used.
+  lineStrong: '#646E88',
   text: '#E9EDF3',
   text2: '#A3ACBA',
   muted: '#7D8797',

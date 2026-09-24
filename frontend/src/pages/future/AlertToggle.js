@@ -5,20 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useSnackbar } from 'notistack';
 import HttpService from '../../services/HttpService';
 import { errorKey } from '../../utils/wallet';
-
-const pushSupported = () =>
-  typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-
-/** The VAPID key arrives as base64url; PushManager wants the raw bytes. */
-function keyBytes(base64url) {
-  const base64 = (base64url + '='.repeat((4 - (base64url.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
-  return Uint8Array.from(window.atob(base64), (char) => char.charCodeAt(0));
-}
-
-async function currentSubscription() {
-  const registration = await navigator.serviceWorker.getRegistration('/');
-  return registration ? registration.pushManager.getSubscription() : null;
-}
+import { currentSubscription, keyBytes, pushSupported, staleKey } from '../../utils/push';
 
 /**
  * Opt-in: one alert per new negative window, calculated by the same engine as this page. It goes by
@@ -28,6 +15,7 @@ export default function AlertToggle() {
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const [enabled, setEnabled] = useState(null);
+  const [deliverable, setDeliverable] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   // null: push off on the server or unsupported here; otherwise {publicKey, here}.
@@ -37,17 +25,33 @@ export default function AlertToggle() {
     let active = true;
     // On failure the switch stays disabled: showing "off" for a user who turned it on would be a lie.
     HttpService.getWithAuth('/future/alerts')
-      .then((settings) => active && setEnabled(settings.enabled))
+      .then((settings) => {
+        if (!active) return;
+        setEnabled(settings.enabled);
+        setDeliverable(settings.deliverable !== false);
+      })
       .catch((failure) => active && setError(errorKey(failure)));
     if (pushSupported()) {
       HttpService.getWithAuth('/future/push')
         .then(async (settings) => {
           if (!settings.publicKey) return;
-          const existing = await currentSubscription();
-          // Browsers rotate subscriptions; sending it again on each visit keeps the server's copy current.
-          if (existing && Notification.permission === 'granted')
-            await HttpService.postWithAuth('/future/push/subscriptions', existing.toJSON()).catch(() => {});
-          if (active) setPush({ publicKey: settings.publicKey, here: Boolean(existing) });
+          let existing = await currentSubscription();
+          // Made with an old server key: the push service will refuse it forever, so start over.
+          if (existing && staleKey(existing, settings.publicKey)) {
+            await existing.unsubscribe().catch(() => {});
+            existing = null;
+          }
+          let here = false;
+          // Browsers rotate subscriptions; re-sending keeps the server copy current. "refresh" never takes a
+          // browser that belongs to another account (a shared device after someone else logged in).
+          if (existing && Notification.permission === 'granted') {
+            const state = await HttpService.postWithAuth('/future/push/subscriptions', {
+              ...existing.toJSON(),
+              refresh: true,
+            }).catch(() => null);
+            here = Boolean(state?.active);
+          }
+          if (active) setPush({ publicKey: settings.publicKey, here });
         })
         .catch(() => {});
     }
@@ -61,6 +65,7 @@ export default function AlertToggle() {
     try {
       const settings = await HttpService.putWithAuth('/future/alerts', { enabled: value });
       setEnabled(settings.enabled);
+      setDeliverable(settings.deliverable !== false);
       setError(null);
       enqueueSnackbar(t(value ? 'future.alerts.on' : 'future.alerts.off'), { variant: 'success' });
     } catch (failure) {
@@ -87,6 +92,7 @@ export default function AlertToggle() {
       });
       await HttpService.postWithAuth('/future/push/subscriptions', subscription.toJSON());
       setPush({ ...push, here: true });
+      setDeliverable(true);
       setError(null);
       enqueueSnackbar(t('future.alerts.pushOn'), { variant: 'success' });
     } catch (failure) {
@@ -105,6 +111,9 @@ export default function AlertToggle() {
         await subscription.unsubscribe();
       }
       setPush({ ...push, here: false });
+      // It may have been the only channel: ask the server instead of guessing.
+      const settings = await HttpService.getWithAuth('/future/alerts').catch(() => null);
+      if (settings) setDeliverable(settings.deliverable !== false);
       enqueueSnackbar(t('future.alerts.pushOff'), { variant: 'success' });
     } catch (failure) {
       enqueueSnackbar(t(errorKey(failure)), { variant: 'error' });
@@ -112,6 +121,10 @@ export default function AlertToggle() {
       setBusy(false);
     }
   };
+
+  // On but with nowhere to go: say it, instead of a switch that silently does nothing.
+  const silent = enabled && !deliverable;
+  const message = error || (silent ? 'future.alerts.silent' : null);
 
   return (
     <Stack spacing={0.5}>
@@ -121,11 +134,12 @@ export default function AlertToggle() {
             checked={Boolean(enabled)}
             disabled={enabled === null || busy}
             onChange={(event) => change(event.target.checked)}
+            inputProps={{ 'aria-describedby': 'alerts-help' }}
           />
         }
         label={t('future.alerts.label')}
       />
-      <Typography variant="caption" color="text.secondary" sx={{ pl: 6 }}>
+      <Typography id="alerts-help" variant="caption" color="text.secondary" sx={{ pl: 6 }}>
         {t('future.alerts.help')}
       </Typography>
       {push && (
@@ -138,10 +152,10 @@ export default function AlertToggle() {
           </Button>
         </Stack>
       )}
-      {error && (
-        <Typography variant="caption" color="error.main" role="alert" sx={{ pl: 6 }}>
-          {t(error)}{' '}
-          {error === 'app.errors.ALERT_EMAIL_NOT_VERIFIED' && (
+      {message && (
+        <Typography variant="caption" color="warning.main" role="status" sx={{ pl: 6 }}>
+          {t(message)}{' '}
+          {(message === 'app.errors.ALERT_EMAIL_NOT_VERIFIED' || silent) && (
             <Link component={RouterLink} to="/open-finance">
               {t('future.alerts.verify')}
             </Link>

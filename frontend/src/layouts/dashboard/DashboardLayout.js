@@ -20,6 +20,7 @@ import { WalletProvider } from '../../context/WalletContext';
 import LanguageSelector from '../../components/language-selector';
 import { WalletIcon } from '../../components/wallet-ui';
 import { WalliaLogo } from '../../components/brand';
+import { forgetThisBrowser } from '../../utils/push';
 import AuthService from '../../services/AuthService';
 
 export default function DashboardLayout() {
@@ -48,7 +49,9 @@ export default function DashboardLayout() {
   const current =
     items.find((item) => (item.path === '/' ? pathname === '/' : pathname.startsWith(item.path)))?.path || false;
   const mobileCurrent = mobileItems.some((item) => item.path === current) ? current : false;
-  const logout = () => {
+  const logout = async () => {
+    // Needs the session token, so it runs before the logout; never more than 2s of waiting.
+    await Promise.race([forgetThisBrowser(), new Promise((resolve) => setTimeout(resolve, 2000))]);
     AuthService.logout();
     navigate('/login', { replace: true });
   };

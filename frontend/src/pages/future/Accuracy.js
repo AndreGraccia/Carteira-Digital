@@ -41,18 +41,16 @@ export default function Accuracy() {
 
   if (!data?.since) return null;
 
+  // Nothing graded yet: a card with no number would only make the page longer. One line says when it starts.
   if (!data.comparisons) {
+    if (!data.firstComparisonOn) return null;
     return (
-      <SectionCard title={t('future.accuracy.title')}>
-        <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 3 }}>
-          {data.firstComparisonOn
-            ? t('future.accuracy.waiting', {
-                since: dayLabel(data.since, lang),
-                first: dayLabel(data.firstComparisonOn, lang),
-              })
-            : t('future.accuracy.needsAnswers')}
-        </Typography>
-      </SectionCard>
+      <Typography variant="caption" color="text.secondary" component="p" sx={{ px: 1 }}>
+        {t('future.accuracy.waiting', {
+          since: dayLabel(data.since, lang),
+          first: dayLabel(data.firstComparisonOn, lang),
+        })}
+      </Typography>
     );
   }
 

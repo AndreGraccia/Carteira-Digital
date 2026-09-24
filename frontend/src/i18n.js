@@ -254,6 +254,11 @@ const resources = {
         loading: 'Consultando o estado da conexão…',
         contractSandbox: 'Sandbox de contrato',
         participantSandbox: 'Sandbox de participante',
+        notice: {
+          contract:
+            'Massa de contrato local alinhada à API oficial de Contas; não representa acesso ao Diretório oficial.',
+          participant: 'Ambiente de sandbox da instituição participante configurada.',
+        },
         bankPlaceholder: 'Nenhuma instituição conectada',
         accounts: 'Contas importadas',
         lastSync: 'Última sincronização',
@@ -1158,6 +1163,11 @@ const resources = {
         loading: 'Checking connection status…',
         contractSandbox: 'Contract sandbox',
         participantSandbox: 'Participant sandbox',
+        notice: {
+          contract:
+            'Local contract data aligned with the official Accounts API; it does not represent access to the official Directory.',
+          participant: 'Sandbox environment of the configured participant institution.',
+        },
         bankPlaceholder: 'No institution connected',
         accounts: 'Imported accounts',
         lastSync: 'Last sync',

@@ -133,4 +133,6 @@ test('without a status the card claims nothing while loading, and a failure offe
   await act(async () => Simulate.click(button('app.retry')));
   expect(container.textContent).not.toContain('app.errors.server');
   expect(container.textContent).toContain('openFinance.contractSandbox');
+  // The notice is translated from the mode, never the raw PT text sent by the server.
+  expect(container.textContent).toContain('openFinance.notice.contract');
 });

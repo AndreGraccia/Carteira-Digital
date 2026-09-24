@@ -266,7 +266,7 @@ export default function OpenFinance() {
                       {status.institutionName || t('openFinance.bankPlaceholder')}
                     </Typography>
                     <Typography color="text.secondary" sx={{ mt: 1.5, maxWidth: 580 }}>
-                      {status?.notice || t('openFinance.loading')}
+                      {t(status.simulated ? 'openFinance.notice.contract' : 'openFinance.notice.participant')}
                     </Typography>
                   </Box>
                   {connected && (

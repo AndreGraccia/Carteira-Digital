@@ -138,12 +138,12 @@ export default function Dashboard() {
                 <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
                   <Button
                     component={RouterLink}
-                    to="/transfers?mode=transfer"
+                    to="/envelopes"
                     variant="contained"
                     fullWidth
-                    startIcon={<WalletIcon name="send" />}
+                    startIcon={<WalletIcon name="envelope" />}
                   >
-                    {t('app.send')}
+                    {t('navigation.envelopes')}
                   </Button>
                   <Button
                     component={RouterLink}

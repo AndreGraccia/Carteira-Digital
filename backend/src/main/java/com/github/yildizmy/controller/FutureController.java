@@ -4,6 +4,7 @@ import com.github.yildizmy.dto.request.FutureRequests;
 import com.github.yildizmy.dto.response.FutureResponses;
 import com.github.yildizmy.exception.WalletRuleException;
 import com.github.yildizmy.security.UserDetailsImpl;
+import com.github.yildizmy.service.ForecastService;
 import com.github.yildizmy.service.FutureAlertService;
 import com.github.yildizmy.service.FutureService;
 import jakarta.validation.Valid;
@@ -40,6 +41,7 @@ public class FutureController {
     private final FutureService futureService;
     private final AskUsage askUsage;
     private final FutureAlertService alertService;
+    private final ForecastService forecastService;
 
     @GetMapping("/overview")
     public ResponseEntity<FutureResponses.Overview> overview(
@@ -126,6 +128,31 @@ public class FutureController {
     @DeleteMapping("/goals/{id}")
     public ResponseEntity<Void> deleteGoal(@AuthenticationPrincipal UserDetailsImpl user, @PathVariable long id) {
         futureService.deleteGoal(user.getId(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/accuracy")
+    public ResponseEntity<FutureResponses.Accuracy> accuracy(@AuthenticationPrincipal UserDetailsImpl user) {
+        return noStore(forecastService.accuracy(user.getId()));
+    }
+
+    @GetMapping("/envelopes")
+    public ResponseEntity<FutureResponses.Envelopes> envelopes(@AuthenticationPrincipal UserDetailsImpl user) {
+        return noStore(futureService.envelopes(user.getId()));
+    }
+
+    @PostMapping("/envelopes")
+    public ResponseEntity<FutureResponses.Envelope> createEnvelope(
+            @AuthenticationPrincipal UserDetailsImpl user,
+            @Valid @RequestBody FutureRequests.Envelope request) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .cacheControl(CacheControl.noStore())
+                .body(futureService.createEnvelope(user.getId(), request));
+    }
+
+    @DeleteMapping("/envelopes/{id}")
+    public ResponseEntity<Void> deleteEnvelope(@AuthenticationPrincipal UserDetailsImpl user, @PathVariable long id) {
+        futureService.deleteEnvelope(user.getId(), id);
         return ResponseEntity.noContent().build();
     }
 

@@ -35,7 +35,7 @@ export default function DashboardLayout() {
     { path: '/ask', label: 'navigation.ask', icon: 'ask' },
     { path: '/wallets', label: 'navigation.wallets', icon: 'wallet', mobile: true },
     { path: '/commitments', label: 'navigation.commitments', icon: 'card' },
-    { path: '/transfers', label: 'navigation.transfers', icon: 'send', mobile: true },
+    { path: '/envelopes', label: 'navigation.envelopes', icon: 'envelope', mobile: true },
     { path: '/transactions', label: 'navigation.transactions', icon: 'history', mobile: true },
     { path: '/insights', label: 'navigation.insights', icon: 'insights' },
     { path: '/open-finance', label: 'navigation.openFinance', icon: 'bank' },
@@ -133,7 +133,15 @@ export default function DashboardLayout() {
                       aria-label={t('common.account')}
                       aria-expanded={accountOpen}
                     >
-                      <Avatar sx={{ width: 34, height: 34, bgcolor: 'background.raised', color: 'text.primary', fontSize: 14 }}>
+                      <Avatar
+                        sx={{
+                          width: 34,
+                          height: 34,
+                          bgcolor: 'background.raised',
+                          color: 'text.primary',
+                          fontSize: 14,
+                        }}
+                      >
                         {user?.firstName?.[0] || 'U'}
                       </Avatar>
                     </IconButton>

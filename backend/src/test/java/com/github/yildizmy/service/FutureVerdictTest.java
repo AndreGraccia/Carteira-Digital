@@ -40,6 +40,15 @@ class FutureVerdictTest {
         assertEquals("SAFE", FutureService.verdict(result(summary("900", 0), summary("1", 0)), null));
     }
 
+    @Test
+    void aPurchaseThatEatsIntoTheEnvelopesIsTight() {
+        FutureResponses.SpendingLimit withEnvelopes = new FutureResponses.SpendingLimit(new BigDecimal("50"), DAY.plusDays(5),
+                true, 5, DAY, null, null, BigDecimal.ZERO, new BigDecimal("500"));
+
+        assertEquals("TIGHT", FutureService.verdict(result(summary("900", 0), summary("400", 0)), withEnvelopes));
+        assertEquals("SAFE", FutureService.verdict(result(summary("900", 0), summary("600", 0)), withEnvelopes));
+    }
+
     private static FutureResponses.ScenarioResult result(FutureResponses.ScenarioSummary before,
                                                          FutureResponses.ScenarioSummary after) {
         return new FutureResponses.ScenarioResult(before, after, BigDecimal.ZERO, 1, null, null, null);
@@ -52,6 +61,6 @@ class FutureVerdictTest {
 
     private static FutureResponses.SpendingLimit limit(String pace) {
         return new FutureResponses.SpendingLimit(new BigDecimal("50"), DAY.plusDays(5), true, 5, DAY,
-                pace == null ? null : new BigDecimal(pace), null, BigDecimal.ZERO);
+                pace == null ? null : new BigDecimal(pace), null, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 }

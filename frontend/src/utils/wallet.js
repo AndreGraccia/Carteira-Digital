@@ -106,6 +106,8 @@ export function errorKey(error) {
       'GOAL_LIMIT',
       'GOAL_NOT_FOUND',
       'ALERT_EMAIL_NOT_VERIFIED',
+      'ENVELOPE_LIMIT',
+      'ENVELOPE_NOT_FOUND',
       'INVALID_HORIZON',
     ].includes(code)
   )

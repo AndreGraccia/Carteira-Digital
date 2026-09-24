@@ -11,7 +11,7 @@ import NotFound from './pages/auth/NotFound';
 
 import Dashboard from './pages/dashboard/Dashboard';
 import Transaction from './pages/transaction/Transaction';
-import BasicTabs from './pages/transfer/BasicTabs';
+import Envelopes from './pages/envelopes/Envelopes';
 import About from './pages/About';
 import NewWallet from './pages/wallet/NewWallet';
 import Wallet from './pages/wallet/Wallet';
@@ -43,7 +43,9 @@ export default function App() {
               <Route path=":walletId" element={<Wallet />} />
             </Route>
 
-            <Route path="transfers" element={<BasicTabs />} />
+            <Route path="envelopes" element={<Envelopes />} />
+            {/* Old links and bookmarks from the "Movimentar" screen, replaced by envelopes. */}
+            <Route path="transfers" element={<Navigate to="/envelopes" replace />} />
             <Route path="transactions" element={<Transaction />} />
             <Route path="future" element={<Future />} />
             <Route path="ask" element={<Ask />} />

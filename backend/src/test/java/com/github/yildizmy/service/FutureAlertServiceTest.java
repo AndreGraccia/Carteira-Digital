@@ -125,13 +125,13 @@ class FutureAlertServiceTest {
 
     private static FutureResponses.SpendingLimit limit() {
         return new FutureResponses.SpendingLimit(BigDecimal.ZERO, LocalDate.of(2026, 10, 5), true, 11, START,
-                null, null, new BigDecimal("324.87"));
+                null, null, new BigDecimal("324.87"), BigDecimal.ZERO);
     }
 
     private static FutureResponses.Overview overview() {
         FutureResponses.Projection projection = new FutureResponses.Projection(30, BigDecimal.TEN, new BigDecimal("-324.87"),
                 START, BigDecimal.TEN, 2, List.of(), List.of(window()), List.of());
         return new FutureResponses.Overview(Instant.now(), START.minusDays(10), BigDecimal.TEN, BigDecimal.TEN, null,
-                projection, null, null, null, limit(), List.of());
+                projection, null, null, null, limit(), List.of(), BigDecimal.ZERO);
     }
 }

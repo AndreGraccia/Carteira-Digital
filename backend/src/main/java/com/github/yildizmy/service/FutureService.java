@@ -12,7 +12,9 @@ import com.github.yildizmy.dto.request.FutureRequests;
 import com.github.yildizmy.dto.response.FutureResponses;
 import com.github.yildizmy.exception.WalletRuleException;
 import com.github.yildizmy.repository.CreditCardRepository;
+import com.github.yildizmy.repository.EnvelopeRepository;
 import com.github.yildizmy.repository.GoalRepository;
+import com.github.yildizmy.domain.entity.Envelope;
 import com.github.yildizmy.domain.entity.Goal;
 import com.github.yildizmy.repository.LoanRepository;
 import com.github.yildizmy.repository.RecurrenceDecisionRepository;
@@ -77,6 +79,7 @@ public class FutureService {
     private final CreditCardRepository creditCardRepository;
     private final LoanRepository loanRepository;
     private final GoalRepository goalRepository;
+    private final EnvelopeRepository envelopeRepository;
     private final UserService userService;
     private final Clock clock;
 
@@ -87,6 +90,7 @@ public class FutureService {
             CreditCardRepository creditCardRepository,
             LoanRepository loanRepository,
             GoalRepository goalRepository,
+            EnvelopeRepository envelopeRepository,
             UserService userService,
             Clock clock) {
         this.walletRepository = walletRepository;
@@ -95,6 +99,7 @@ public class FutureService {
         this.creditCardRepository = creditCardRepository;
         this.loanRepository = loanRepository;
         this.goalRepository = goalRepository;
+        this.envelopeRepository = envelopeRepository;
         this.userService = userService;
         this.clock = clock;
     }
@@ -107,7 +112,9 @@ public class FutureService {
         ProjectionEngine.Projection projection = ProjectionEngine.project(context.today(), context.balance(), events, horizonDays);
 
         LocalDate committedUntil = context.today().plusDays(COMMITTED_WINDOW_DAYS);
-        SpendingLimit.Limit limit = SpendingLimit.compute(context.today(), context.balance(),
+        // Envelopes are a floor: the limit is what can be spent without touching them. The projection and the
+        // negative windows keep the real balance, because the bank does not know about envelopes.
+        SpendingLimit.Limit limit = SpendingLimit.compute(context.today(), context.balance().subtract(context.reserved()),
                 context.planFixed(context.today().plusDays(SpendingLimit.MAX_DAYS)));
         // "Already has a destination" is bills, invoices and instalments; future groceries are not committed yet.
         List<CashEvent> committedEvents = context.planFixed(committedUntil).stream()
@@ -121,7 +128,7 @@ public class FutureService {
                 clock.instant(),
                 context.today(),
                 context.balance(),
-                context.balance().subtract(committed.total()),
+                context.balance().subtract(committed.total()).subtract(context.reserved()),
                 committed,
                 toResponse(projection, horizonDays),
                 new FutureResponses.Sources(
@@ -142,12 +149,14 @@ public class FutureService {
                         limit.bindingDate(),
                         context.dailyAmount(),
                         context.dailyAmount() == null ? null : limit.daily().subtract(context.dailyAmount()),
-                        limit.shortfall()),
+                        limit.shortfall(),
+                        context.reserved()),
                 ExitPlan.suggest(context.today(), context.balance(), events, horizonDays, context.dailyAmount()).stream()
                         .map(action -> new FutureResponses.ExitAction(action.type(), action.label(), action.category(),
                                 action.amount(), action.from(), action.to(), action.newDaily(),
                                 action.resultingLowest(), action.solves()))
-                        .toList()
+                        .toList(),
+                context.reserved()
         );
     }
 
@@ -342,6 +351,40 @@ public class FutureService {
         return toResponse(goal, LocalDate.now(clock.withZone(ZONE)));
     }
 
+    static final int MAX_ENVELOPES = 10;
+
+    @Transactional(readOnly = true)
+    public FutureResponses.Envelopes envelopes(long userId) {
+        List<Envelope> items = envelopeRepository.findByUserIdOrderById(userId);
+        BigDecimal reserved = items.stream().map(Envelope::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal balance = walletRepository.findByUserId(userId).stream()
+                .map(Wallet::getBalance).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new FutureResponses.Envelopes(
+                items.stream().map(item -> new FutureResponses.Envelope(item.getId(), item.getName(), item.getAmount())).toList(),
+                balance,
+                reserved,
+                reserved.subtract(balance.max(BigDecimal.ZERO)).max(BigDecimal.ZERO));
+    }
+
+    @Transactional
+    public FutureResponses.Envelope createEnvelope(long userId, FutureRequests.Envelope request) {
+        userService.lockForUpdate(userId);
+        if (envelopeRepository.countByUserId(userId) >= MAX_ENVELOPES) throw new WalletRuleException("ENVELOPE_LIMIT");
+        Envelope envelope = new Envelope();
+        envelope.setUser(userService.getReferenceById(userId));
+        envelope.setName(request.name().trim());
+        envelope.setAmount(request.amount());
+        envelope.setCreatedAt(clock.instant());
+        envelopeRepository.save(envelope);
+        return new FutureResponses.Envelope(envelope.getId(), envelope.getName(), envelope.getAmount());
+    }
+
+    @Transactional
+    public void deleteEnvelope(long userId, long envelopeId) {
+        envelopeRepository.delete(envelopeRepository.findByIdAndUserId(envelopeId, userId)
+                .orElseThrow(() -> new WalletRuleException("ENVELOPE_NOT_FOUND")));
+    }
+
     @Transactional
     public void deleteGoal(long userId, long goalId) {
         goalRepository.delete(goalRepository.findByIdAndUserId(goalId, userId)
@@ -410,6 +453,8 @@ public class FutureService {
         BigDecimal weekBuffer = limit == null || limit.pace() == null
                 ? BigDecimal.ZERO
                 : limit.pace().multiply(BigDecimal.valueOf(7));
+        // A purchase that would eat into the envelopes is not "safe", even if the account never goes negative.
+        if (limit != null && limit.reserved() != null) weekBuffer = weekBuffer.add(limit.reserved());
         if (after.negativeDays() > 0 || after.minBalance90().compareTo(weekBuffer) < 0) return "TIGHT";
         return "SAFE";
     }
@@ -471,9 +516,11 @@ public class FutureService {
         Optional<DailySpending.Estimate> cardEstimate = DailySpending.estimateCard(today, cardPlans);
         BigDecimal cardAmount = applied(decisions.get(CARD_SPENDING_KEY), cardEstimate);
         List<CashEventPlanner.GoalPlan> goals = goalRepository.findByUserIdOrderById(userId).stream().map(this::toPlan).toList();
+        BigDecimal reserved = envelopeRepository.findByUserIdOrderById(userId).stream()
+                .map(Envelope::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new Context(today, wallets, balance, patterns, decisions, confirmed,
                 cards, cardPlans, loans, loans.stream().map(this::toPlan).toList(),
-                dailyEstimate, dailyAmount, cardEstimate, cardAmount, mainCard(cardPlans, today), goals);
+                dailyEstimate, dailyAmount, cardEstimate, cardAmount, mainCard(cardPlans, today), goals, reserved);
     }
 
     /** The user's value, or the estimate, when the answer is CONFIRMED; null otherwise. */
@@ -742,7 +789,8 @@ public class FutureService {
             Optional<DailySpending.Estimate> cardEstimate,
             BigDecimal cardAmount,
             CardPlan mainCard,
-            List<CashEventPlanner.GoalPlan> goals
+            List<CashEventPlanner.GoalPlan> goals,
+            BigDecimal reserved
     ) {
 
         /** Everything the user confirmed, everyday spending on the account and on the card included. */

@@ -102,29 +102,35 @@ export default function Wallet() {
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 3 }}>
                     {selected.source === 'OPEN_FINANCE' ? (
                       <>
-                        <Button component={RouterLink} to="/open-finance" variant="contained" fullWidth startIcon={<WalletIcon name="sync" />}>
+                        <Button
+                          component={RouterLink}
+                          to="/open-finance"
+                          variant="contained"
+                          fullWidth
+                          startIcon={<WalletIcon name="sync" />}
+                        >
                           {t('openFinance.sync')}
                         </Button>
-                        <Button component={RouterLink} to="/insights" variant="outlined" fullWidth startIcon={<WalletIcon name="insights" />}>
+                        <Button
+                          component={RouterLink}
+                          to="/insights"
+                          variant="outlined"
+                          fullWidth
+                          startIcon={<WalletIcon name="insights" />}
+                        >
                           {t('navigation.insights')}
                         </Button>
                       </>
                     ) : (
-                      [
-                        ['transfer', 'send', 'app.send'],
-                        ['withdraw', 'up', 'app.withdraw'],
-                      ].map(([mode, icon, label]) => (
-                        <Button
-                          key={mode}
-                          component={RouterLink}
-                          to={`/transfers?mode=${mode}&wallet=${selected.id}`}
-                          variant={mode === 'transfer' ? 'contained' : 'outlined'}
-                          fullWidth
-                          startIcon={<WalletIcon name={icon} />}
-                        >
-                          {t(label)}
-                        </Button>
-                      ))
+                      <Button
+                        component={RouterLink}
+                        to="/envelopes"
+                        variant="contained"
+                        fullWidth
+                        startIcon={<WalletIcon name="envelope" />}
+                      >
+                        {t('navigation.envelopes')}
+                      </Button>
                     )}
                   </Stack>
                 </Card>

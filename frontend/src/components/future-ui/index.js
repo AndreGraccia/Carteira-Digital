@@ -1,13 +1,32 @@
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Card, Chip, Stack, Tooltip, Typography } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Link,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { dayLabel, money } from '../../utils/wallet';
 
 // Certainty is always shown as text + line style, never colour alone:
 // confirmed = solid, estimated = dashed, hypothetical = dotted.
 const BORDER = { CONFIRMED: 'solid', ESTIMATED: 'dashed', HYPOTHETICAL: 'dotted' };
-const COLOR = { CONFIRMED: 'certainty.confirmed', ESTIMATED: 'certainty.estimated', HYPOTHETICAL: 'certainty.hypothetical' };
+const COLOR = {
+  CONFIRMED: 'certainty.confirmed',
+  ESTIMATED: 'certainty.estimated',
+  HYPOTHETICAL: 'certainty.hypothetical',
+};
 
 export function CertaintyChip({ certainty }) {
   const { t } = useTranslation();
@@ -45,7 +64,12 @@ export function EventRow({ event, dense = false }) {
       direction="row"
       alignItems="center"
       spacing={2}
-      sx={{ py: dense ? 1 : 1.5, borderBottom: '1px solid', borderColor: 'divider', '&:last-of-type': { borderBottom: 0 } }}
+      sx={{
+        py: dense ? 1 : 1.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        '&:last-of-type': { borderBottom: 0 },
+      }}
     >
       <Box sx={{ width: 52, flexShrink: 0 }}>
         <Typography variant="subtitle2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -116,12 +140,74 @@ StatBlock.propTypes = {
 };
 
 /**
+ * "Act on the future", simulated: the engine already knows who, how much and the new date of a moved bill,
+ * so the Pix can be prepared from it. Nothing is sent; Wall.ia has no accreditation to start payments yet
+ * (see docs/estrategia-produto.md). The dialog says so before and after the confirmation.
+ */
+function PixProposalDialog({ action, onClose }) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const [confirmed, setConfirmed] = useState(false);
+  const close = () => {
+    setConfirmed(false);
+    onClose();
+  };
+  return (
+    <Dialog open={Boolean(action)} onClose={close} fullWidth maxWidth="xs" aria-labelledby="pix-title">
+      {action && (
+        <>
+          <DialogTitle id="pix-title">{t('future.pix.title')}</DialogTitle>
+          <DialogContent>
+            <Box
+              component="dl"
+              sx={{ m: 0, display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 2, rowGap: 1 }}
+            >
+              {[
+                ['future.pix.to', action.label],
+                ['future.pix.amount', money(action.amount, lang)],
+                ['future.pix.date', dayLabel(action.to, lang)],
+                ['future.pix.from', t('future.pix.fromValue')],
+              ].map(([label, value]) => (
+                <Box key={label} sx={{ display: 'contents' }}>
+                  <Typography component="dt" variant="body2" color="text.secondary">
+                    {t(label)}
+                  </Typography>
+                  <Typography component="dd" variant="body2" sx={{ m: 0, fontVariantNumeric: 'tabular-nums' }}>
+                    {value}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              {t('future.pix.steps', { label: action.label, date: dayLabel(action.to, lang) })}
+            </Typography>
+            <Alert severity={confirmed ? 'success' : 'info'} sx={{ mt: 2 }} role="status">
+              {confirmed ? t('future.pix.done', { date: dayLabel(action.to, lang) }) : t('future.pix.simulated')}
+            </Alert>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={close}>{t(confirmed ? 'common.close' : 'future.pix.cancel')}</Button>
+            {!confirmed && (
+              <Button variant="contained" onClick={() => setConfirmed(true)}>
+                {t('future.pix.confirm')}
+              </Button>
+            )}
+          </DialogActions>
+        </>
+      )}
+    </Dialog>
+  );
+}
+PixProposalDialog.propTypes = { action: PropTypes.object, onClose: PropTypes.func.isRequired };
+
+/**
  * Calculated ways out of the first negative window. Each line says what changes and what it gives;
  * the Wall.ia never acts for the user.
  */
 export function ExitPlanList({ actions }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
+  const [pix, setPix] = useState(null);
   if (!actions?.length) return null;
   const sentence = (action) => {
     const result = action.solves
@@ -151,12 +237,19 @@ export function ExitPlanList({ actions }) {
         {actions.map((action) => (
           <Typography component="li" variant="body2" key={`${action.type}-${action.label || ''}`} sx={{ py: 0.5 }}>
             {sentence(action)}
+            {/* Only a moved bill has a payee, an amount and a date to pay on. */}
+            {action.type === 'POSTPONE' && (
+              <Button size="small" onClick={() => setPix(action)} sx={{ ml: 1, py: 0 }}>
+                {t('future.pix.prepare')}
+              </Button>
+            )}
           </Typography>
         ))}
       </Box>
       <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1 }}>
         {t('future.exit.note')}
       </Typography>
+      <PixProposalDialog action={pix} onClose={() => setPix(null)} />
     </Box>
   );
 }
@@ -182,8 +275,7 @@ export function DailyLimitCard({ limit, risk, onWhy }) {
         pace: money(limit.pace, lang),
         cut: money(Math.abs(Number(limit.margin)), lang),
       });
-    else
-      pace = t('future.limit.paceOk', { pace: money(limit.pace, lang), margin: money(limit.margin, lang) });
+    else pace = t('future.limit.paceOk', { pace: money(limit.pace, lang), margin: money(limit.margin, lang) });
   }
 
   return (
@@ -225,6 +317,14 @@ export function DailyLimitCard({ limit, risk, onWhy }) {
       <Typography variant="body2" sx={{ mt: 1.5 }}>
         {pace}
       </Typography>
+      {Number(limit.reserved) > 0 && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          {t('future.limit.reserved', { amount: money(limit.reserved, lang) })}{' '}
+          <Link component={RouterLink} to="/envelopes">
+            {t('future.limit.reservedLink')}
+          </Link>
+        </Typography>
+      )}
       {risk && Number(risk.overdraftCostCap) > 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
           {t('future.limit.cost', { amount: money(risk.overdraftCostCap, lang) })}

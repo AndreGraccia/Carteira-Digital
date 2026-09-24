@@ -103,6 +103,36 @@ public final class FutureResponses {
     public record Goal(long id, String name, BigDecimal monthlyAmount, int dayOfMonth, LocalDate nextDate) {
     }
 
+    public record Envelope(long id, String name, BigDecimal amount) {
+    }
+
+    /**
+     * How right the forecast was, graded 7 to 30 days after it was made.
+     *
+     * @param since             first synced day kept (null before any sync)
+     * @param firstComparisonOn when grading becomes possible (null before a forecast with confirmed answers)
+     * @param meanAbsoluteError average miss in reais (null without comparisons)
+     * @param bias              average signed miss (actual minus forecast): above zero the forecast was pessimistic
+     * @param avoided           days forecast below zero that stayed at or above zero
+     * @param missed            days below zero that the forecast did not see coming
+     * @param recent            the latest comparisons, oldest first
+     */
+    public record Accuracy(LocalDate since, LocalDate firstComparisonOn, int comparisons, BigDecimal meanAbsoluteError,
+                           BigDecimal bias, int avoided, int missed, List<AccuracyPoint> recent) {
+    }
+
+    public record AccuracyPoint(LocalDate date, LocalDate forecastOn, BigDecimal projected, BigDecimal actual,
+                                BigDecimal error) {
+    }
+
+    /**
+     * @param reserved  sum of the envelopes
+     * @param unbacked  part of the envelopes today's balance does not cover (zero when it does): an envelope
+     *                  bigger than the money is a wish, and the screen must say so instead of hiding it
+     */
+    public record Envelopes(List<Envelope> items, BigDecimal balance, BigDecimal reserved, BigDecimal unbacked) {
+    }
+
     /**
      * Answer to a free-text question. Only the fields of the detected intent are filled; every number
      * comes from the engine, and the client builds the sentence from them.
@@ -137,6 +167,8 @@ public final class FutureResponses {
      * @param pace        everyday spending the user confirmed, or null
      * @param margin      safeDaily minus pace: positive is room left, negative is how much to cut per day
      * @param shortfall   missing before {@code until} with bills alone, before any everyday spending (zero if none)
+     * @param reserved    envelopes kept out of the limit: {@code safeDaily} is what can be spent without touching them,
+     *                    and a {@code shortfall} may come only from them (the balance covers the bills, not the envelopes)
      */
     public record SpendingLimit(
             BigDecimal safeDaily,
@@ -146,7 +178,8 @@ public final class FutureResponses {
             LocalDate bindingDate,
             BigDecimal pace,
             BigDecimal margin,
-            BigDecimal shortfall
+            BigDecimal shortfall,
+            BigDecimal reserved
     ) {
     }
 
@@ -161,7 +194,8 @@ public final class FutureResponses {
             DailySpending dailySpending,
             DailySpending cardSpending,
             SpendingLimit spendingLimit,
-            List<ExitAction> exitPlan
+            List<ExitAction> exitPlan,
+            BigDecimal reserved
     ) {
     }
 

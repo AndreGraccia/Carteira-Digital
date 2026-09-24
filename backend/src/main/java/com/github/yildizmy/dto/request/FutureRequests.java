@@ -37,6 +37,12 @@ public final class FutureRequests {
     ) {
     }
 
+    public record Envelope(
+            @NotBlank @Size(max = 60) String name,
+            @NotNull @DecimalMin("0.01") @DecimalMax("1000000.00") @Digits(integer = 7, fraction = 2) BigDecimal amount
+    ) {
+    }
+
     /**
      * @param source      ACCOUNT (default) for account spending, CARD for everyday card purchases
      * @param dailyAmount the user's own value per day; null keeps the estimate from the history

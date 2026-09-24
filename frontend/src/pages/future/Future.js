@@ -31,6 +31,7 @@ import Questions from './Questions';
 import Simulator from './Simulator';
 import Goals from './Goals';
 import AlertToggle from './AlertToggle';
+import Accuracy from './Accuracy';
 
 function WhyDialog({ risk, exitPlan, onClose }) {
   const { t, i18n } = useTranslation();
@@ -228,7 +229,7 @@ export default function Future() {
                 severity="warning"
                 icon={<WalletIcon name="info" />}
                 action={
-                  <Button color="inherit" onClick={() => setWhy(risk)}>
+                  <Button color="inherit" onClick={() => setWhy(risk)} sx={{ whiteSpace: 'nowrap' }}>
                     {t('future.whyButton')}
                   </Button>
                 }
@@ -363,6 +364,7 @@ export default function Future() {
               </Grid>
             </Box>
 
+            <Accuracy />
             <Questions
               recurrences={recurrences}
               dailySpending={overview.dailySpending}

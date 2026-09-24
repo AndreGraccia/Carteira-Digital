@@ -133,6 +133,8 @@ export default function Simulator({ incomes, hasCard }) {
       <Tabs
         value={type}
         onChange={(_, value) => {
+          // A purchase answer arriving after the switch must not show up under "save every month".
+          latest.current += 1;
           setType(value);
           setState({ loading: false, error: null, result: null, request: null });
         }}

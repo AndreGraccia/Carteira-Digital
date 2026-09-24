@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Box, Button, IconButton, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, IconButton, Skeleton, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useSnackbar } from 'notistack';
 import HttpService from '../../services/HttpService';
@@ -17,7 +17,8 @@ export default function Goals({ onChanged }) {
   const { t, i18n } = useTranslation();
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const lang = i18n.language;
-  const [goals, setGoals] = useState([]);
+  // null until the first answer: an empty list would flash "no goals" before the real ones arrive.
+  const [goals, setGoals] = useState(null);
   const [error, setError] = useState(null);
   const [form, setForm] = useState(EMPTY);
   // "Does it fit?": the same SAVINGS scenario as the simulator, run before the goal is created.
@@ -143,12 +144,18 @@ export default function Goals({ onChanged }) {
           {t(error)}
         </Alert>
       )}
-      {!error && !goals.length && (
+      {!error && !goals && (
+        <Box role="status" aria-label={t('common.loading')} sx={{ px: 3, pb: 2 }}>
+          <Skeleton width="60%" />
+          <Skeleton width="40%" />
+        </Box>
+      )}
+      {!error && goals?.length === 0 && (
         <Typography variant="body2" sx={{ px: 3, pb: 2 }}>
           {t('future.goals.empty')}
         </Typography>
       )}
-      {goals.map((goal) => (
+      {goals?.map((goal) => (
         <Stack
           key={goal.id}
           direction="row"

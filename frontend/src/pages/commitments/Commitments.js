@@ -19,7 +19,7 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import { StatBlock } from '../../components/future-ui';
-import { EmptyState, PageHeading, SectionCard } from '../../components/wallet-ui';
+import { EmptyState, PageHeading, PageSkeleton, SectionCard } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money, monthLabel } from '../../utils/wallet';
 
 const FULL_DATE = { day: '2-digit', month: 'short', year: 'numeric' };
@@ -257,6 +257,8 @@ export default function Commitments() {
   const [state, setState] = useState({ loading: true, error: null, data: null });
 
   const load = useCallback(async () => {
+    // "Try again" must visibly start over, not look dead until the answer arrives.
+    setState((previous) => ({ ...previous, loading: true, error: null }));
     try {
       const data = await HttpService.getWithAuth('/future/commitments');
       setState({ loading: false, error: null, data });
@@ -278,11 +280,7 @@ export default function Commitments() {
       </Helmet>
       <Container maxWidth="lg">
         <PageHeading title={t('commitments.heading')} description={t('commitments.description')} />
-        {state.loading && (
-          <Typography role="status" color="text.secondary">
-            {t('common.loading')}
-          </Typography>
-        )}
+        {state.loading && !data && <PageSkeleton rows={2} />}
         {state.error && (
           <Alert
             severity="error"

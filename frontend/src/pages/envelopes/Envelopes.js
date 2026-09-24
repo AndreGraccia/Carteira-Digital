@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useSnackbar } from 'notistack';
 import HttpService from '../../services/HttpService';
 import { StatBlock } from '../../components/future-ui';
-import { PageHeading, SectionCard, WalletIcon } from '../../components/wallet-ui';
+import { PageHeading, PageSkeleton, SectionCard, WalletIcon } from '../../components/wallet-ui';
 import { errorKey, money, parseAmount } from '../../utils/wallet';
 
 const EMPTY = { name: '', amount: '' };
@@ -119,11 +119,7 @@ export default function Envelopes() {
       <Container maxWidth="lg">
         <PageHeading title={t('envelopes.heading')} description={t('envelopes.description')} />
 
-        {state.loading && !data && (
-          <Typography role="status" color="text.secondary">
-            {t('common.loading')}
-          </Typography>
-        )}
+        {state.loading && !data && <PageSkeleton rows={3} />}
         {state.error && (
           <Alert
             severity="error"

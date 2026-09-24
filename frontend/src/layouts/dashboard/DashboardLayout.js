@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Avatar,
@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   Chip,
+  ClickAwayListener,
   Container,
   Divider,
   IconButton,
@@ -29,6 +30,18 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
   const [accountOpen, setAccountOpen] = useState(false);
+  const accountButton = useRef(null);
+  // Esc closes the panel from anywhere (focus may be on the avatar, not inside it) and returns focus.
+  useEffect(() => {
+    if (!accountOpen) return undefined;
+    const onKey = (event) => {
+      if (event.key !== 'Escape') return;
+      setAccountOpen(false);
+      accountButton.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [accountOpen]);
   // `mobile` items fit the bottom bar (5 max); the rest live in the account panel on small screens.
   const items = [
     { path: '/', label: 'navigation.dashboard', icon: 'home', mobile: true },
@@ -136,9 +149,11 @@ export default function DashboardLayout() {
                   <LanguageSelector />
                   <Tooltip title={t('common.account')}>
                     <IconButton
+                      ref={accountButton}
                       onClick={() => setAccountOpen(!accountOpen)}
                       aria-label={t('common.account')}
                       aria-expanded={accountOpen}
+                      aria-controls="account-panel"
                     >
                       <Avatar
                         sx={{
@@ -156,31 +171,44 @@ export default function DashboardLayout() {
                 </Stack>
               </Stack>
               {accountOpen && (
-                <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1} sx={{ pb: 2 }}>
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {user?.firstName} {user?.lastName}
-                  </Typography>
-                  {items
-                    .filter((item) => !item.mobile)
-                    .map((item) => (
-                      <Button
-                        key={item.path}
-                        component={RouterLink}
-                        to={item.path}
-                        onClick={() => setAccountOpen(false)}
-                        startIcon={<WalletIcon name={item.icon} />}
-                        sx={{ display: { lg: 'none' } }}
-                      >
-                        {t(item.label)}
-                      </Button>
-                    ))}
-                  <Button component={RouterLink} to="/about" onClick={() => setAccountOpen(false)}>
-                    {t('app.about')}
-                  </Button>
-                  <Button onClick={logout} startIcon={<WalletIcon name="logout" />}>
-                    {t('actions.logout')}
-                  </Button>
-                </Stack>
+                <ClickAwayListener
+                  onClickAway={(event) => {
+                    // The avatar toggles on its own; closing here too would reopen it on the same click.
+                    if (!accountButton.current?.contains(event.target)) setAccountOpen(false);
+                  }}
+                >
+                  <Stack
+                    id="account-panel"
+                    direction={{ xs: 'column', sm: 'row' }}
+                    alignItems={{ sm: 'center' }}
+                    flexWrap="wrap"
+                    sx={{ pb: 2, gap: 1 }}
+                  >
+                    <Typography variant="body2" sx={{ flex: 1, flexBasis: { sm: '100%', lg: 0 } }}>
+                      {user?.firstName} {user?.lastName}
+                    </Typography>
+                    {items
+                      .filter((item) => !item.mobile)
+                      .map((item) => (
+                        <Button
+                          key={item.path}
+                          component={RouterLink}
+                          to={item.path}
+                          onClick={() => setAccountOpen(false)}
+                          startIcon={<WalletIcon name={item.icon} />}
+                          sx={{ display: { lg: 'none' } }}
+                        >
+                          {t(item.label)}
+                        </Button>
+                      ))}
+                    <Button component={RouterLink} to="/about" onClick={() => setAccountOpen(false)}>
+                      {t('app.about')}
+                    </Button>
+                    <Button onClick={logout} startIcon={<WalletIcon name="logout" />}>
+                      {t('actions.logout')}
+                    </Button>
+                  </Stack>
+                </ClickAwayListener>
               )}
             </Container>
           </Box>

@@ -112,3 +112,25 @@ test('an invalid code keeps the dialog available with the specific error', async
   expect(button('openFinance.verification.confirm').disabled).toBe(false);
   expect(refresh).not.toHaveBeenCalled();
 });
+
+test('without a status the card claims nothing while loading, and a failure offers a retry', async () => {
+  let fail;
+  HttpService.getWithAuth.mockReturnValue(
+    new Promise((_, reject) => {
+      fail = reject;
+    })
+  );
+  await renderPage();
+  expect(container.querySelector('.MuiSkeleton-root')).not.toBeNull();
+  expect(container.textContent).not.toContain('openFinance.participantSandbox');
+  expect(container.textContent).not.toContain('openFinance.bankPlaceholder');
+
+  await act(async () => fail({ response: { status: 500 } }));
+  expect(container.textContent).toContain('app.errors.server');
+  expect(container.textContent).not.toContain('openFinance.participantSandbox');
+
+  HttpService.getWithAuth.mockResolvedValue(status());
+  await act(async () => Simulate.click(button('app.retry')));
+  expect(container.textContent).not.toContain('app.errors.server');
+  expect(container.textContent).toContain('openFinance.contractSandbox');
+});

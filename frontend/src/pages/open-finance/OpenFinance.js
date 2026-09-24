@@ -21,7 +21,7 @@ import { LoadingButton } from '@mui/lab';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { enqueueSnackbar } from 'notistack';
-import { PageHeading, WalletIcon, IconTile } from '../../components/wallet-ui';
+import { PageHeading, PageSkeleton, WalletIcon, IconTile } from '../../components/wallet-ui';
 import { useWallets } from '../../context/WalletContext';
 import HttpService from '../../services/HttpService';
 import { dateTime, errorKey } from '../../utils/wallet';
@@ -42,6 +42,7 @@ export default function OpenFinance() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const nextStatus = await HttpService.getWithAuth('/open-finance/status');
       setStatus(nextStatus);
@@ -219,84 +220,99 @@ export default function OpenFinance() {
       <Container maxWidth="lg">
         <PageHeading title={t('openFinance.heading')} description={t('openFinance.description')} />
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert
+            severity="error"
+            sx={{ mb: 3 }}
+            action={
+              // Without a status there is nothing else on screen to act on: offer the retry here.
+              status ? undefined : (
+                <Button color="inherit" onClick={load} disabled={loading}>
+                  {t('app.retry')}
+                </Button>
+              )
+            }
+          >
             {t(error)}
           </Alert>
         )}
         <Grid container spacing={3}>
           <Grid item xs={12} md={7}>
-            <Card sx={{ p: { xs: 3, sm: 4 }, overflow: 'hidden', position: 'relative' }}>
-              <Box
-                sx={{
-                  position: 'absolute',
-                  width: 220,
-                  height: 220,
-                  borderRadius: '50%',
-                  background: (theme) =>
-                    `radial-gradient(circle, ${alpha(theme.palette.brand.horizon, 0.16)}, transparent 68%)`,
-                  right: -70,
-                  top: -90,
-                }}
-              />
-              <Stack spacing={3} sx={{ position: 'relative' }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
-                  <IconTile name="bank" />
-                  <Chip color={statusColor} label={t(`openFinance.status.${connectionStatus}`)} />
-                </Stack>
-                <Box>
-                  <Typography variant="overline" color="text.secondary">
-                    {status?.simulated ? t('openFinance.contractSandbox') : t('openFinance.participantSandbox')}
-                  </Typography>
-                  <Typography variant="h4" sx={{ mt: 0.5 }}>
-                    {status?.institutionName || t('openFinance.bankPlaceholder')}
-                  </Typography>
-                  <Typography color="text.secondary" sx={{ mt: 1.5, maxWidth: 580 }}>
-                    {status?.notice || t('openFinance.loading')}
-                  </Typography>
-                </Box>
-                {connected && (
-                  <Stack
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={3}
-                    divider={<Divider orientation="vertical" flexItem />}
-                  >
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        {t('openFinance.accounts')}
-                      </Typography>
-                      <Typography variant="h5">{status.accountCount}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        {t('openFinance.lastSync')}
-                      </Typography>
-                      <Typography variant="subtitle1">{dateTime(status.lastSyncedAt, i18n.language)}</Typography>
-                    </Box>
+            {/* No status yet: nothing is known about the connection, so the card claims nothing. */}
+            {!status && loading && <PageSkeleton rows={0} />}
+            {status && (
+              <Card sx={{ p: { xs: 3, sm: 4 }, overflow: 'hidden', position: 'relative' }}>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    width: 220,
+                    height: 220,
+                    borderRadius: '50%',
+                    background: (theme) =>
+                      `radial-gradient(circle, ${alpha(theme.palette.brand.horizon, 0.16)}, transparent 68%)`,
+                    right: -70,
+                    top: -90,
+                  }}
+                />
+                <Stack spacing={3} sx={{ position: 'relative' }}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+                    <IconTile name="bank" />
+                    <Chip color={statusColor} label={t(`openFinance.status.${connectionStatus}`)} />
                   </Stack>
-                )}
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                  <LoadingButton
-                    loading={busy || loading}
-                    variant="contained"
-                    onClick={connected ? sync : requestCode}
-                    startIcon={<WalletIcon name={connected ? 'sync' : 'shield'} />}
-                  >
-                    {t(
-                      connected
-                        ? 'openFinance.sync'
-                        : pending
-                        ? 'openFinance.verification.enterCode'
-                        : 'openFinance.connect'
-                    )}
-                  </LoadingButton>
+                  <Box>
+                    <Typography variant="overline" color="text.secondary">
+                      {status.simulated ? t('openFinance.contractSandbox') : t('openFinance.participantSandbox')}
+                    </Typography>
+                    <Typography variant="h4" sx={{ mt: 0.5 }}>
+                      {status.institutionName || t('openFinance.bankPlaceholder')}
+                    </Typography>
+                    <Typography color="text.secondary" sx={{ mt: 1.5, maxWidth: 580 }}>
+                      {status?.notice || t('openFinance.loading')}
+                    </Typography>
+                  </Box>
                   {connected && (
-                    <Button color="inherit" disabled={busy} onClick={disconnect}>
-                      {t('openFinance.disconnect')}
-                    </Button>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={3}
+                      divider={<Divider orientation="vertical" flexItem />}
+                    >
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {t('openFinance.accounts')}
+                        </Typography>
+                        <Typography variant="h5">{status.accountCount}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {t('openFinance.lastSync')}
+                        </Typography>
+                        <Typography variant="subtitle1">{dateTime(status.lastSyncedAt, i18n.language)}</Typography>
+                      </Box>
+                    </Stack>
                   )}
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                    <LoadingButton
+                      loading={busy || loading}
+                      variant="contained"
+                      onClick={connected ? sync : requestCode}
+                      startIcon={<WalletIcon name={connected ? 'sync' : 'shield'} />}
+                    >
+                      {t(
+                        connected
+                          ? 'openFinance.sync'
+                          : pending
+                          ? 'openFinance.verification.enterCode'
+                          : 'openFinance.connect'
+                      )}
+                    </LoadingButton>
+                    {connected && (
+                      <Button color="inherit" disabled={busy} onClick={disconnect}>
+                        {t('openFinance.disconnect')}
+                      </Button>
+                    )}
+                  </Stack>
                 </Stack>
-              </Stack>
-            </Card>
+              </Card>
+            )}
           </Grid>
           <Grid item xs={12} md={5}>
             <Stack spacing={3}>

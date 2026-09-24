@@ -25,7 +25,7 @@ import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import ProjectionChart from '../../components/projection-chart';
 import { CertaintyLegend, DailyLimitCard, EventRow, ExitPlanList, StatBlock } from '../../components/future-ui';
-import { EmptyState, PageHeading, SectionCard, WalletIcon } from '../../components/wallet-ui';
+import { EmptyState, PageHeading, PageSkeleton, SectionCard, WalletIcon } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money } from '../../utils/wallet';
 import { forecastReady } from '../../utils/forecast';
 import Questions from './Questions';
@@ -200,11 +200,7 @@ export default function Future() {
         <Box role="status" aria-live="polite" sx={visuallyHidden}>
           {announce}
         </Box>
-        {state.loading && !overview && (
-          <Typography role="status" color="text.secondary">
-            {t('common.loading')}
-          </Typography>
-        )}
+        {state.loading && !overview && <PageSkeleton rows={3} />}
         {state.error && (
           <Alert
             severity="error"

@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Card, CircularProgress, Stack, SvgIcon, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, Skeleton, Stack, SvgIcon, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { useWallets } from '../../context/WalletContext';
@@ -111,32 +111,68 @@ EmptyState.propTypes = {
   action: PropTypes.node,
   icon: PropTypes.string,
 };
+/**
+ * Placeholder with the shape of a page: a summary card and `rows` list lines, so nothing jumps when the
+ * data arrives. `rows={0}` leaves only the summary card.
+ */
+export function PageSkeleton({ rows = 4 }) {
+  const { t } = useTranslation();
+  return (
+    <Stack spacing={3} role="status" aria-busy="true" aria-label={t('common.loading')}>
+      <Card sx={{ p: 3 }}>
+        <Skeleton width="30%" />
+        <Skeleton width="55%" sx={{ fontSize: (theme) => theme.typography.h4.fontSize }} />
+        <Skeleton width="80%" />
+      </Card>
+      {rows > 0 && (
+        <Card sx={{ px: 3, py: 1 }}>
+          {Array.from({ length: rows }, (_, index) => (
+            <Stack key={index} direction="row" spacing={2} alignItems="center" sx={{ py: 1.5 }}>
+              <Skeleton variant="rounded" width={40} height={40} />
+              <Box sx={{ flex: 1 }}>
+                <Skeleton width="45%" />
+                <Skeleton width="25%" />
+              </Box>
+              <Skeleton width="15%" />
+            </Stack>
+          ))}
+        </Card>
+      )}
+    </Stack>
+  );
+}
+PageSkeleton.propTypes = { rows: PropTypes.number };
+
+/**
+ * Wallet data states. The skeleton only shows before the first answer: a refresh (after creating a
+ * wallet or syncing Open Finance) keeps the page on screen, marked busy, instead of swapping it for a
+ * loader.
+ */
 export function DataState({ children }) {
   const { t } = useTranslation();
-  const { loading, error, refresh } = useWallets();
-  if (loading)
-    return (
-      <Box role="status" sx={{ textAlign: 'center', py: 10 }}>
-        <CircularProgress size={28} />
-        <Typography sx={{ mt: 2 }} color="text.secondary">
-          {t('common.loading')}
-        </Typography>
-      </Box>
-    );
-  if (error)
-    return (
-      <Alert
-        severity="error"
-        action={
-          <Button color="inherit" onClick={refresh}>
-            {t('app.retry')}
-          </Button>
-        }
-      >
-        {t(error)}
-      </Alert>
-    );
-  return children;
+  const { loading, error, refresh, wallets, transactions } = useWallets();
+  const hasData = wallets.length > 0 || transactions.length > 0;
+  if (loading && !hasData && !error) return <PageSkeleton />;
+  const alert = error && (
+    <Alert
+      severity="error"
+      sx={{ mb: hasData ? 3 : 0 }}
+      action={
+        <Button color="inherit" onClick={refresh} disabled={loading}>
+          {t('app.retry')}
+        </Button>
+      }
+    >
+      {t(error)}
+    </Alert>
+  );
+  if (!hasData) return alert || children;
+  return (
+    <>
+      {alert}
+      <Box aria-busy={loading}>{children}</Box>
+    </>
+  );
 }
 DataState.propTypes = { children: PropTypes.node };
 export function ActivityList({ transactions, wallets, onSelect }) {

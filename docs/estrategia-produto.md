@@ -138,16 +138,17 @@ O que um concorrente não copia rápido não é uma tela, é o conjunto: um banc
 
 ## Próximos passos, em ordem
 
-Critério: primeiro o que aumenta a confiança no número, depois o alcance, por último a escala.
+Feitos na quinta rodada ([ADR 0006](adr/0006-sync-diario-e-push-sem-sdk.md)): sync diário automático, contagem do clique em "Preparar Pix", avisos por push no navegador e painel da métrica principal para o time.
 
-1. **Sync diário automático.** O placar e os alertas dependem de saldo fresco; hoje só existem nos dias em que a pessoa sincroniza. Com Open Finance real, é um job; o registro do placar muda de lugar sem mudar de forma.
-2. **Contar o clique em "Preparar Pix".** Uma linha na métrica que já existe para o Pergunte. É o número que justifica (ou não) o credenciamento.
-3. **Push no navegador** para os alertas, reaproveitando o mesmo job.
-4. **Painel da estrela-guia** para o time: agregado de `forecast_snapshot` (negativos evitados por usuário ativo por mês, erro médio, negativos sem aviso).
-5. **Classificador de intenção** para o Pergunte, quando a medição mostrar muitas perguntas sem resposta.
-6. **Estimativa por cartão** quando houver usuários com mais de um cartão ativo.
-7. **Limites em Redis** (login, Gemini, Pergunte) antes de rodar mais de uma instância da API.
-8. **Credenciamento como iniciador de pagamento e ledger**, se o item 2 mostrar demanda. Decisão de negócio antes de técnica.
+O que resta tem gatilho, e nenhum deles aconteceu ainda:
+
+| Passo | Gatilho | Onde olhar |
+| --- | --- | --- |
+| Classificador de intenção para o Pergunte | Mais de 20% das perguntas sem resposta | Painel de métricas, "O que perguntam" |
+| Estimativa do dia a dia por cartão | Usuários com mais de um cartão ativo | Consulta em `credit_card` |
+| Limites em Redis (login, Gemini, Pergunte) | Rodar mais de uma instância da API | Plano de deploy |
+| Credenciamento como iniciador de pagamento e ledger | Cliques em "Preparar Pix" mostrando demanda | Painel de métricas, "Interesse no Pix de verdade" |
+| Sync em paralelo ou em fila | Job diário levando minutos | Log `Daily Open Finance sync` |
 
 ## Métricas
 

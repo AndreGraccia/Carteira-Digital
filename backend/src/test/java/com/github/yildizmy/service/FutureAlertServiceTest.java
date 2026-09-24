@@ -6,6 +6,7 @@ import com.github.yildizmy.dto.response.FutureResponses;
 import com.github.yildizmy.exception.WalletRuleException;
 import com.github.yildizmy.repository.FutureAlertRepository;
 import com.github.yildizmy.repository.UserRepository;
+import com.github.yildizmy.service.push.PushService;
 import org.junit.jupiter.api.Test;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -37,7 +38,8 @@ class FutureAlertServiceTest {
     private final FutureService future = mock(FutureService.class);
     private final OpenFinanceEmailVerificationService verification = mock(OpenFinanceEmailVerificationService.class);
     private final JavaMailSender mail = mock(JavaMailSender.class);
-    private final FutureAlertService service = new FutureAlertService(alerts, users, future, verification, mail,
+    private final PushService push = mock(PushService.class);
+    private final FutureAlertService service = new FutureAlertService(alerts, users, future, verification, mail, push,
             Clock.fixed(Instant.parse("2026-09-23T11:00:00Z"), ZoneOffset.UTC), "no-reply@wallia.local", "http://localhost:3000");
 
     @Test
@@ -107,6 +109,34 @@ class FutureAlertServiceTest {
         assertEquals("Olá, Sua.", FutureAlertService.greeting("Sua conta foi bloqueada, acesse evil.co"));
         assertEquals("Olá, httpevilco.", FutureAlertService.greeting("http://evil.co"));
         assertEquals("Olá.", FutureAlertService.greeting(null));
+    }
+
+    @Test
+    void aBrowserSubscriptionAloneIsEnoughAndThePushNeverCarriesAmounts() {
+        when(push.hasSubscription(4L)).thenReturn(true);
+        service.setEnabled(4L, true);
+
+        when(alerts.findByEnabledTrue()).thenReturn(List.of(alert(4L)));
+        when(future.overview(4L, FutureAlertService.HORIZON_DAYS)).thenReturn(overview());
+        when(push.send(org.mockito.ArgumentMatchers.eq(4L), any(), any(), any())).thenReturn(1);
+
+        assertEquals(1, service.runDaily());
+        verify(mail, never()).send(any(SimpleMailMessage.class));
+        org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(push).send(org.mockito.ArgumentMatchers.eq(4L), any(), body.capture(), org.mockito.ArgumentMatchers.eq("/future"));
+        assertEquals("A partir de 03/10. Toque para ver por quê e como sair.", body.getValue());
+    }
+
+    @Test
+    void whenNoChannelDeliversTheWindowStaysUnannouncedForTomorrow() {
+        FutureAlert alert = alert(5L);
+        when(alerts.findByEnabledTrue()).thenReturn(List.of(alert));
+        when(future.overview(5L, FutureAlertService.HORIZON_DAYS)).thenReturn(overview());
+        when(push.hasSubscription(5L)).thenReturn(true);
+        when(push.send(org.mockito.ArgumentMatchers.eq(5L), any(), any(), any())).thenReturn(0);
+
+        assertEquals(0, service.runDaily());
+        assertEquals(null, alert.getLastWindowStart());
     }
 
     private static FutureAlert alert(long userId) {

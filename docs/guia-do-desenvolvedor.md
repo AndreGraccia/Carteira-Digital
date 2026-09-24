@@ -206,6 +206,16 @@ O roteiro completo, com as proteções do código por e-mail, está em [open-fin
 9. **Envelopes** separa parte do saldo; o limite diário do Futuro passa a deixar esse valor de fora.
 10. **Quanto a Wall.ia acertou** aparece depois do primeiro sync com perguntas respondidas. A primeira comparação sai 7 dias depois do sync seguinte.
 
+### Avisos no navegador (Web Push)
+
+Ficam desligados até existirem as chaves VAPID no `.env.properties`. Gere um par uma vez por ambiente e não troque depois: os navegadores ficam inscritos nessa chave pública, e trocar derruba todas as inscrições.
+
+```powershell
+node -e "const e=require('node:crypto').createECDH('prime256v1');e.generateKeys();console.log('vapid_public_key='+e.getPublicKey().toString('base64url'));console.log('vapid_private_key='+Buffer.concat([Buffer.alloc(32),e.getPrivateKey()]).subarray(-32).toString('base64url'))"
+```
+
+Cole as duas linhas no `.env.properties`, reinicie o backend e, na tela Futuro, use "Ativar aqui" abaixo do aviso. Navegador só aceita push em `https` ou em `localhost`. O servidor só envia para os serviços de push dos navegadores (Google, Mozilla, Apple, Microsoft); qualquer outro endereço de inscrição é recusado.
+
 ### Ter um administrador
 
 Desde a V19 não existe admin pronto: as contas `johndoe` e `lindacalvin` do template original tinham senha pública e foram desativadas. Para promover uma conta sua, no banco local:

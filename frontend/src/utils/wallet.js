@@ -108,6 +108,9 @@ export function errorKey(error) {
       'ALERT_EMAIL_NOT_VERIFIED',
       'ENVELOPE_LIMIT',
       'ENVELOPE_NOT_FOUND',
+      'PUSH_UNAVAILABLE',
+      'PUSH_INVALID_SUBSCRIPTION',
+      'PUSH_LIMIT',
       'INVALID_HORIZON',
     ].includes(code)
   )

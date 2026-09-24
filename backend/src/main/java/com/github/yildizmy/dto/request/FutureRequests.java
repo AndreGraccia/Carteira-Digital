@@ -1,5 +1,6 @@
 package com.github.yildizmy.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -35,6 +36,16 @@ public final class FutureRequests {
             @NotNull @DecimalMin("0.01") @DecimalMax("1000000.00") @Digits(integer = 7, fraction = 2) BigDecimal monthlyAmount,
             @NotNull @Min(1) @Max(31) Integer dayOfMonth
     ) {
+    }
+
+    /** The browser's PushSubscription.toJSON(). */
+    public record PushSubscription(@NotBlank @Size(max = 1000) String endpoint, @NotNull @Valid PushKeys keys) {
+    }
+
+    public record PushKeys(@NotBlank @Size(max = 100) String p256dh, @NotBlank @Size(max = 50) String auth) {
+    }
+
+    public record PushEndpoint(@NotBlank @Size(max = 1000) String endpoint) {
     }
 
     public record PixInterest(@NotNull @Pattern(regexp = "^(PREPARE|CONFIRM)$") String step) {

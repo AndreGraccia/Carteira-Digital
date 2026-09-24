@@ -6,6 +6,7 @@ import com.github.yildizmy.dto.response.FutureResponses;
 import com.github.yildizmy.exception.WalletRuleException;
 import com.github.yildizmy.repository.FutureAlertRepository;
 import com.github.yildizmy.repository.UserRepository;
+import com.github.yildizmy.service.push.PushService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
@@ -38,6 +39,7 @@ public class FutureAlertService {
     private final FutureService futureService;
     private final OpenFinanceEmailVerificationService emailVerification;
     private final JavaMailSender mailSender;
+    private final PushService pushService;
     private final Clock clock;
     private final String from;
     private final String appUrl;
@@ -48,6 +50,7 @@ public class FutureAlertService {
             FutureService futureService,
             OpenFinanceEmailVerificationService emailVerification,
             JavaMailSender mailSender,
+            PushService pushService,
             Clock clock,
             @Value("${app.open-finance.verification.mail-from}") String from,
             @Value("${app.security.allowedOrigin}") String appUrl) {
@@ -56,6 +59,7 @@ public class FutureAlertService {
         this.futureService = futureService;
         this.emailVerification = emailVerification;
         this.mailSender = mailSender;
+        this.pushService = pushService;
         this.clock = clock;
         this.from = from;
         this.appUrl = appUrl;
@@ -69,7 +73,10 @@ public class FutureAlertService {
     @Transactional
     public void setEnabled(long userId, boolean enabled) {
         // Sign-up does not confirm the e-mail; without this, anyone could aim Wall.ia's mail at a stranger.
-        if (enabled && !emailVerification.isVerified(userId)) throw new WalletRuleException("ALERT_EMAIL_NOT_VERIFIED");
+        // A browser subscribed from the user's own session is a channel of its own.
+        if (enabled && !emailVerification.isVerified(userId) && !pushService.hasSubscription(userId)) {
+            throw new WalletRuleException("ALERT_EMAIL_NOT_VERIFIED");
+        }
         FutureAlert alert = alertRepository.findById(userId).orElseGet(() -> {
             FutureAlert created = new FutureAlert();
             created.setUserId(userId);
@@ -97,8 +104,10 @@ public class FutureAlertService {
     }
 
     private boolean check(FutureAlert alert) {
-        // The verification lasts 90 days or ends when the e-mail changes; stay quiet until it is renewed.
-        if (!emailVerification.isVerified(alert.getUserId())) return false;
+        // The verification lasts 90 days or ends when the e-mail changes; without it, only push is left.
+        boolean email = emailVerification.isVerified(alert.getUserId());
+        boolean push = pushService.hasSubscription(alert.getUserId());
+        if (!email && !push) return false;
         FutureResponses.Overview overview = futureService.overview(alert.getUserId(), HORIZON_DAYS);
         FutureResponses.RiskWindow window = overview.projection().riskWindows().stream().findFirst().orElse(null);
         Decision decision = decide(alert.getLastWindowStart(), window == null ? null : window.start());
@@ -108,8 +117,22 @@ public class FutureAlertService {
             alertRepository.save(alert);
             return false;
         }
-        User user = userRepository.findById(alert.getUserId()).orElseThrow();
-        send(user, window, overview.spendingLimit());
+        boolean delivered = false;
+        if (email) {
+            try {
+                send(userRepository.findById(alert.getUserId()).orElseThrow(), window, overview.spendingLimit());
+                delivered = true;
+            } catch (IllegalStateException exception) {
+                log.warn("Alert e-mail failed for one user; trying push");
+            }
+        }
+        // Lock-screen text: the date only, never amounts.
+        if (push && pushService.send(alert.getUserId(), "Wall.ia: seu saldo pode ficar negativo",
+                "A partir de %s. Toque para ver por quê e como sair.".formatted(window.start().format(DAY)), "/future") > 0) {
+            delivered = true;
+        }
+        // Nothing got through: keep the window unannounced so tomorrow tries again.
+        if (!delivered) return false;
         alert.setLastWindowStart(window.start());
         alert.setLastSentAt(clock.instant());
         alertRepository.save(alert);

@@ -5,6 +5,7 @@ import com.github.yildizmy.dto.response.FutureResponses;
 import com.github.yildizmy.exception.WalletRuleException;
 import com.github.yildizmy.security.UserDetailsImpl;
 import com.github.yildizmy.service.ForecastService;
+import com.github.yildizmy.service.push.PushService;
 import com.github.yildizmy.service.FutureAlertService;
 import com.github.yildizmy.service.FutureService;
 import jakarta.validation.Valid;
@@ -42,6 +43,7 @@ public class FutureController {
     private final AskUsage askUsage;
     private final FutureAlertService alertService;
     private final ForecastService forecastService;
+    private final PushService pushService;
 
     @GetMapping("/overview")
     public ResponseEntity<FutureResponses.Overview> overview(
@@ -140,6 +142,29 @@ public class FutureController {
     public ResponseEntity<Void> deleteGoal(@AuthenticationPrincipal UserDetailsImpl user, @PathVariable long id) {
         futureService.deleteGoal(user.getId(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Public VAPID key (null when push is off) and whether this user has any browser subscribed. */
+    @GetMapping("/push")
+    public ResponseEntity<PushSettings> push(@AuthenticationPrincipal UserDetailsImpl user) {
+        return noStore(new PushSettings(pushService.publicKey(), pushService.hasSubscription(user.getId())));
+    }
+
+    @PostMapping("/push/subscriptions")
+    public ResponseEntity<Void> subscribe(@AuthenticationPrincipal UserDetailsImpl user,
+                                          @Valid @RequestBody FutureRequests.PushSubscription request) {
+        pushService.subscribe(user.getId(), request.endpoint(), request.keys().p256dh(), request.keys().auth());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/push/unsubscribe")
+    public ResponseEntity<Void> unsubscribe(@AuthenticationPrincipal UserDetailsImpl user,
+                                            @Valid @RequestBody FutureRequests.PushEndpoint request) {
+        pushService.unsubscribe(user.getId(), request.endpoint());
+        return ResponseEntity.noContent().build();
+    }
+
+    public record PushSettings(String publicKey, boolean subscribed) {
     }
 
     @GetMapping("/accuracy")

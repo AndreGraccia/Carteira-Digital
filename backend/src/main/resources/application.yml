@@ -97,6 +97,12 @@ app:
   future:
     # Daily e-mail about new negative windows, only for users who turned it on. "-" disables the job.
     alert-cron: ${future_alert_cron:0 0 8 * * *}
+  push:
+    # VAPID pair for Web Push (base64url: 65-byte public point, 32-byte private scalar). Empty = push off.
+    # Generate once per environment and keep it: browsers subscribe to this exact public key.
+    public-key: ${vapid_public_key:}
+    private-key: ${vapid_private_key:}
+    subject: ${vapid_subject:mailto:no-reply@wallia.local}
   open-finance:
     # Daily sync of every authorised connection, before the 8h alerts, so alerts and the accuracy score
     # read today's balance. "-" disables the job.

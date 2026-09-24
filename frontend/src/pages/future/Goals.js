@@ -15,7 +15,7 @@ const EMPTY = { name: '', amount: '', day: '' };
  */
 export default function Goals({ onChanged }) {
   const { t, i18n } = useTranslation();
-  const { enqueueSnackbar } = useSnackbar();
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const lang = i18n.language;
   const [goals, setGoals] = useState([]);
   const [error, setError] = useState(null);
@@ -38,13 +38,15 @@ export default function Goals({ onChanged }) {
   const cents = parseAmount(form.amount);
   const day = Number(form.day);
   const dayValid = Number.isInteger(day) && day >= 1 && day <= 31;
-  const valid = form.name.trim() && cents !== null && cents > 0 && dayValid;
+  // Same ceiling as the API (R$ 1.000.000,00), so the user sees why instead of a generic 422.
+  const amountInvalid = form.amount !== '' && (cents === null || cents <= 0 || cents > 100000000);
+  const valid = form.name.trim() && cents !== null && !amountInvalid && dayValid;
 
-  const run = async (action, message) => {
+  const run = async (action, message, snackbarAction) => {
     setBusy(true);
     try {
       await action();
-      enqueueSnackbar(t(message), { variant: 'success' });
+      enqueueSnackbar(t(message), { variant: 'success', action: snackbarAction });
       await load();
       onChanged();
     } catch (failure) {
@@ -53,6 +55,33 @@ export default function Goals({ onChanged }) {
       setBusy(false);
     }
   };
+
+  // One tap removes; the snackbar offers the way back instead of a confirmation dialog on every delete.
+  const remove = (goal) =>
+    run(
+      () => HttpService.deleteWithAuth(`/future/goals/${goal.id}`),
+      'future.goals.removed',
+      (key) => (
+        <Button
+          color="inherit"
+          size="small"
+          onClick={() => {
+            closeSnackbar(key);
+            run(
+              () =>
+                HttpService.postWithAuth('/future/goals', {
+                  name: goal.name,
+                  monthlyAmount: goal.monthlyAmount,
+                  dayOfMonth: goal.dayOfMonth,
+                }),
+              'future.goals.restored'
+            );
+          }}
+        >
+          {t('future.answers.undo')}
+        </Button>
+      )
+    );
 
   const add = (event) => {
     event.preventDefault();
@@ -112,7 +141,7 @@ export default function Goals({ onChanged }) {
               <IconButton
                 aria-label={t('future.goals.removeLabel', { name: goal.name })}
                 disabled={busy}
-                onClick={() => run(() => HttpService.deleteWithAuth(`/future/goals/${goal.id}`), 'future.goals.removed')}
+                onClick={() => remove(goal)}
               >
                 <WalletIcon name="trash" />
               </IconButton>
@@ -142,7 +171,8 @@ export default function Goals({ onChanged }) {
           value={form.amount}
           onChange={(event) => setForm({ ...form, amount: event.target.value })}
           inputProps={{ inputMode: 'decimal' }}
-          error={form.amount !== '' && (cents === null || cents <= 0)}
+          error={amountInvalid}
+          helperText={amountInvalid ? t('future.goals.amountInvalid') : undefined}
           sx={{ flex: 1 }}
         />
         <TextField

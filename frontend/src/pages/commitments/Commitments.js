@@ -65,9 +65,10 @@ function Invoice({ invoice }) {
       </Button>
       <Collapse in={open} unmountOnExit>
         <Box sx={{ px: 3, pb: 2 }}>
-          {invoice.lines.map((line) => (
+          {invoice.lines.map((line, index) => (
             <Stack
-              key={`${line.description}-${line.purchaseDate}`}
+              // Two "UBER *TRIP" on the same day are two lines, not one.
+              key={`${line.description}-${line.purchaseDate}-${index}`}
               direction="row"
               spacing={2}
               alignItems="center"
@@ -124,23 +125,30 @@ function CardSection({ card }) {
             })}
           </Alert>
         )}
-        <Box sx={{ mt: 2 }}>
-          <Stack direction="row" justifyContent="space-between">
-            <Typography variant="body2">{t('commitments.limitLabel')}</Typography>
-            <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-              {Math.round((used / (limit || 1)) * 100)}%
+        {/* A zero limit (allowed by V11) would print "250000%"; show only what is used. */}
+        {limit > 0 ? (
+          <Box sx={{ mt: 2 }}>
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="body2">{t('commitments.limitLabel')}</Typography>
+              <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                {Math.round((used / limit) * 100)}%
+              </Typography>
+            </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(100, (used / limit) * 100)}
+              aria-label={t('commitments.limitLabel')}
+              sx={{ mt: 1, height: 8, borderRadius: 4, bgcolor: 'background.neutral' }}
+            />
+            <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1 }}>
+              {t('commitments.limitUse', { used: money(used, lang), limit: money(limit, lang) })}
             </Typography>
-          </Stack>
-          <LinearProgress
-            variant="determinate"
-            value={Math.min(100, (used / (limit || 1)) * 100)}
-            aria-label={t('commitments.limitLabel')}
-            sx={{ mt: 1, height: 8, borderRadius: 4, bgcolor: 'background.neutral' }}
-          />
-          <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1 }}>
-            {t('commitments.limitUse', { used: money(used, lang), limit: money(limit, lang) })}
+          </Box>
+        ) : (
+          <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 2 }}>
+            {t('commitments.limitUnknown', { used: money(used, lang) })}
           </Typography>
-        </Box>
+        )}
       </Box>
       {card.invoices.map((invoice) => (
         <Invoice key={invoice.month} invoice={invoice} />
@@ -179,9 +187,15 @@ function LoanSection({ loan }) {
             value={money(loan.installmentAmount, lang)}
             help={
               loan.nextDueDate
-                ? `${dayLabel(loan.nextDueDate, lang, FULL_DATE)} · ${t('commitments.endsOn', {
-                    date: dayLabel(loan.lastDueDate, lang, { month: 'short', year: 'numeric' }),
-                  })}`
+                ? [
+                    dayLabel(loan.nextDueDate, lang, FULL_DATE),
+                    loan.lastDueDate &&
+                      t('commitments.endsOn', {
+                        date: dayLabel(loan.lastDueDate, lang, { month: 'short', year: 'numeric' }),
+                      }),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
                 : null
             }
           />

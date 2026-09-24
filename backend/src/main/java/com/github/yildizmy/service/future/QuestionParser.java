@@ -28,8 +28,10 @@ public final class QuestionParser {
     private static final Pattern INSTALLMENTS = Pattern.compile("\\b(\\d{1,3})\\s*(x|vezes|parcelas?|installments?)\\b");
     private static final Pattern DATES = Pattern.compile(
             "\\b(dia|day|on the)\\s+\\d{1,2}\\b|\\b\\d{1,2}/\\d{1,2}(/\\d{2,4})?\\b");
+    // Brazilian grouping ("4.000,50"), English grouping ("4,000.50": a comma before exactly three digits is never
+    // a Brazilian decimal), plain decimals ("39.90", "399,90") and integers.
     private static final Pattern AMOUNT = Pattern.compile(
-            "(r?\\$\\s*)?(\\d{1,3}(?:[.\\s]\\d{3})+(?:,\\d{1,2})?|\\d+\\.\\d{1,2}(?!\\d)|\\d+(?:,\\d{1,2})?(?![\\d,]))\\s*(mil|k|reais)?\\b");
+            "(r?\\$\\s*)?(\\d{1,3}(?:[.\\s]\\d{3})+(?:,\\d{1,2})?|\\d{1,3}(?:,\\d{3})+(?:\\.\\d{1,2})?(?![\\d,])|\\d+\\.\\d{1,2}(?!\\d)|\\d+(?:,\\d{1,2})?(?![\\d,]))\\s*(mil|k|reais)?\\b");
     /** Words that introduce a price; an unmarked number without one is probably a model name ("iPhone 15"). */
     private static final Pattern PRICE_CUE = Pattern.compile(
             "\\b(de|por|custa|custando|gastar|gasto|pagar|valor|comprar|compro|parcelar|of|for|costs?|spend|pay|buy|afford)( an?)?\\s*$");
@@ -104,6 +106,8 @@ public final class QuestionParser {
             boolean scaled = matcher.group(3) != null;
             BigDecimal value = digits.matches("\\d+\\.\\d{1,2}")
                     ? new BigDecimal(digits)
+                    : digits.matches("\\d{1,3}(,\\d{3})+(\\.\\d{1,2})?")
+                    ? new BigDecimal(digits.replace(",", ""))
                     : new BigDecimal(digits.replaceAll("[.\\s]", "").replace(',', '.'));
             if ("mil".equals(matcher.group(3)) || "k".equals(matcher.group(3))) {
                 value = value.multiply(BigDecimal.valueOf(1000));

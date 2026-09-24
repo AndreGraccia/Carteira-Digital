@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 import { Box, Stack, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
-import { dayLabel, money } from '../../utils/wallet';
+import { compactMoney, dayLabel, money } from '../../utils/wallet';
 
 const HEIGHT = 240;
-const PAD = { top: 16, right: 16, bottom: 28, left: 64 };
+const PAD = { top: 16, right: 16, bottom: 28, left: 72 };
 
 function useWidth() {
   const ref = useRef(null);
@@ -56,7 +56,8 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
 
   if (!days.length) return null;
   const { ticks, x, y, plotHeight } = geometry;
-  const path = (items) => items.map((day, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(day.balance).toFixed(1)}`).join('');
+  const path = (items) =>
+    items.map((day, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(day.balance).toFixed(1)}`).join('');
   const labelEvery = Math.max(1, Math.round(days.length / (width < 520 ? 4 : 7)));
   const lowestIndex = lowest ? days.findIndex((day) => day.date === lowest.date) : -1;
 
@@ -72,9 +73,24 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
       {series.length > 1 && (
         <Stack direction="row" spacing={2} sx={{ mb: 1, p: 0, m: 0 }} component="ul">
           {series.map((item) => (
-            <Stack key={item.key} component="li" direction="row" spacing={1} alignItems="center" sx={{ listStyle: 'none' }}>
+            <Stack
+              key={item.key}
+              component="li"
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              sx={{ listStyle: 'none' }}
+            >
               <Box component="svg" width={24} height={8} aria-hidden>
-                <line x1="0" y1="4" x2="24" y2="4" stroke={item.color} strokeWidth="2" strokeDasharray={item.dashed ? '5 4' : undefined} />
+                <line
+                  x1="0"
+                  y1="4"
+                  x2="24"
+                  y2="4"
+                  stroke={item.color}
+                  strokeWidth="2"
+                  strokeDasharray={item.dashed ? '5 4' : undefined}
+                />
               </Box>
               <Typography variant="caption" color="text.secondary">
                 {item.label}
@@ -111,13 +127,20 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
               strokeWidth={1}
             />
             <text x={PAD.left - 8} y={y(tick) + 4} textAnchor="end" fontSize="11" fill={theme.palette.text.secondary}>
-              {tick === 0 ? t('future.chartZero') : money(tick, i18n.language).replace(/,00$/, '').replace(/\.00$/, '')}
+              {tick === 0 ? t('future.chartZero') : compactMoney(tick, i18n.language)}
             </text>
           </g>
         ))}
         {days.map((day, index) =>
           index % labelEvery === 0 ? (
-            <text key={day.date} x={x(index)} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill={theme.palette.text.secondary}>
+            <text
+              key={day.date}
+              x={x(index)}
+              y={HEIGHT - 8}
+              textAnchor="middle"
+              fontSize="11"
+              fill={theme.palette.text.secondary}
+            >
               {dayLabel(day.date, i18n.language)}
             </text>
           ) : null
@@ -157,8 +180,10 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
               stroke={theme.palette.background.paper}
               strokeWidth={2}
             />
+            {/* On the right half the label grows leftwards, so "-R$ 1.234,56" is never cut at the edge. */}
             <text
-              x={Math.min(x(lowestIndex) + 8, width - PAD.right - 120)}
+              x={x(lowestIndex) > width / 2 ? x(lowestIndex) - 8 : x(lowestIndex) + 8}
+              textAnchor={x(lowestIndex) > width / 2 ? 'end' : 'start'}
               y={y(lowest.balance) + (y(lowest.balance) > PAD.top + plotHeight - 24 ? -10 : 18)}
               fontSize="11"
               fill={theme.palette.text.primary}

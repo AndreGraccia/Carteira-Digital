@@ -3,6 +3,7 @@ package com.github.yildizmy.service;
 import com.github.yildizmy.domain.entity.FutureAlert;
 import com.github.yildizmy.domain.entity.User;
 import com.github.yildizmy.dto.response.FutureResponses;
+import com.github.yildizmy.exception.WalletRuleException;
 import com.github.yildizmy.repository.FutureAlertRepository;
 import com.github.yildizmy.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -33,8 +35,9 @@ class FutureAlertServiceTest {
     private final FutureAlertRepository alerts = mock(FutureAlertRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final FutureService future = mock(FutureService.class);
+    private final OpenFinanceEmailVerificationService verification = mock(OpenFinanceEmailVerificationService.class);
     private final JavaMailSender mail = mock(JavaMailSender.class);
-    private final FutureAlertService service = new FutureAlertService(alerts, users, future, mail,
+    private final FutureAlertService service = new FutureAlertService(alerts, users, future, verification, mail,
             Clock.fixed(Instant.parse("2026-09-23T11:00:00Z"), ZoneOffset.UTC), "no-reply@wallia.local", "http://localhost:3000");
 
     @Test
@@ -69,6 +72,7 @@ class FutureAlertServiceTest {
         user.setEmail("ana@example.test");
         user.setFirstName("Ana");
         when(users.findById(2L)).thenReturn(Optional.of(user));
+        when(verification.isVerified(org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
 
         assertEquals(1, service.runDaily());
         verify(mail, times(1)).send(any(SimpleMailMessage.class));
@@ -84,6 +88,25 @@ class FutureAlertServiceTest {
 
         assertEquals(0, service.runDaily());
         verify(mail, never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void anUnverifiedEmailCannotTurnAlertsOnNorReceiveThem() {
+        assertThrows(WalletRuleException.class, () -> service.setEnabled(3L, true));
+        verify(alerts, never()).save(any());
+
+        when(alerts.findByEnabledTrue()).thenReturn(List.of(alert(3L)));
+        when(future.overview(3L, FutureAlertService.HORIZON_DAYS)).thenReturn(overview());
+        assertEquals(0, service.runDaily());
+        verify(mail, never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void theGreetingKeepsOnlyOneWordOfTheName() {
+        assertEquals("Olá, Ana.", FutureAlertService.greeting("  Ana Maria "));
+        assertEquals("Olá, Sua.", FutureAlertService.greeting("Sua conta foi bloqueada, acesse evil.co"));
+        assertEquals("Olá, httpevilco.", FutureAlertService.greeting("http://evil.co"));
+        assertEquals("Olá.", FutureAlertService.greeting(null));
     }
 
     private static FutureAlert alert(long userId) {

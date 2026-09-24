@@ -72,6 +72,9 @@ logging:
 
 server:
   port: ${backend_port:8080}
+  # Behind nginx every request comes from the proxy's IP; trust X-Forwarded-For only from private addresses
+  # so per-IP limits (sign-up, login) see the real client.
+  forward-headers-strategy: native
   error:
     include-message: never
     include-binding-errors: never

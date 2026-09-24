@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link as RouterLink } from 'react-router-dom';
 import {
@@ -80,15 +80,21 @@ export default function Future() {
   const [showDays, setShowDays] = useState(false);
   const [openGroup, setOpenGroup] = useState(null);
 
+  // Clicking 30, 90, 60 quickly must not leave the 90-day answer under the 60 button.
+  const latest = useRef(0);
   const load = useCallback(async () => {
+    latest.current += 1;
+    const request = latest.current;
+    setState((previous) => ({ ...previous, loading: true, error: null }));
     try {
       const [overview, recurrences] = await Promise.all([
         HttpService.getWithAuth(`/future/overview?horizon=${horizon}`),
         HttpService.getWithAuth('/future/recurrences'),
       ]);
-      setState({ loading: false, error: null, overview, recurrences });
+      if (request === latest.current) setState({ loading: false, error: null, overview, recurrences });
     } catch (failure) {
-      setState((previous) => ({ ...previous, loading: false, error: errorKey(failure) }));
+      if (request === latest.current)
+        setState((previous) => ({ ...previous, loading: false, error: errorKey(failure), overview: null }));
     }
   }, [horizon]);
 
@@ -100,6 +106,14 @@ export default function Future() {
   const lang = i18n.language;
   const projection = overview?.projection;
   const incomes = recurrences.filter((item) => item.direction === 'IN' && item.status === 'CONFIRMED');
+  const sources = overview?.sources;
+  // Nothing to project from: zeros and a flat line would read as "you have R$ 0", not "we know nothing yet".
+  const noData =
+    sources &&
+    sources.confirmedRecurrences === 0 &&
+    sources.pendingQuestions === 0 &&
+    sources.cards === 0 &&
+    sources.loans === 0;
 
   return (
     <>
@@ -119,15 +133,15 @@ export default function Future() {
               aria-label={t('future.horizonLabel')}
             >
               {[30, 60, 90].map((days) => (
-                <ToggleButton key={days} value={days} sx={{ px: 1.5 }}>
-                  {days}d
+                <ToggleButton key={days} value={days} sx={{ px: 1.5 }} aria-label={t('future.horizonOption', { days })}>
+                  {t('future.horizonShort', { days })}
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
           }
         />
 
-        {state.loading && (
+        {state.loading && !overview && (
           <Typography role="status" color="text.secondary">
             {t('common.loading')}
           </Typography>
@@ -145,16 +159,31 @@ export default function Future() {
           </Alert>
         )}
 
-        {overview && (
-          <Stack spacing={3}>
+        {noData && (
+          <Card>
+            <EmptyState
+              icon="bank"
+              title={t('future.noData')}
+              description={t('future.noDataHelp')}
+              action={
+                <Button component={RouterLink} to="/open-finance" variant="contained">
+                  {t('openFinance.connectShort')}
+                </Button>
+              }
+            />
+          </Card>
+        )}
+
+        {overview && !noData && (
+          <Stack
+            spacing={3}
+            aria-busy={state.loading}
+            sx={{ opacity: state.loading ? 0.6 : 1, transition: 'opacity 150ms' }}
+          >
             {/* The one answer people open this page for; the numbers below explain it. */}
             {overview.spendingLimit && overview.sources.confirmedRecurrences > 0 && (
               <>
-                <DailyLimitCard
-                  limit={overview.spendingLimit}
-                  risk={projection.riskWindows[0]}
-                  onWhy={setWhy}
-                />
+                <DailyLimitCard limit={overview.spendingLimit} risk={projection.riskWindows[0]} onWhy={setWhy} />
                 <AlertToggle />
               </>
             )}
@@ -185,8 +214,9 @@ export default function Future() {
                   <StatBlock
                     label={t('future.free')}
                     value={money(overview.freeAfterCommitments, lang)}
-                    help={t('future.freeHelp')}
                     emphasis={Number(overview.freeAfterCommitments) >= 0}
+                    negative={Number(overview.freeAfterCommitments) < 0}
+                    help={t(Number(overview.freeAfterCommitments) < 0 ? 'future.freeNegativeHelp' : 'future.freeHelp')}
                   />
                 </Grid>
               </Grid>

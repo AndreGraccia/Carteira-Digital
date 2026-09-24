@@ -20,7 +20,10 @@ class QuestionParserTest {
             "E se eu comprar uma TV de 3 mil?                     | PURCHASE     | 3000.00 | 1   | false",
             "posso gastar 200 no fim de semana?                   | PURCHASE     | 200.00  | 1   | false",
             "Can I afford a 39.90 subscription?                   | PURCHASE     | 39.90   | 1   | false",
-            "Can I buy a $1,200 phone?                            | PURCHASE     |         | 1   | false",
+            "Can I buy a $1,200 phone?                            | PURCHASE     | 1200.00 | 1   | false",
+            // The app's own English suggestion used to come back as "How much?".
+            "Can I buy a R$ 4,000 laptop in 10x?                  | PURCHASE     | 4000.00 | 10  | true",
+            "Can I afford 1,250.50 in 5 installments?             | PURCHASE     | 1250.50 | 5   | true",
             // Review findings: dates, years and model numbers are not prices.
             "Posso comprar um presente de 150 no natal de 2026?   | PURCHASE     | 150.00  | 1   | false",
             "Posso gastar 20 no dia 25?                           | PURCHASE     | 20.00   | 1   | false",

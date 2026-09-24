@@ -10,6 +10,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
   Tabs,
@@ -46,10 +47,15 @@ function summaryLines(result, request, t, language) {
     );
   }
   if (result.installments > 1) {
-    const values = { amount: money(result.newMonthlyCommitment, language), count: result.installments, card: result.cardName };
+    const values = {
+      amount: money(result.newMonthlyCommitment, language),
+      count: result.installments,
+      card: result.cardName,
+    };
     lines.push(t(result.cardName ? 'future.summaryInstallments' : 'future.summaryInstallmentsNoCard', values));
   }
-  if (request.type === 'SAVINGS') lines.push(t('future.summarySavings', { amount: money(result.newMonthlyCommitment, language) }));
+  if (request.type === 'SAVINGS')
+    lines.push(t('future.summarySavings', { amount: money(result.newMonthlyCommitment, language) }));
   return lines;
 }
 
@@ -67,7 +73,11 @@ export default function Simulator({ incomes, hasCard }) {
     months: 2,
   });
   const [state, setState] = useState({ loading: false, error: null, result: null, request: null });
-  const set = (field) => (event) => setForm({ ...form, [field]: event.target.value });
+  // A result next to a changed form would answer a question nobody asked any more.
+  const set = (field) => (event) => {
+    setForm({ ...form, [field]: event.target.value });
+    setState((previous) => (previous.result ? { ...previous, result: null } : previous));
+  };
 
   const amountCents = parseAmount(form.amount);
   const needsAmount = type !== 'INCOME_LOSS';
@@ -86,7 +96,8 @@ export default function Simulator({ incomes, hasCard }) {
       });
     }
     if (type === 'SAVINGS') Object.assign(request, { amount: amountCents / 100, dayOfMonth: Number(form.dayOfMonth) });
-    if (type === 'INCOME_LOSS') Object.assign(request, { months: Number(form.months), incomeKey: form.incomeKey || undefined });
+    if (type === 'INCOME_LOSS')
+      Object.assign(request, { months: Number(form.months), incomeKey: form.incomeKey || undefined });
     setState({ loading: true, error: null, result: null, request });
     try {
       const result = await HttpService.postWithAuth('/future/scenarios', request);
@@ -101,8 +112,13 @@ export default function Simulator({ incomes, hasCard }) {
     ['min30', result.baseline.minBalance30, result.scenario.minBalance30, true],
     ['min90', result.baseline.minBalance90, result.scenario.minBalance90, true],
     ['negativeDays', result.baseline.negativeDays, result.scenario.negativeDays, false],
-    ['monthlyCommitment', 0, result.newMonthlyCommitment, true],
+    // Only here does zero mean "nothing": R$ 0,00 as a lowest balance is a real number.
+    ['monthlyCommitment', null, Number(result.newMonthlyCommitment) || null, true],
   ];
+  const cell = (value, isMoney) => {
+    if (!isMoney) return value;
+    return value == null ? t('future.noneValue') : money(value, i18n.language);
+  };
 
   return (
     <SectionCard title={t('future.simulatorTitle')}>
@@ -150,11 +166,13 @@ export default function Simulator({ incomes, hasCard }) {
           {type === 'PURCHASE' && (
             <>
               <TextField select label={t('future.method')} value={form.method} onChange={set('method')} fullWidth>
-                {['CASH', 'CARD'].filter((item) => item === 'CASH' || hasCard).map((item) => (
-                  <MenuItem key={item} value={item}>
-                    {t(`future.methods.${item}`)}
-                  </MenuItem>
-                ))}
+                {['CASH', 'CARD']
+                  .filter((item) => item === 'CASH' || hasCard)
+                  .map((item) => (
+                    <MenuItem key={item} value={item}>
+                      {t(`future.methods.${item}`)}
+                    </MenuItem>
+                  ))}
               </TextField>
               <TextField
                 select
@@ -188,8 +206,15 @@ export default function Simulator({ incomes, hasCard }) {
           )}
           {type === 'INCOME_LOSS' && (
             <>
-              <TextField select label={t('future.income')} value={form.incomeKey} onChange={set('incomeKey')} fullWidth
-                SelectProps={{ displayEmpty: true }} InputLabelProps={{ shrink: true }}>
+              <TextField
+                select
+                label={t('future.income')}
+                value={form.incomeKey}
+                onChange={set('incomeKey')}
+                fullWidth
+                SelectProps={{ displayEmpty: true }}
+                InputLabelProps={{ shrink: true }}
+              >
                 <MenuItem value="">{t('future.allIncomes')}</MenuItem>
                 {incomes.map((income) => (
                   <MenuItem key={income.key} value={income.key}>
@@ -197,7 +222,13 @@ export default function Simulator({ incomes, hasCard }) {
                   </MenuItem>
                 ))}
               </TextField>
-              <TextField select label={t('future.months')} value={form.months} onChange={set('months')} sx={{ minWidth: 180 }}>
+              <TextField
+                select
+                label={t('future.months')}
+                value={form.months}
+                onChange={set('months')}
+                sx={{ minWidth: 180 }}
+              >
                 {[1, 2, 3, 6, 12].map((count) => (
                   <MenuItem key={count} value={count}>
                     {t('future.monthsOption', { count })}
@@ -223,79 +254,90 @@ export default function Simulator({ incomes, hasCard }) {
         </Alert>
       )}
 
-      {result && (
-        <Box sx={{ px: 3, pb: 3 }} aria-live="polite">
-          <Typography variant="h6" component="h3">
-            {t('future.resultTitle')}
-          </Typography>
-          <Alert severity={result.scenario.negativeDays > 0 ? 'warning' : 'success'} sx={{ mt: 2 }}>
-            {summaryLines(result, state.request, t, i18n.language).map((line) => (
-              <Typography key={line} variant="body2" sx={{ '& + &': { mt: 0.5 } }}>
-                {line}
-              </Typography>
-            ))}
-          </Alert>
-          <Table size="small" sx={{ mt: 2 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell />
-                <TableCell align="right">{t('future.compareToday')}</TableCell>
-                <TableCell align="right">{t('future.compareScenario')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map(([key, before, after, isMoney]) => (
-                <TableRow key={key}>
-                  <TableCell component="th" scope="row">
-                    {t(`future.${key}`)}
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {isMoney ? (Number(before) ? money(before, i18n.language) : t('future.noneValue')) : before}
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={{
-                      fontVariantNumeric: 'tabular-nums',
-                      fontWeight: 600,
-                      color: isMoney && Number(after) < 0 ? 'error.main' : 'text.primary',
-                    }}
-                  >
-                    {isMoney ? (Number(after) ? money(after, i18n.language) : t('future.noneValue')) : after}
-                  </TableCell>
-                </TableRow>
+      {/* Always mounted, so screen readers announce the first answer too. */}
+      <Box aria-live="polite">
+        {result && (
+          <Box sx={{ px: 3, pb: 3 }}>
+            <Typography variant="h6" component="h3">
+              {t('future.resultTitle')}
+            </Typography>
+            <Alert severity={result.scenario.negativeDays > 0 ? 'warning' : 'success'} sx={{ mt: 2 }}>
+              {summaryLines(result, state.request, t, i18n.language).map((line) => (
+                <Typography key={line} variant="body2" sx={{ '& + &': { mt: 0.5 } }}>
+                  {line}
+                </Typography>
               ))}
-            </TableBody>
-          </Table>
-          <Box sx={{ mt: 3 }}>
-            <ProjectionChart
-              ariaLabel={t('future.chartLabel', {
-                amount: money(result.scenario.minBalance90, i18n.language),
-                date: dayLabel(result.scenario.minDate, i18n.language),
-                end: money(result.scenario.endBalance, i18n.language),
-              })}
-              series={[
-                {
-                  key: 'baseline',
-                  label: t('future.chartBaseline'),
-                  color: theme.palette.chart.projection,
-                  days: result.baselineProjection.days.map((day) => ({ date: day.date, balance: Number(day.balance) })),
-                },
-                {
-                  key: 'scenario',
-                  label: t('future.chartScenario'),
-                  color: theme.palette.chart.scenario,
-                  dashed: true,
-                  days: result.scenarioProjection.days.map((day) => ({ date: day.date, balance: Number(day.balance) })),
-                },
-              ]}
-              lowest={{ date: result.scenario.minDate, balance: Number(result.scenario.minBalance90) }}
-            />
+            </Alert>
+            <TableContainer sx={{ mt: 2, overflowX: 'auto' }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell />
+                    <TableCell align="right">{t('future.compareToday')}</TableCell>
+                    <TableCell align="right">{t('future.compareScenario')}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {rows.map(([key, before, after, isMoney]) => (
+                    <TableRow key={key}>
+                      <TableCell component="th" scope="row">
+                        {t(`future.${key}`)}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {cell(before, isMoney)}
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          fontVariantNumeric: 'tabular-nums',
+                          fontWeight: 600,
+                          color: isMoney && Number(after) < 0 ? 'error.main' : 'text.primary',
+                        }}
+                      >
+                        {cell(after, isMoney)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Box sx={{ mt: 3 }}>
+              <ProjectionChart
+                ariaLabel={t('future.chartLabel', {
+                  amount: money(result.scenario.minBalance90, i18n.language),
+                  date: dayLabel(result.scenario.minDate, i18n.language),
+                  end: money(result.scenario.endBalance, i18n.language),
+                })}
+                series={[
+                  {
+                    key: 'baseline',
+                    label: t('future.chartBaseline'),
+                    color: theme.palette.chart.projection,
+                    days: result.baselineProjection.days.map((day) => ({
+                      date: day.date,
+                      balance: Number(day.balance),
+                    })),
+                  },
+                  {
+                    key: 'scenario',
+                    label: t('future.chartScenario'),
+                    color: theme.palette.chart.scenario,
+                    dashed: true,
+                    days: result.scenarioProjection.days.map((day) => ({
+                      date: day.date,
+                      balance: Number(day.balance),
+                    })),
+                  },
+                ]}
+                lowest={{ date: result.scenario.minDate, balance: Number(result.scenario.minBalance90) }}
+              />
+            </Box>
+            <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 2 }}>
+              {t('future.disclaimer')}
+            </Typography>
           </Box>
-          <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 2 }}>
-            {t('future.disclaimer')}
-          </Typography>
-        </Box>
-      )}
+        )}
+      </Box>
     </SectionCard>
   );
 }

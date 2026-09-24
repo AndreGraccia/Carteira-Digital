@@ -146,7 +146,8 @@ function DailySpendingQuestion({ data, source = 'ACCOUNT', onAnswered }) {
   const { enqueueSnackbar } = useSnackbar();
   const lang = i18n.language;
   const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState(!data.suggestedDaily && data.status === 'PENDING');
+  const hasEstimate = Number(data.suggestedDaily) > 0;
+  const [editing, setEditing] = useState(!hasEstimate && data.status === 'PENDING');
   const [value, setValue] = useState('');
   const [open, setOpen] = useState(false);
   const cents = parseAmount(value);
@@ -158,7 +159,8 @@ function DailySpendingQuestion({ data, source = 'ACCOUNT', onAnswered }) {
     try {
       await HttpService.putWithAuth('/future/daily-spending', { status, source, dailyAmount });
       enqueueSnackbar(t('future.saved'), { variant: 'success' });
-      setEditing(false);
+      // Undo without history goes back to the only possible answer: typing a value.
+      setEditing(status === 'PENDING' && !hasEstimate);
       onAnswered();
     } catch (failure) {
       enqueueSnackbar(t(errorKey(failure)), { variant: 'error' });
@@ -168,7 +170,7 @@ function DailySpendingQuestion({ data, source = 'ACCOUNT', onAnswered }) {
   };
 
   let title = t(`${copy}.question`, { amount: money(data.suggestedDaily, lang) });
-  if (!data.suggestedDaily) title = t(`${copy}.noHistory`);
+  if (!hasEstimate) title = t(`${copy}.noHistory`);
   if (data.status === 'CONFIRMED') title = t(`${copy}.confirmed`, { amount: money(data.appliedDaily, lang) });
   if (data.status === 'REJECTED') title = t(`${copy}.rejected`);
 
@@ -182,7 +184,7 @@ function DailySpendingQuestion({ data, source = 'ACCOUNT', onAnswered }) {
           <Typography variant="subtitle1" component="h3">
             {title}
           </Typography>
-          {data.suggestedDaily && (
+          {hasEstimate && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               {t(`${copy}.evidence`, {
                 total: money(data.total, lang),
@@ -193,14 +195,19 @@ function DailySpendingQuestion({ data, source = 'ACCOUNT', onAnswered }) {
           )}
         </Box>
         <Stack direction="row" flexWrap="wrap" alignItems="flex-start" sx={{ flexShrink: 0, gap: 1 }}>
-          {pending && !editing && (
+          {pending && (
             <>
-              <Button variant="contained" disabled={busy} onClick={() => answer('CONFIRMED', null)}>
-                {t('future.daily.yes')}
-              </Button>
-              <Button variant="outlined" disabled={busy} onClick={() => setEditing(true)}>
-                {t('future.daily.own')}
-              </Button>
+              {/* "Yes" means "use the estimate"; without one the backend refuses it. */}
+              {hasEstimate && !editing && (
+                <Button variant="contained" disabled={busy} onClick={() => answer('CONFIRMED', null)}>
+                  {t('future.daily.yes')}
+                </Button>
+              )}
+              {!editing && (
+                <Button variant="outlined" disabled={busy} onClick={() => setEditing(true)}>
+                  {t('future.daily.own')}
+                </Button>
+              )}
               <Button color="inherit" disabled={busy} onClick={() => answer('REJECTED', null)}>
                 {t('future.daily.no')}
               </Button>

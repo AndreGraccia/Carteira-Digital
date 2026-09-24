@@ -43,6 +43,16 @@ class UserDetailsServiceImplTest {
     }
 
     @Test
+    void anEmailShapedUsernameDoesNotShadowTheOwnerOfThatEmail() {
+        User squatter = user();
+        squatter.setUsername("ana@x.io");
+        when(userRepository.findByUsernameIgnoreCase("ana@x.io")).thenReturn(Optional.of(squatter));
+        when(userRepository.findByEmailIgnoreCase("ana@x.io")).thenReturn(Optional.of(user()));
+
+        assertEquals("gui_oliveira", service.loadUserByUsername("ana@x.io").getUsername());
+    }
+
+    @Test
     void unknownLoginIsRejected() {
         assertThrows(UsernameNotFoundException.class, () -> service.loadUserByUsername("ninguem"));
     }

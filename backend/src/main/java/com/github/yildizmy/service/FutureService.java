@@ -330,6 +330,7 @@ public class FutureService {
 
     @Transactional
     public FutureResponses.Goal createGoal(long userId, FutureRequests.Goal request) {
+        userService.lockForUpdate(userId);
         if (goalRepository.countByUserId(userId) >= MAX_GOALS) throw new WalletRuleException("GOAL_LIMIT");
         Goal goal = new Goal();
         goal.setUser(userService.getReferenceById(userId));

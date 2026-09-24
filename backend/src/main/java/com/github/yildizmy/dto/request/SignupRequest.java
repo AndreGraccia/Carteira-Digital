@@ -2,6 +2,7 @@ package com.github.yildizmy.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -29,6 +30,8 @@ public class SignupRequest {
 
     @Size(min = 3, max = 20, message = "{validation.user.username.length}")
     @NotBlank(message = "{validation.user.username.required}")
+    // No "@": a username shaped like someone's e-mail would shadow that person's login by e-mail.
+    @Pattern(regexp = "^[A-Za-z0-9._-]+$", message = "{validation.user.username.format}")
     private String username;
 
     @Email(message = "{validation.user.email.format}")

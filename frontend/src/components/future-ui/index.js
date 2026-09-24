@@ -76,7 +76,7 @@ export function EventRow({ event, dense = false }) {
 }
 EventRow.propTypes = { event: PropTypes.object.isRequired, dense: PropTypes.bool };
 
-export function StatBlock({ label, value, help, emphasis = false, children }) {
+export function StatBlock({ label, value, help, emphasis = false, negative = false, children }) {
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography variant="overline" color="text.secondary">
@@ -91,7 +91,7 @@ export function StatBlock({ label, value, help, emphasis = false, children }) {
           letterSpacing: '-0.03em',
           lineHeight: 1.15,
           fontVariantNumeric: 'tabular-nums',
-          color: emphasis ? 'primary.main' : 'text.primary',
+          color: negative ? 'error.main' : emphasis ? 'primary.main' : 'text.primary',
           overflowWrap: 'anywhere',
         }}
       >
@@ -111,6 +111,7 @@ StatBlock.propTypes = {
   value: PropTypes.node.isRequired,
   help: PropTypes.node,
   emphasis: PropTypes.bool,
+  negative: PropTypes.bool,
   children: PropTypes.node,
 };
 

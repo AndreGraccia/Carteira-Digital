@@ -48,7 +48,6 @@ export default function AuthView({ signup = false }) {
           lastName: values.lastName.trim(),
           username: values.username.trim(),
           email: values.email.trim(),
-          roles: ['ROLE_USER'],
         });
         enqueueSnackbar(t('auth.signup.success'), { variant: 'success' });
         navigate('/login', { replace: true });

@@ -19,6 +19,7 @@ import TransactionDetail from '../../components/transaction-detail';
 import AuthService from '../../services/AuthService';
 import HttpService from '../../services/HttpService';
 import { dayLabel, money, totalsFor } from '../../utils/wallet';
+import { forecastReady } from '../../utils/forecast';
 
 /** "Próximos 30 dias": the Futuro page condensed. Quietly absent if the engine is unavailable. */
 function FutureSummary({ hidden }) {
@@ -35,6 +36,8 @@ function FutureSummary({ hidden }) {
   }, []);
   if (!overview) return null;
   const risk = overview.projection.riskWindows[0];
+  // Same rule as Future: with nothing confirmed, "free = balance" would be a number the engine does not know.
+  const ready = forecastReady({ sources: overview.sources });
   const mask = (value) => (hidden ? '••••' : money(value, i18n.language));
   return (
     <Card sx={{ p: 3, mb: 3 }}>
@@ -46,28 +49,39 @@ function FutureSummary({ hidden }) {
           {t('navigation.future')}
         </Button>
       </Stack>
-      <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary">
-            {t('future.committed')}
-          </Typography>
-          <Typography variant="h5" component="p" sx={{ fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>
-            {mask(overview.committed.total)}
-          </Typography>
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="caption" color="text.secondary">
-            {t('future.free')}
-          </Typography>
-          <Typography
-            variant="h5"
-            component="p"
-            sx={{ fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere', color: 'primary.main' }}
-          >
-            {mask(overview.freeAfterCommitments)}
-          </Typography>
-        </Box>
-      </Stack>
+      {!ready && (
+        <Alert severity="info" sx={{ mt: 1 }}>
+          {t('future.needsAnswers')}
+        </Alert>
+      )}
+      {ready && (
+        <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary">
+              {t('future.committed')}
+            </Typography>
+            <Typography
+              variant="h5"
+              component="p"
+              sx={{ fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}
+            >
+              {mask(overview.committed.total)}
+            </Typography>
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary">
+              {t('future.free')}
+            </Typography>
+            <Typography
+              variant="h5"
+              component="p"
+              sx={{ fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere', color: 'primary.main' }}
+            >
+              {mask(overview.freeAfterCommitments)}
+            </Typography>
+          </Box>
+        </Stack>
+      )}
       {risk && (
         <Alert severity="warning" sx={{ mt: 2 }}>
           {t('future.risk', {
@@ -77,7 +91,7 @@ function FutureSummary({ hidden }) {
           })}
         </Alert>
       )}
-      {!risk && overview.sources.pendingQuestions > 0 && (
+      {ready && !risk && overview.sources.pendingQuestions > 0 && (
         <Alert severity="info" sx={{ mt: 2 }}>
           {t('future.needsAnswers')}
         </Alert>

@@ -27,6 +27,7 @@ import ProjectionChart from '../../components/projection-chart';
 import { CertaintyLegend, DailyLimitCard, EventRow, ExitPlanList, StatBlock } from '../../components/future-ui';
 import { EmptyState, PageHeading, SectionCard, WalletIcon } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money } from '../../utils/wallet';
+import { forecastReady } from '../../utils/forecast';
 import Questions from './Questions';
 import Simulator from './Simulator';
 import Goals from './Goals';
@@ -136,7 +137,7 @@ export default function Future() {
     sources.cards === 0 &&
     sources.loans === 0;
   // The card answers the first negative window itself; separate alerts only when there is no card.
-  const showCard = Boolean(overview?.spendingLimit) && sources?.confirmedRecurrences > 0;
+  const showCard = Boolean(overview?.spendingLimit) && forecastReady({ sources });
   const firstRisk = projection?.riskWindows[0];
   const questions = overview && (
     <Questions

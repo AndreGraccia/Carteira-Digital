@@ -18,6 +18,13 @@ import {
 import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import { dayLabel, money } from '../../utils/wallet';
+import { limitSummary } from '../../utils/forecast';
+
+const LIMIT_KEYS = {
+  canSpend: ['future.limit.canSpend', 'future.limit.canSpendHelp'],
+  short: ['future.limit.short', 'future.limit.shortHelp'],
+  shortEnvelopes: ['future.limit.shortEnvelopes', 'future.limit.shortEnvelopesHelp'],
+};
 
 // Interest in real payments, counted without the user; a failure here must never touch the flow.
 const countPix = (step) => HttpService.postWithAuth('/future/pix-interest', { step }).catch(() => {});
@@ -308,25 +315,17 @@ ExitPlanList.propTypes = { actions: PropTypes.array };
 export function DailyLimitCard({ limit, risk, laterRisks = [], exitPlan = [], onWhy, children }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const reserved = Number(limit.reserved) || 0;
-  const withEnvelopes = Number(limit.shortfall) || 0;
-  // shortfall is computed on balance - envelopes; without them it is exactly this (see SpendingLimit).
-  const realShort = Math.max(withEnvelopes - reserved, 0);
-  const short = withEnvelopes > 0;
+  const summary = limitSummary(limit);
+  const { reserved, withEnvelopes } = summary;
+  const short = summary.kind !== 'canSpend';
   const over = limit.margin !== null && limit.margin !== undefined && Number(limit.margin) < 0;
   const binding = dayLabel(limit.bindingDate, lang);
   const tone = short || over ? 'warning' : 'success';
   const firstWay = (short || over) && exitPlan.length ? exitPlan[0] : null;
 
-  let headline = t('future.limit.canSpend', { amount: money(limit.safeDaily, lang) });
-  let help = t('future.limit.canSpendHelp', { binding });
-  if (short && realShort > 0) {
-    headline = t('future.limit.short', { amount: money(realShort, lang) });
-    help = t('future.limit.shortHelp', { binding });
-  } else if (short) {
-    headline = t('future.limit.shortEnvelopes', { amount: money(withEnvelopes, lang) });
-    help = t('future.limit.shortEnvelopesHelp', { reserved: money(reserved, lang) });
-  }
+  const [headlineKey, helpKey] = LIMIT_KEYS[summary.kind];
+  const headline = t(headlineKey, { amount: money(summary.amount, lang) });
+  const help = t(helpKey, { binding, reserved: money(reserved, lang) });
 
   let pace = t('future.limit.paceUnknown');
   if (limit.pace !== null && limit.pace !== undefined) {
@@ -382,7 +381,7 @@ export function DailyLimitCard({ limit, risk, laterRisks = [], exitPlan = [], on
       <Typography variant="body2" sx={{ mt: 1.5 }}>
         {pace}
       </Typography>
-      {short && realShort > 0 && reserved > 0 && (
+      {summary.kind === 'short' && reserved > 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
           {t('future.limit.keepEnvelopes', { amount: money(withEnvelopes, lang), reserved: money(reserved, lang) })}
         </Typography>

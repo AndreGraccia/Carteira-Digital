@@ -786,6 +786,9 @@ const resources = {
         invalidInstallments: 'Consigo simular de 1 a {{max}} parcelas. Tente de novo com um número nesse intervalo.',
         dailyOk: 'Até {{date}}, você pode gastar até {{amount}} por dia sem nenhum dia abaixo de zero.',
         dailyShort: 'Até {{date}}, faltam {{amount}} mesmo sem gastar nada.',
+        dailyShortEnvelopes: 'Até {{date}}, as contas cabem no saldo, mas sem mexer nos envelopes faltam {{amount}}.',
+        dailyNotReady:
+          'Ainda não sei sua renda nem suas contas fixas, então não calculo um limite por dia. Responda às perguntas no Futuro.',
         whyNone: 'Nos próximos 60 dias, nenhum dia fica abaixo de zero.',
         why: 'Entre {{start}} e {{end}}, o saldo pode chegar a {{amount}}. Estas saídas vêm antes da próxima entrada:',
         committed: '{{total}} já têm destino até {{date}}: {{confirmed}} confirmados e {{estimated}} estimados.',
@@ -1683,6 +1686,10 @@ const resources = {
         invalidInstallments: 'I can simulate 1 to {{max}} installments. Try again with a number in that range.',
         dailyOk: 'Until {{date}}, you can spend up to {{amount}} a day with no day below zero.',
         dailyShort: 'Until {{date}}, you are {{amount}} short even without spending anything.',
+        dailyShortEnvelopes:
+          'Until {{date}}, the bills fit in your balance, but without touching your envelopes {{amount}} is missing.',
+        dailyNotReady:
+          'I do not know your income or fixed bills yet, so I will not calculate a daily limit. Answer the questions on Future.',
         whyNone: 'No day goes below zero in the next 60 days.',
         why: 'Between {{start}} and {{end}}, your balance may reach {{amount}}. These outflows come before the next income:',
         committed:

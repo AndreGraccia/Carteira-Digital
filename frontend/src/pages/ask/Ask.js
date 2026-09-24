@@ -8,6 +8,7 @@ import HttpService from '../../services/HttpService';
 import { EventRow, ExitPlanList } from '../../components/future-ui';
 import { PageHeading } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money } from '../../utils/wallet';
+import { forecastReady, limitSummary } from '../../utils/forecast';
 
 const SUGGESTIONS = ['s1', 's2', 's3', 's4', 's5'];
 const VERDICT_COLOR = { SAFE: 'success', TIGHT: 'warning', RISK: 'error' };
@@ -48,11 +49,12 @@ function AnswerBody({ answer }) {
       );
     case 'DAILY_LIMIT': {
       const limit = answer.spendingLimit;
-      return line(
-        Number(limit.shortfall) > 0
-          ? t('ask.dailyShort', { date: dayLabel(limit.until, lang), amount: money(limit.shortfall, lang) })
-          : t('ask.dailyOk', { date: dayLabel(limit.until, lang), amount: money(limit.safeDaily, lang) })
-      );
+      if (!forecastReady({ sources: answer.sources, limit })) return line(t('ask.dailyNotReady'));
+      const summary = limitSummary(limit);
+      const values = { date: dayLabel(limit.until, lang), amount: money(summary.amount, lang) };
+      if (summary.kind === 'short') return line(t('ask.dailyShort', values));
+      if (summary.kind === 'shortEnvelopes') return line(t('ask.dailyShortEnvelopes', values));
+      return line(t('ask.dailyOk', values));
     }
     case 'WHY_NEGATIVE':
       if (!answer.risk) return line(t('ask.whyNone'));

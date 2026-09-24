@@ -88,3 +88,32 @@ test('an empty question is never sent', async () => {
   await act(async () => Simulate.submit(container.querySelector('form')));
   expect(HttpService.postWithAuth).not.toHaveBeenCalled();
 });
+
+const daily = (spendingLimit) => ({ intent: 'DAILY_LIMIT', installments: 1, spendingLimit });
+
+test('the daily limit is not stated without a confirmed income, as on the Future page', async () => {
+  HttpService.postWithAuth.mockResolvedValue(
+    daily({ safeDaily: 85, until: '2026-10-24', untilIncome: false, shortfall: 0, reserved: 0 })
+  );
+  await renderPage();
+  await act(async () => Simulate.click(chip('ask.s1')));
+
+  expect(text()).toContain('ask.dailyNotReady');
+  expect(text()).not.toContain('ask.dailyOk');
+});
+
+test('the shortfall excludes the envelopes, like the Future card', async () => {
+  const i18next = jest.requireMock('react-i18next');
+  const spy = jest.spyOn(i18next, 'useTranslation').mockReturnValue({
+    t: (key, values) => (values?.amount ? `${key}|${values.amount}` : key),
+    i18n: { language: 'pt' },
+  });
+  HttpService.postWithAuth.mockResolvedValue(
+    daily({ safeDaily: 0, until: '2026-10-05', untilIncome: true, shortfall: 800, reserved: 500 })
+  );
+  await renderPage();
+  await act(async () => Simulate.click(chip('ask.s1')));
+
+  expect(text()).toMatch(/ask\.dailyShort\|R\$\s?300,00/);
+  spy.mockRestore();
+});

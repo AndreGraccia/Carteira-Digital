@@ -12,4 +12,6 @@ public interface ForecastSnapshotRepository extends JpaRepository<ForecastSnapsh
     Optional<ForecastSnapshot> findByUserIdAndTakenOn(Long userId, LocalDate takenOn);
 
     List<ForecastSnapshot> findByUserIdAndTakenOnGreaterThanEqualOrderByTakenOn(Long userId, LocalDate from);
+
+    List<ForecastSnapshot> findByTakenOnGreaterThanEqualOrderByUserIdAscTakenOnAsc(LocalDate from);
 }

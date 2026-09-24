@@ -8,10 +8,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -77,6 +81,48 @@ public class ForecastService {
                         .map(item -> new FutureResponses.AccuracyPoint(item.date(), item.forecastOn(), item.projected(),
                                 item.actual(), item.error()))
                         .toList());
+    }
+
+    /**
+     * The north star for the team: negative days forecast and avoided, per active user per month, over the
+     * last {@code days}. Active = synced at least once in the period. Misses are reported next to it.
+     */
+    // ponytail: loads the period for every user and grades in memory. Move to a nightly rollup table when
+    // the snapshot count makes this endpoint slow.
+    @Transactional(readOnly = true)
+    public FutureResponses.NorthStar northStar(int days) {
+        LocalDate today = LocalDate.now(clock.withZone(FutureService.ZONE));
+        LocalDate periodStart = today.minusDays(days - 1L);
+        Map<Long, List<ForecastAccuracy.Snapshot>> byUser = new LinkedHashMap<>();
+        for (ForecastSnapshot row : repository.findByTakenOnGreaterThanEqualOrderByUserIdAscTakenOnAsc(
+                periodStart.minusDays(ForecastAccuracy.MAX_LEAD_DAYS))) {
+            byUser.computeIfAbsent(row.getUserId(), ignored -> new ArrayList<>())
+                    .add(new ForecastAccuracy.Snapshot(row.getTakenOn(), row.getBalance(), parse(row.getProjection())));
+        }
+        int active = 0;
+        int graded = 0;
+        int avoided = 0;
+        int missed = 0;
+        List<BigDecimal> errors = new ArrayList<>();
+        for (List<ForecastAccuracy.Snapshot> snapshots : byUser.values()) {
+            if (snapshots.stream().anyMatch(item -> !item.takenOn().isBefore(periodStart))) active++;
+            List<ForecastAccuracy.Comparison> inPeriod = ForecastAccuracy.compare(snapshots).comparisons().stream()
+                    .filter(item -> !item.date().isBefore(periodStart))
+                    .toList();
+            if (inPeriod.isEmpty()) continue;
+            graded++;
+            for (ForecastAccuracy.Comparison item : inPeriod) {
+                errors.add(item.error().abs());
+                if (item.projected().signum() < 0 && item.actual().signum() >= 0) avoided++;
+                if (item.projected().signum() >= 0 && item.actual().signum() < 0) missed++;
+            }
+        }
+        BigDecimal mean = errors.isEmpty() ? null : errors.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(errors.size()), 2, RoundingMode.HALF_UP);
+        BigDecimal perUserMonth = active == 0 ? null : BigDecimal.valueOf(avoided)
+                .multiply(BigDecimal.valueOf(30))
+                .divide(BigDecimal.valueOf((long) active * days), 2, RoundingMode.HALF_UP);
+        return new FutureResponses.NorthStar(days, active, graded, errors.size(), avoided, missed, mean, perUserMonth);
     }
 
     static List<BigDecimal> parse(String projection) {

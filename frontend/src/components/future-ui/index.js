@@ -17,7 +17,11 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import HttpService from '../../services/HttpService';
 import { dayLabel, money } from '../../utils/wallet';
+
+// Interest in real payments, counted without the user; a failure here must never touch the flow.
+const countPix = (step) => HttpService.postWithAuth('/future/pix-interest', { step }).catch(() => {});
 
 // Certainty is always shown as text + line style, never colour alone:
 // confirmed = solid, estimated = dashed, hypothetical = dotted.
@@ -188,7 +192,13 @@ function PixProposalDialog({ action, onClose }) {
           <DialogActions>
             <Button onClick={close}>{t(confirmed ? 'common.close' : 'future.pix.cancel')}</Button>
             {!confirmed && (
-              <Button variant="contained" onClick={() => setConfirmed(true)}>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  countPix('CONFIRM');
+                  setConfirmed(true);
+                }}
+              >
                 {t('future.pix.confirm')}
               </Button>
             )}
@@ -239,7 +249,14 @@ export function ExitPlanList({ actions }) {
             {sentence(action)}
             {/* Only a moved bill has a payee, an amount and a date to pay on. */}
             {action.type === 'POSTPONE' && (
-              <Button size="small" onClick={() => setPix(action)} sx={{ ml: 1, py: 0 }}>
+              <Button
+                size="small"
+                onClick={() => {
+                  countPix('PREPARE');
+                  setPix(action);
+                }}
+                sx={{ ml: 1, py: 0 }}
+              >
                 {t('future.pix.prepare')}
               </Button>
             )}

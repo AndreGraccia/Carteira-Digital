@@ -20,6 +20,7 @@ import OpenFinance from './pages/open-finance/OpenFinance';
 import Future from './pages/future/Future';
 import Ask from './pages/ask/Ask';
 import Commitments from './pages/commitments/Commitments';
+import Metrics from './pages/admin/Metrics';
 
 const USER_ROLES = ['ROLE_USER', 'ROLE_ADMIN'];
 
@@ -53,6 +54,9 @@ export default function App() {
             <Route path="insights" element={<Insights />} />
             <Route path="open-finance" element={<OpenFinance />} />
             <Route path="about" element={<About />} />
+            <Route element={<ProtectedRoute roles={['ROLE_ADMIN']} />}>
+              <Route path="admin/metrics" element={<Metrics />} />
+            </Route>
           </Route>
         </Route>
       </Route>

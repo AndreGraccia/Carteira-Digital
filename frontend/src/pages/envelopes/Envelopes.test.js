@@ -115,6 +115,7 @@ test('the accuracy card waits honestly, then shows misses next to avoided days',
 });
 
 test('only a moved bill offers a Pix, and confirming it says nothing was sent', async () => {
+  HttpService.postWithAuth.mockResolvedValue({});
   await render(
     <ExitPlanList
       actions={[
@@ -140,5 +141,9 @@ test('only a moved bill offers a Pix, and confirming it says nothing was sent', 
   const confirm = [...document.querySelectorAll('button')].find((item) => item.textContent === 'future.pix.confirm');
   await act(async () => Simulate.click(confirm));
   expect(document.body.textContent).toContain('future.pix.done');
-  expect(HttpService.postWithAuth).not.toHaveBeenCalled();
+  // Only the anonymous interest count is sent; no payment call exists.
+  expect(HttpService.postWithAuth.mock.calls).toEqual([
+    ['/future/pix-interest', { step: 'PREPARE' }],
+    ['/future/pix-interest', { step: 'CONFIRM' }],
+  ]);
 });

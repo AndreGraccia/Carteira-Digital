@@ -98,6 +98,9 @@ app:
     # Daily e-mail about new negative windows, only for users who turned it on. "-" disables the job.
     alert-cron: ${future_alert_cron:0 0 8 * * *}
   open-finance:
+    # Daily sync of every authorised connection, before the 8h alerts, so alerts and the accuracy score
+    # read today's balance. "-" disables the job.
+    daily-sync-cron: ${open_finance_daily_sync_cron:0 30 7 * * *}
     mode: ${open_finance_mode:contract-sandbox}
     base-url: ${open_finance_base_url:}
     access-token: ${open_finance_access_token:}

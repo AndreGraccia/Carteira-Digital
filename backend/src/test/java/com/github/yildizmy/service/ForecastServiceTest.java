@@ -57,6 +57,33 @@ class ForecastServiceTest {
         assertNull(existing.getProjection());
     }
 
+    @Test
+    void theNorthStarCountsAvoidedDaysPerActiveUserPerMonthAndKeepsMissesBesideIt() {
+        when(repository.findByTakenOnGreaterThanEqualOrderByUserIdAscTakenOnAsc(TODAY.minusDays(29 + 30))).thenReturn(List.of(
+                row(1L, TODAY.minusDays(10), "500.00", "-50;-50;-50;-50;-50;-50;-50;-50;-50;-50;-50"),
+                row(1L, TODAY.minusDays(2), "120.00", null),
+                row(2L, TODAY.minusDays(1), "900.00", null)));
+
+        FutureResponses.NorthStar result = service.northStar(30);
+
+        assertEquals(2, result.activeUsers());
+        assertEquals(1, result.gradedUsers());
+        assertEquals(1, result.avoided());
+        assertEquals(0, result.missed());
+        assertEquals(new BigDecimal("170.00"), result.meanAbsoluteError());
+        // 1 avoided day, 2 active users, over 30 days.
+        assertEquals(new BigDecimal("0.50"), result.avoidedPerActiveUserMonth());
+    }
+
+    private static ForecastSnapshot row(long userId, LocalDate day, String balance, String projection) {
+        ForecastSnapshot row = new ForecastSnapshot();
+        row.setUserId(userId);
+        row.setTakenOn(day);
+        row.setBalance(new BigDecimal(balance));
+        row.setProjection(projection);
+        return row;
+    }
+
     private ForecastSnapshot saved() {
         ArgumentCaptor<ForecastSnapshot> captor = ArgumentCaptor.forClass(ForecastSnapshot.class);
         verify(repository).save(captor.capture());

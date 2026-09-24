@@ -39,6 +39,10 @@ export default function DashboardLayout() {
     { path: '/transactions', label: 'navigation.transactions', icon: 'history', mobile: true },
     { path: '/insights', label: 'navigation.insights', icon: 'insights' },
     { path: '/open-finance', label: 'navigation.openFinance', icon: 'bank' },
+    // Aggregates for the team; the route itself also checks the role.
+    ...(user?.roles?.includes('ROLE_ADMIN')
+      ? [{ path: '/admin/metrics', label: 'navigation.metrics', icon: 'insights' }]
+      : []),
   ];
   const mobileItems = items.filter((item) => item.mobile);
   const current =

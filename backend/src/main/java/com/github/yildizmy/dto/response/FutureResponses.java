@@ -121,6 +121,15 @@ public final class FutureResponses {
                            BigDecimal bias, int avoided, int missed, List<AccuracyPoint> recent) {
     }
 
+    /**
+     * @param activeUsers              synced at least once in the period
+     * @param gradedUsers              with at least one forecast graded in the period
+     * @param avoidedPerActiveUserMonth the north star: avoided negative days per active user, per 30 days
+     */
+    public record NorthStar(int days, int activeUsers, int gradedUsers, int comparisons, int avoided, int missed,
+                            BigDecimal meanAbsoluteError, BigDecimal avoidedPerActiveUserMonth) {
+    }
+
     public record AccuracyPoint(LocalDate date, LocalDate forecastOn, BigDecimal projected, BigDecimal actual,
                                 BigDecimal error) {
     }

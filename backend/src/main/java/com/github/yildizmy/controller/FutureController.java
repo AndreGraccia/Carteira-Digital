@@ -75,6 +75,17 @@ public class FutureController {
         return noStore(answer);
     }
 
+    /**
+     * Someone opened or confirmed the simulated Pix. Counted per day in the same table as the Pergunte
+     * intents, with no user: the number that says whether accreditation as a payment initiator is worth it.
+     */
+    // ponytail: no per-user limit; a user inflating the count only skews a product metric, never data.
+    @PostMapping("/pix-interest")
+    public ResponseEntity<Void> pixInterest(@Valid @RequestBody FutureRequests.PixInterest request) {
+        askUsage.record("PIX_" + request.step());
+        return ResponseEntity.noContent().build();
+    }
+
     /** Which questions people ask, to decide when the parser needs to grow. Counts only, no text. */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/ask/metrics")

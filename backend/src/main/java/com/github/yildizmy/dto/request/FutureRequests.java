@@ -37,6 +37,9 @@ public final class FutureRequests {
     ) {
     }
 
+    public record PixInterest(@NotNull @Pattern(regexp = "^(PREPARE|CONFIRM)$") String step) {
+    }
+
     public record Envelope(
             @NotBlank @Size(max = 60) String name,
             @NotNull @DecimalMin("0.01") @DecimalMax("1000000.00") @Digits(integer = 7, fraction = 2) BigDecimal amount

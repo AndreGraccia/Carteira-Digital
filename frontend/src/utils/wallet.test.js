@@ -90,8 +90,8 @@ describe('savingsInAYear', () => {
   it('compounds monthly deposits at the CDI and deflates by the IPCA', () => {
     expect(savingsInAYear('200.00', '13.65', '4.22')).toEqual({
       saved: 2400,
-      withCdi: 2546.68,
-      inTodaysMoney: 2443.56,
+      withCdi: 2573.98,
+      inTodaysMoney: 2469.76,
     });
   });
 

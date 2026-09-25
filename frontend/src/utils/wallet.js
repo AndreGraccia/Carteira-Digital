@@ -157,19 +157,16 @@ export const percent = (value, language) =>
   );
 
 /**
- * A goal kept for 12 months: what was put aside, what it becomes at 100% of the CDI (deposit at the end of
- * each month, before income tax) and what that is worth in today's money after 12-month IPCA.
- * ponytail: Number is fine for a shown estimate; nothing here is stored or moved.
+ * A goal kept for 12 months: what was put aside, what it becomes at 100% of the CDI (same deposit rule as the
+ * Insights simulator, before income tax) and what that is worth in today's money after 12-month IPCA.
  */
 export function savingsInAYear(monthly, cdiAnnualPercent, ipcaPercent) {
-  const deposit = Number(monthly);
-  const rate = (1 + Number(cdiAnnualPercent) / 100) ** (1 / 12) - 1;
-  const withCdi = rate > 0 ? (deposit * ((1 + rate) ** 12 - 1)) / rate : deposit * 12;
+  const year = projectRegularDeposits(monthly, 1, cdiAnnualPercent);
   const cents = (value) => Math.round(value * 100) / 100;
   return {
-    saved: cents(deposit * 12),
-    withCdi: cents(withCdi),
-    inTodaysMoney: cents(withCdi / (1 + Number(ipcaPercent) / 100)),
+    saved: cents(year.contributed),
+    withCdi: cents(year.futureValue),
+    inTodaysMoney: cents(year.futureValue / (1 + Number(ipcaPercent) / 100)),
   };
 }
 

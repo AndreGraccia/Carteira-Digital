@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import { EventRow, ExitPlanList } from '../../components/future-ui';
 import { PageHeading } from '../../components/wallet-ui';
-import { dayLabel, errorKey, money } from '../../utils/wallet';
+import { dayLabel, errorKey, money, overdraftCostText } from '../../utils/wallet';
 import { forecastReady, limitSummary } from '../../utils/forecast';
 
 const SUGGESTIONS = ['s1', 's2', 's3', 's4', 's5'];
@@ -73,7 +73,7 @@ function AnswerBody({ answer }) {
             ))}
           </Box>
           {Number(answer.risk.overdraftCostCap) > 0 &&
-            line(t('future.limit.cost', { amount: money(answer.risk.overdraftCostCap, lang) }))}
+            line(overdraftCostText(t, answer.risk, lang))}
           <ExitPlanList actions={answer.exitPlan} />
         </>
       );

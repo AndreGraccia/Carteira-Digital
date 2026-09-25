@@ -33,7 +33,7 @@ import {
   WalletIcon,
   visuallyHidden,
 } from '../../components/wallet-ui';
-import { dayLabel, errorKey, money } from '../../utils/wallet';
+import { dayLabel, errorKey, money, overdraftCostText } from '../../utils/wallet';
 import { forecastReady } from '../../utils/forecast';
 import Questions from './Questions';
 import Simulator from './Simulator';
@@ -319,7 +319,7 @@ export default function Future() {
                   })}{' '}
                   {t('future.riskReason')}
                   {Number(risk.overdraftCostCap) > 0 &&
-                    ` ${t('future.limit.cost', { amount: money(risk.overdraftCostCap, lang) })}`}
+                    ` ${overdraftCostText(t, risk, lang)}`}
                 </Alert>
               ))}
             {!projection.riskWindows.length && overview.sources.confirmedRecurrences > 0 && (

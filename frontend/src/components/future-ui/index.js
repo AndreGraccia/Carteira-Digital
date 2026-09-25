@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
-import { dayLabel, money } from '../../utils/wallet';
+import { dayLabel, money, overdraftCostText } from '../../utils/wallet';
 import { limitSummary } from '../../utils/forecast';
 
 const LIMIT_KEYS = {
@@ -86,7 +86,11 @@ export function EventRow({ event, dense = false }) {
   const inflow = Number(event.amount) > 0;
   // Everyday spending arrives folded into one line; its reference carries how many days it covers.
   const days = Number(event.reference?.split(':')[1]) || 1;
-  let { label } = event;
+  // Texts the engine writes come with a code; names and counterparties are data and stay as sent.
+  let label = event.labelKey ? t(`future.labels.${event.labelKey}`, { defaultValue: event.label }) : event.label;
+  const origin = event.originKey
+    ? t(`future.origins.${event.originKey}`, { days: event.originDays, defaultValue: event.origin })
+    : event.origin;
   if (event.category === 'DAILY_SPENDING') label = t('future.dailyEvent', { days });
   if (event.category === 'CARD_SPENDING') label = t('future.cardEvent', { days });
   return (
@@ -112,7 +116,7 @@ export function EventRow({ event, dense = false }) {
         </Typography>
         <Typography variant="caption" color="text.secondary" noWrap component="div">
           {t(`future.categories.${event.category}`, { defaultValue: event.category })}
-          {event.origin ? ` · ${event.origin}` : ''}
+          {origin ? ` · ${origin}` : ''}
         </Typography>
       </Box>
       <Stack alignItems="flex-end" spacing={0.5} sx={{ flexShrink: 0 }}>
@@ -396,7 +400,7 @@ export function DailyLimitCard({ limit, risk, laterRisks = [], exitPlan = [], on
       )}
       {risk && Number(risk.overdraftCostCap) > 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          {t('future.limit.cost', { amount: money(risk.overdraftCostCap, lang) })}
+          {overdraftCostText(t, risk, lang)}
         </Typography>
       )}
       {firstWay && (

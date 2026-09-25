@@ -149,5 +149,27 @@ export function localDate(isoDay) {
 }
 export const dayLabel = (isoDay, language, options = { day: '2-digit', month: '2-digit' }) =>
   isoDay ? new Intl.DateTimeFormat(localeFor(language), options).format(localDate(isoDay)) : '—';
+/** Monthly rate given in percent (2.94) as "2,94%". */
+export const percent = (value, language) =>
+  new Intl.NumberFormat(localeFor(language), { style: 'percent', maximumFractionDigits: 2 }).format(Number(value) / 100);
+
+/**
+ * What a negative window costs on the overdraft (ADR 0010): the estimate at the bank's or the market rate with
+ * IOF, saying where the rate came from, or only the legal-cap ceiling when Banco Central had no rate.
+ */
+export function overdraftCostText(t, risk, language) {
+  if (!risk || !(Number(risk.overdraftCostCap) > 0)) return '';
+  const estimate = risk.overdraftEstimate;
+  if (!estimate || estimate.source === 'LEGAL_CAP') {
+    return t('future.limit.cost', { amount: money(risk.overdraftCostCap, language) });
+  }
+  return t('future.limit.costEstimate', {
+    amount: money(estimate.total, language),
+    rate: percent(estimate.monthlyRate, language),
+    source: t(`future.limit.rateSource.${estimate.source}`, { institution: estimate.institution }),
+    date: dayLabel(estimate.referenceDate, language),
+    cap: money(risk.overdraftCostCap, language),
+  });
+}
 export const monthLabel = (isoMonth, language, options = { month: 'long', year: 'numeric' }) =>
   new Intl.DateTimeFormat(localeFor(language), options).format(localDate(`${isoMonth}-01`));

@@ -478,7 +478,13 @@ const resources = {
           laterRisks: 'Depois disso, o saldo fica negativo de novo:',
           laterRisk: '{{start}} a {{end}}, até {{amount}}',
           seeWayOut: 'Ver como evitar o negativo',
-          cost: 'Se o banco cobrir com cheque especial, os juros podem chegar a {{amount}} (teto legal de 8% ao mês).',
+          cost: 'Se o banco cobrir com cheque especial, os juros podem chegar a {{amount}} (teto legal de 8% ao mês), mais IOF.',
+          costEstimate:
+            'Se o banco cobrir com cheque especial, deve custar cerca de {{amount}} com IOF (juros de {{rate}} ao mês, {{source}}, semana de {{date}}). No teto legal, os juros chegariam a {{cap}}.',
+          rateSource: {
+            BANK: 'taxa média do {{institution}} no Banco Central',
+            MARKET: 'mediana dos bancos no Banco Central',
+          },
           ask: 'Pergunte à Wall.ia',
         },
         daily: {
@@ -497,6 +503,21 @@ const resources = {
           rejected: 'Gastos do dia a dia fora da projeção',
           noHistory: 'Ainda não há histórico para estimar. Informe quanto você costuma gastar por dia.',
         },
+        labels: {
+          DAILY_SPENDING: 'Gastos do dia a dia',
+          CARD_SPENDING: 'Compras do dia a dia no cartão',
+          SCENARIO_PURCHASE: 'Compra simulada',
+          SCENARIO_SAVING: 'Guardar todo mês',
+          TRANSFER_SENT: 'Transferência enviada',
+          TRANSFER_RECEIVED: 'Transferência recebida',
+          DEPOSIT: 'Depósito',
+          WITHDRAWAL: 'Retirada',
+        },
+        origins: {
+          GOAL: 'Meta',
+          USER_VALUE: 'Valor informado',
+          AVERAGE_DAYS: 'Média dos últimos {{days}} dias',
+        },
         noCommitments: 'Nenhuma saída prevista nos próximos 30 dias.',
         noCommitmentsHelp:
           'Conecte o Open Finance e responda às perguntas para a Wall.ia considerar suas contas fixas.',
@@ -512,6 +533,7 @@ const resources = {
           SCENARIO: 'Cenário simulado',
           DAILY_SPENDING: 'Gastos do dia a dia',
           CARD_SPENDING: 'Compras no cartão (estimativa)',
+          SCHEDULED: 'Agendado pelo banco',
           GOAL: 'Metas',
         },
         certainty: {
@@ -904,6 +926,7 @@ const resources = {
       actions: {
         goHome: 'Voltar para o início',
         logout: 'Sair',
+        logoutEverywhere: 'Sair de todos os dispositivos',
       },
     },
   },
@@ -1383,7 +1406,13 @@ const resources = {
           laterRisks: 'After that, the balance goes negative again:',
           laterRisk: '{{start}} to {{end}}, down to {{amount}}',
           seeWayOut: 'See how to avoid going negative',
-          cost: 'If your bank covers it with an overdraft, interest could reach {{amount}} (legal cap of 8% a month).',
+          cost: 'If your bank covers it with an overdraft, interest could reach {{amount}} (legal cap of 8% a month), plus IOF tax.',
+          costEstimate:
+            'If your bank covers it with an overdraft, it should cost about {{amount}} with IOF tax ({{rate}} a month, {{source}}, week of {{date}}). At the legal cap, interest would reach {{cap}}.',
+          rateSource: {
+            BANK: "{{institution}}'s average rate at Banco Central",
+            MARKET: 'median of banks at Banco Central',
+          },
           ask: 'Ask Wall.ia',
         },
         daily: {
@@ -1402,6 +1431,21 @@ const resources = {
           rejected: 'Everyday spending left out of the projection',
           noHistory: 'There is no history to estimate yet. Tell us how much you usually spend per day.',
         },
+        labels: {
+          DAILY_SPENDING: 'Everyday spending',
+          CARD_SPENDING: 'Everyday card purchases',
+          SCENARIO_PURCHASE: 'Simulated purchase',
+          SCENARIO_SAVING: 'Save every month',
+          TRANSFER_SENT: 'Transfer sent',
+          TRANSFER_RECEIVED: 'Transfer received',
+          DEPOSIT: 'Deposit',
+          WITHDRAWAL: 'Withdrawal',
+        },
+        origins: {
+          GOAL: 'Goal',
+          USER_VALUE: 'Amount you entered',
+          AVERAGE_DAYS: 'Average of the last {{days}} days',
+        },
         noCommitments: 'No expected outflows in the next 30 days.',
         noCommitmentsHelp: 'Connect Open Finance and answer the questions so Wall.ia considers your fixed bills.',
         categories: {
@@ -1416,6 +1460,7 @@ const resources = {
           SCENARIO: 'Simulated scenario',
           DAILY_SPENDING: 'Everyday spending',
           CARD_SPENDING: 'Card purchases (estimate)',
+          SCHEDULED: 'Scheduled by the bank',
           GOAL: 'Goals',
         },
         certainty: {
@@ -1809,6 +1854,7 @@ const resources = {
       actions: {
         goHome: 'Back to home',
         logout: 'Sign out',
+        logoutEverywhere: 'Sign out on every device',
       },
     },
   },

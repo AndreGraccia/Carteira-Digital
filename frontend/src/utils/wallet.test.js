@@ -1,4 +1,12 @@
-import { dayLabel, errorKey, subtractMoney, localDate, monthLabel, projectRegularDeposits } from './wallet';
+import {
+  dayLabel,
+  errorKey,
+  subtractMoney,
+  localDate,
+  monthLabel,
+  overdraftCostText,
+  projectRegularDeposits,
+} from './wallet';
 
 test('projects zero-rate monthly deposits without inventing earnings', () => {
   expect(projectRegularDeposits('100', 1, '0')).toEqual({
@@ -42,4 +50,35 @@ test('money differences are exact in cents (no red "-R$ 0,00")', () => {
   expect(0.3 - 0.1 - 0.2).not.toBe(0);
   expect(subtractMoney('0.3', 0.1 + 0.2)).toBe(0);
   expect(subtractMoney('1000.10', '999.99')).toBe(0.11);
+});
+
+describe('overdraftCostText', () => {
+  const t = (key, values) => `${key} ${JSON.stringify(values || {})}`;
+  const risk = { overdraftCostCap: '25.69', overdraftEstimate: null };
+
+  it('says nothing without a cost and only the ceiling without a Banco Central rate', () => {
+    expect(overdraftCostText(t, { overdraftCostCap: 0 }, 'pt')).toBe('');
+    expect(overdraftCostText(t, risk, 'pt')).toContain('future.limit.cost ');
+  });
+
+  it("uses the bank's rate with IOF and names where it came from", () => {
+    const text = overdraftCostText(
+      t,
+      {
+        ...risk,
+        overdraftEstimate: {
+          total: '14.28',
+          monthlyRate: '2.94',
+          source: 'BANK',
+          institution: 'BANCO ORIGINAL',
+          referenceDate: '2026-09-03',
+        },
+      },
+      'pt'
+    );
+    expect(text).toContain('future.limit.costEstimate');
+    expect(text).toContain('2,94%');
+    expect(text).toContain('future.limit.rateSource.BANK');
+    expect(text).toContain('03/09');
+  });
 });

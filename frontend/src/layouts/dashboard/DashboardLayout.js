@@ -17,12 +17,15 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
+import { enqueueSnackbar } from 'notistack';
 import { WalletProvider } from '../../context/WalletContext';
 import LanguageSelector from '../../components/language-selector';
 import { PageSkeleton, WalletIcon } from '../../components/wallet-ui';
 import { WalliaLogo } from '../../components/brand';
 import { forgetThisBrowser } from '../../utils/push';
 import AuthService from '../../services/AuthService';
+import HttpService from '../../services/HttpService';
+import { errorKey } from '../../utils/wallet';
 
 export default function DashboardLayout() {
   const { t } = useTranslation();
@@ -67,6 +70,16 @@ export default function DashboardLayout() {
     await Promise.race([forgetThisBrowser(), new Promise((resolve) => setTimeout(resolve, 2000))]);
     AuthService.logout();
     navigate('/login', { replace: true });
+  };
+  // A JWT cannot be revoked alone: the server stops accepting every token issued so far (V28).
+  const logoutEverywhere = async () => {
+    try {
+      await HttpService.postWithAuth('/auth/logout', {});
+    } catch (failure) {
+      enqueueSnackbar(t(errorKey(failure)), { variant: 'error' });
+      return;
+    }
+    await logout();
   };
   return (
     <WalletProvider>
@@ -207,6 +220,9 @@ export default function DashboardLayout() {
                     </Button>
                     <Button onClick={logout} startIcon={<WalletIcon name="logout" />}>
                       {t('actions.logout')}
+                    </Button>
+                    <Button color="inherit" onClick={logoutEverywhere}>
+                      {t('actions.logoutEverywhere')}
                     </Button>
                   </Stack>
                 </ClickAwayListener>

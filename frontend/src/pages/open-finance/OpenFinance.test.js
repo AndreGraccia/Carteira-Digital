@@ -52,6 +52,11 @@ let refresh;
 const text = () => document.body.textContent;
 const button = (key) => [...document.querySelectorAll('button')].find((item) => item.textContent === key);
 const click = (key) => act(async () => Simulate.click(button(key)));
+// MUI keeps a closing dialog mounted until its exit transition ends.
+const dialogClosed = async () => {
+  await act(() => new Promise((resolve) => setTimeout(resolve, 400)));
+  return document.querySelector('[role="dialog"]');
+};
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -106,7 +111,7 @@ test('connect creates a consent for the chosen period and the bank screen author
     consentId: consent.consentId,
   });
   expect(refresh).toHaveBeenCalledTimes(1);
-  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(await dialogClosed()).toBeNull();
   expect(text()).toContain('openFinance.status.AUTHORISED');
 });
 
@@ -171,7 +176,7 @@ test('an authorisation past 60 minutes closes the bank screen and shows the expi
   HttpService.getWithAuth.mockResolvedValue(status({ status: 'REJECTED', rejectionReason: 'CONSENT_EXPIRED' }));
   await click('openFinance.consent.authorise');
 
-  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(await dialogClosed()).toBeNull();
   expect(text()).toContain('app.errors.OPEN_FINANCE_CONSENT_EXPIRED');
   expect(text()).toContain('openFinance.rejected.CONSENT_EXPIRED');
 });

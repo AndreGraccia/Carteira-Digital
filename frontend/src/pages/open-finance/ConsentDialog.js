@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { useRef } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, Stack, Typography } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +52,10 @@ PermissionGroups.propTypes = { permissions: PropTypes.arrayOf(PropTypes.string) 
 export default function ConsentDialog({ consent, busy, error, onAuthorise, onReject, onClose }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
+  // Keep the last consent on screen while the dialog fades out, so it does not flash an empty card.
+  const last = useRef(consent);
+  if (consent) last.current = consent;
+  const shown = consent || last.current;
   return (
     <Dialog
       open={Boolean(consent)}
@@ -60,7 +65,7 @@ export default function ConsentDialog({ consent, busy, error, onAuthorise, onRej
       aria-labelledby="consent-title"
       PaperProps={{ sx: { overflow: 'hidden' } }}
     >
-      {consent && (
+      {shown && (
         <>
           <Box
             sx={{ px: 3, py: 2.5, bgcolor: 'background.neutral', borderBottom: '1px solid', borderColor: 'divider' }}
@@ -68,7 +73,7 @@ export default function ConsentDialog({ consent, busy, error, onAuthorise, onRej
             <Stack direction="row" spacing={2} alignItems="center">
               <IconTile name="bank" size={44} />
               <Typography id="consent-title" variant="h6" component="h2" sx={{ minWidth: 0 }}>
-                {consent.institutionName}
+                {shown.institutionName}
               </Typography>
             </Stack>
             <Chip
@@ -84,17 +89,17 @@ export default function ConsentDialog({ consent, busy, error, onAuthorise, onRej
             <Stack spacing={2.5} sx={{ pt: 1 }}>
               {error && <Alert severity="error">{t(error)}</Alert>}
               <Typography variant="subtitle1">{t('openFinance.consent.asks')}</Typography>
-              <PermissionGroups permissions={consent.permissions} />
+              <PermissionGroups permissions={shown.permissions} />
               <Typography variant="body2">{t('openFinance.consent.purpose')}</Typography>
               <Typography variant="body2">
-                {t('openFinance.consent.until', { date: dateTime(consent.expiresAt, lang) })}
+                {t('openFinance.consent.until', { date: dateTime(shown.expiresAt, lang) })}
               </Typography>
               <Alert severity="info" icon={<WalletIcon name="shield" />}>
                 {t('openFinance.consent.readOnly')}
               </Alert>
-              {consent.authoriseBefore && (
+              {shown.authoriseBefore && (
                 <Typography variant="caption" color="text.secondary">
-                  {t('openFinance.consent.authoriseBefore', { time: dateTime(consent.authoriseBefore, lang) })}
+                  {t('openFinance.consent.authoriseBefore', { time: dateTime(shown.authoriseBefore, lang) })}
                 </Typography>
               )}
             </Stack>

@@ -26,6 +26,18 @@ class CardAndScenarioTest {
     ));
 
     @Test
+    void instalmentsAddUpToThePurchaseTheFirstOneCarriesTheLeftoverCents() {
+        // R$ 100,00 in 3: the import stores 33.33 per instalment, which alone would add up to 99.99.
+        CardPlan card = new CardPlan(2, "Card", "Bank", 25, 3, List.of(new CardPlan.Charge(1, "Headphones",
+                LocalDate.of(2026, 9, 10), new BigDecimal("100.00"), new BigDecimal("33.33"), 3, YearMonth.of(2026, 10))));
+
+        assertEquals(new BigDecimal("33.34"), card.invoiceTotal(YearMonth.of(2026, 10)));
+        assertEquals(new BigDecimal("33.33"), card.invoiceTotal(YearMonth.of(2026, 11)));
+        assertEquals(new BigDecimal("100.00"), card.invoiceTotal(YearMonth.of(2026, 10))
+                .add(card.invoiceTotal(YearMonth.of(2026, 11))).add(card.invoiceTotal(YearMonth.of(2026, 12))));
+    }
+
+    @Test
     void purchaseBeforeClosingGoesToNextMonthsBillAndAfterClosingSkipsOne() {
         assertEquals(YearMonth.of(2026, 10), CARD.invoiceFor(LocalDate.of(2026, 9, 24)));
         assertEquals(YearMonth.of(2026, 11), CARD.invoiceFor(LocalDate.of(2026, 9, 25)), "closing day already belongs to the next bill");

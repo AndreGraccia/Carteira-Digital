@@ -767,7 +767,7 @@ public class FutureService {
                                     line.charge().purchaseDate(),
                                     line.installment(),
                                     line.charge().installments(),
-                                    line.charge().installmentAmount()))
+                                    line.charge().amountFor(line.installment())))
                             .toList()
             ));
         }

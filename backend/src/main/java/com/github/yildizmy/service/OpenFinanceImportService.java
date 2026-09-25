@@ -108,6 +108,7 @@ public class OpenFinanceImportService {
                 }
                 transaction.setAmount(entry.amount().setScale(2, java.math.RoundingMode.HALF_EVEN));
                 transaction.setDescription(truncate(entry.transactionName(), 200));
+                transaction.setPaymentType(entry.type() == null ? null : truncate(entry.type(), 40));
                 transaction.setCreatedAt(entry.transactionDateTime());
                 transaction.setStatus(status);
                 transaction.setType(typeService.getReferenceById(

@@ -45,7 +45,7 @@ public record CardPlan(
 
     public BigDecimal invoiceTotal(YearMonth invoice) {
         return invoiceLines(invoice).stream()
-                .map(line -> line.charge().installmentAmount())
+                .map(line -> line.charge().amountFor(line.installment()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -66,6 +66,14 @@ public record CardPlan(
         public int installmentFor(YearMonth invoice) {
             long offset = java.time.temporal.ChronoUnit.MONTHS.between(firstInvoice, invoice);
             return offset >= 0 && offset < installments ? (int) offset + 1 : 0;
+        }
+
+        /**
+         * Amount of instalment {@code number}: the instalments add up to the purchase, with the leftover cents on
+         * the first one, the same split as the simulator. {@code installmentAmount} alone rounds down.
+         */
+        public BigDecimal amountFor(int number) {
+            return ScenarioSimulator.split(totalAmount, installments).get(number - 1);
         }
     }
 

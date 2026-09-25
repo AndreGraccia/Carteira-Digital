@@ -36,7 +36,7 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 - **Sincronização diária** automática às 7h30, para que alertas e placar usem o saldo do dia.
 - Saldo agora, quanto já tem destino (separando confirmado de estimado) e margem livre.
 - Saldo projetado dia a dia em 30, 60 ou 90 dias, com o menor saldo marcado.
-- Alerta de janela negativa ("entre 03/10 e 04/10 seu saldo pode ficar em -R$ 324,87") e "ver por quê", que lista as contas que causam o buraco e a entrada que o fecha, com o custo máximo do cheque especial no período (teto legal de 8% ao mês).
+- Alerta de janela negativa ("entre 03/10 e 04/10 seu saldo pode ficar em -R$ 324,87") e "ver por quê", que lista as contas que causam o buraco e a entrada que o fecha, com o custo estimado do cheque especial no período: juros pela taxa média do seu banco publicada pelo Banco Central (ou a mediana dos bancos), nunca acima do teto legal de 8% ao mês, mais IOF, com a fonte e a data da taxa.
 - Perguntas rápidas sobre recorrências detectadas, com evidência (valor, dia, vezes, conta de origem) e resposta em um toque.
 - Modo Futuro: simula compra à vista ou parcelada, guardar todo mês ou perder uma renda, sem gravar nada.
 
@@ -52,7 +52,9 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 - Fatura aberta e faturas futuras com as compras e parcelas que as compõem.
 - Limite comprometido.
-- Empréstimos: quanto falta, parcela, parcelas restantes, próximo vencimento e instituição de origem.
+- Empréstimos: quanto falta, parcela, parcelas restantes, próximo vencimento, CET e instituição de origem.
+- Pagamento mínimo da fatura, com o aviso de que o resto vai para o rotativo e a taxa do rotativo no Banco Central.
+- Taxa do contrato comparada com a mediana do crédito pessoal no Banco Central, e CDI, Selic e IPCA do dia.
 - **Quanto este dinheiro custa:** quanto da próxima parcela é juro e quanto de juros ainda falta pagar até o fim.
 
 **Base da carteira**
@@ -61,14 +63,15 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 - Trilha de auditoria de todo acesso administrativo, inclusive tentativas negadas.
 - Painel de métricas para admin: negativos evitados por usuário ativo por mês (a métrica principal), negativos sem aviso, perguntas sem resposta e interesse no Pix.
 - Carteiras e extrato, com autorização por dono da carteira.
-- Conexão Open Finance protegida por código de 8 dígitos enviado ao e-mail cadastrado ([roteiro de teste](docs/open-finance-email-tests.md)).
+- E-mail confirmado no cadastro por código de 8 dígitos ([roteiro de teste](docs/open-finance-email-tests.md)); sem ele, o login não entra. "Sair de todos os dispositivos" invalida todos os tokens emitidos.
+- Open Finance na jornada de consentimento do padrão brasileiro: prazo de 3, 6 ou 12 meses, tela da instituição (simulada no sandbox), autorizar ou recusar, sincronizar e revogar. Revogar apaga o que foi importado.
 - Análise do extrato com regras locais ou Gemini, sem enviar o extrato bruto ([segurança e IA](docs/security-and-ai-reports.md)).
 - Interface em português e inglês, tema escuro, responsiva, validada em 1440 px e 390 px.
 - Swagger em `/swagger-ui/index.html`.
 
 ## Próximos passos
 
-A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, decisões em aberto e métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Decisões técnicas nos ADRs [0001](docs/adr/0001-motor-futuro-deterministico.md), [0002](docs/adr/0002-limite-diario-e-perguntas.md), [0003](docs/adr/0003-saida-do-buraco-metas-e-alertas.md), [0004](docs/adr/0004-auditoria-admin-e-ledger.md) [0005](docs/adr/0005-envelopes-placar-e-pix-simulado.md) e [0006](docs/adr/0006-sync-diario-e-push-sem-sdk.md).
+A análise completa (diagnóstico, oportunidades avaliadas, o que não fazer e por quê, decisões em aberto e métricas) está em [docs/estrategia-produto.md](docs/estrategia-produto.md). Decisões técnicas nos ADRs [0001](docs/adr/0001-motor-futuro-deterministico.md), [0002](docs/adr/0002-limite-diario-e-perguntas.md), [0003](docs/adr/0003-saida-do-buraco-metas-e-alertas.md), [0004](docs/adr/0004-auditoria-admin-e-ledger.md) [0005](docs/adr/0005-envelopes-placar-e-pix-simulado.md), [0006](docs/adr/0006-sync-diario-e-push-sem-sdk.md), [0007](docs/adr/0007-dia-util-e-datas-de-borda.md), [0008](docs/adr/0008-email-no-cadastro-e-consentimento-ofb.md), [0009](docs/adr/0009-aderencia-open-finance-brasil.md) e [0010](docs/adr/0010-dados-publicos-do-banco-central.md). O que mudou em cada versão está no [CHANGELOG](CHANGELOG.md).
 
 Em aberto, para o dono do produto decidir: credenciar a iniciação de pagamento pelo Open Finance, que tiraria o Pix do modo simulação e é também o gatilho do ledger de dupla entrada.
 

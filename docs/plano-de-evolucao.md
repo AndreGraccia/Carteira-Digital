@@ -10,7 +10,23 @@ Auditoria de 24/09/2026 sobre a branch `feat/wallia` (`2228112`). Fontes, com ev
 | [`backend.md`](auditoria-2026-09-24/backend.md) | Motor Futuro, insights, Open Finance, integrações, rotas, banco |
 | [`openfinance.md`](auditoria-2026-09-24/openfinance.md) | Padrão Open Finance Brasil, BCB, Pix, regras de crédito, LGPD, contabilidade |
 
-## Estado medido hoje
+## Andamento (25/09/2026)
+
+| Sprint | Estado |
+| --- | --- |
+| 0 Higiene | Feita. Falta só o push forçado da história sem coautoria, que depende do dono. |
+| 1 Predição e análise | Feita. |
+| 2 Segurança | Feita. |
+| 3 E-mail no cadastro | Feita (ADR 0008). |
+| 4 Tradução e layout | Feita, com verificação pelo DOM (Playwright) em 375 e 1280 px, PT e EN, em 9 telas. |
+| 5 Aderência OFB | Feita (ADR 0009). |
+| 6 API e banco | Feita. O E2E com Playwright no CI ainda não existe; hoje a verificação é o script local. |
+| 7 BCB | Custo do negativo, rotativo, CET, comparação com o mercado e CDI/IPCA/Selic feitos (ADR 0010). **Pix Automático simulado não foi feito.** |
+| 8 Entrega | README, CHANGELOG e `.env.example` atualizados. **Checklist LGPD (tela de privacidade, exclusão de conta, criptografia em repouso) não foi feito.** O PR para a `main` espera o push. |
+
+Detalhe de cada entrega em [`CHANGELOG.md`](../CHANGELOG.md).
+
+## Estado medido em 24/09
 
 - Backend: `./mvnw test` → 220 testes, 0 falhas; migrações V1–V22 aplicam em banco vazio (Postgres 14).
 - Frontend: build, ESLint e 19 testes passam sem warning; chaves i18n PT/EN batem; 36 chamadas HTTP batem com os controllers; nenhum link quebrado.

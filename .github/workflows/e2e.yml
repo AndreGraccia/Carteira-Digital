@@ -1,0 +1,52 @@
+name: E2E
+
+# The homologation journey (frontend/e2e/journey.cjs) in a real browser against the whole stack built from the same
+# Dockerfiles as production. Separate from CI so a slow or flaky browser run never hides a unit test result.
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Throwaway secrets for this run
+        run: |
+          grep -vE '^(db_password|jwt_secret|data_encryption_key|container_mail_host|market_refresh_on_startup)=' .env.example.properties > .env.properties
+          {
+            echo "db_password=$(openssl rand -hex 16)"
+            echo "jwt_secret=$(openssl rand -base64 48 | tr -d '\n')"
+            echo "data_encryption_key=$(openssl rand -base64 32)"
+            echo "container_mail_host=mailpit"
+            echo "market_refresh_on_startup=false"
+          } >> .env.properties
+
+      - name: Stack up (production compose, waits for healthy services)
+        run: docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait --wait-timeout 300
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Playwright 1.61.1 with Chromium
+        run: |
+          npm install --no-save --prefix /tmp/pw playwright@1.61.1
+          npx --prefix /tmp/pw playwright install --with-deps chromium
+
+      - name: Journey
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_MODULE: /tmp/pw/node_modules/playwright
+        run: node e2e/journey.cjs
+
+      - name: Logs when it fails
+        if: failure()
+        run: docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml logs --tail 200

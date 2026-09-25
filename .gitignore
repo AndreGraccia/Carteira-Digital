@@ -100,3 +100,7 @@ backend/.jpb/
 
 # Exportacoes de sessao usadas como contexto local
 Contexto*.txt
+
+# Backups do banco (scripts/backup.sh): dados pessoais, nunca no repositório.
+backups/
+*.dump

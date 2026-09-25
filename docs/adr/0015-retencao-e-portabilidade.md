@@ -42,4 +42,4 @@ O job usa o `JobLock` (uma instância executa) e o cron `retention_cron` (`-` de
 - A tela de exclusão agora descreve o que o código faz: pseudonimização com retenção do histórico, e não apagamento total.
 - **Em aberto, fora deste ADR:**
   - **Marco Civil, art. 15.** Um provedor de aplicação constituído como empresa precisa guardar registros de acesso (IP, data e hora) por 6 meses. Hoje não há registro de acesso próprio, e os logs do Docker giram por tamanho, não por prazo. Decidir antes da produção, junto com o jurídico.
-  - **Backups (B32).** Quando existirem, a exclusão e a retenção só se completam quando o backup antigo expira. O prazo do backup entra nesta tabela.
+  - **Backups.** Resolvido na Sprint 13: `scripts/backup.sh` guarda 14 dias (`BACKUP_KEEP_DAYS`). A exclusão e a retenção se completam quando o último backup com o dado expira, em até 14 dias ([`operacao.md`](../operacao.md), seção 2).

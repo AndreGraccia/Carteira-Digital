@@ -130,7 +130,7 @@ Uma sprint por sessão, com commit verde ao fim.
 - **Sprint 11: homologação possível.** Feita em 25/09: B10, B11, B30, B31 e B03 (detalhe no CHANGELOG). Ficaram: B01 (conferir o CI com `gh`) e B02 (`npm audit`, precisa do registry npm). Achado durante a sprint: a readiness padrão do Spring não olha o banco; foi incluído.
 - **Sprint 12: dados do titular.** Feita em 25/09: B20, B21, B22 (ADR 0015) e B26. Achado: o Marco Civil (art. 15) pode exigir registro de acesso por 6 meses; decidir com o jurídico antes da produção.
 - **Sprint 13: produção segura.** Feita em 25/09: B23 (ADR 0016), B25, B32 e B33, com o manual em [`operacao.md`](operacao.md). B34 estava errado no backlog: pom, Dockerfile e CI já usavam Java 17; o risco real era o JDK 21 local aceitar API nova, resolvido com `<release>`. Achado e corrigido: o IP do cliente atrás do proxy TLS.
-- **Sprint 14: testes de ponta a ponta.** B04, B05, B51, B50.
+- **Sprint 14: testes de ponta a ponta.** Feita em 25/09: B05 (E2E no navegador e workflow próprio), B04 para o `AccountController`, B51 medido (5.816 px em 375 px). Ficaram: B04 para os outros 8 controllers e B50 (estado de dado atrasado), que vão para a Sprint 15.
 - **Sprint 15: plataforma nova.** B35 (Boot 4.1 e Java 25), B36.
 - **Sprint 16: Open Finance preparado.** B40, B41, B42, B43.
 - **Sprint 17: Open Finance em escala.** B44, B45, B46, B12.

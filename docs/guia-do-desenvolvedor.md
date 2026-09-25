@@ -443,6 +443,15 @@ Sondas de saúde (só dentro da rede; o nginx não repassa `/actuator`):
 - `/actuator/health/liveness`: o processo está de pé. Não olha o banco, para uma queda do banco não reiniciar a API.
 - `/actuator/health/readiness`: pronto para receber tráfego. Fica `DOWN` quando o banco não responde.
 
+O roteiro abaixo roda sozinho no navegador (Chromium), contra a pilha no ar:
+
+```
+cd frontend
+node e2e/journey.cjs
+```
+
+Precisa do pacote `playwright` (no CI, o workflow `E2E` instala a 1.61.1; aqui, `PLAYWRIGHT_MODULE` pode apontar para uma cópia já instalada). Qualquer erro de JavaScript ou resposta 5xx reprova. No Git Bash, gere o build do frontend com `MSYS_NO_PATHCONV=1`: sem isso, `REACT_APP_API_URL=/api/v1` vira um caminho do Windows dentro do bundle e a interface não alcança a API.
+
 Roteiro mínimo de validação a cada versão:
 
 1. Cadastro, código pelo Mailpit e login.

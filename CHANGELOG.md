@@ -2,6 +2,23 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 25/09/2026 (noite): Sprint 14, ponta a ponta
+
+### Novo
+- **E2E no navegador (B05).** `frontend/e2e/journey.cjs` percorre o roteiro de homologação no Chromium: cadastro com o código lido no Mailpit, Futuro, Compromissos, Análises, Open Finance e Privacidade em 375 e 1280 px (sem erro na tela e sem rolagem lateral), conectar, autorizar e revogar o Open Finance, e baixar os dados. Erro de JavaScript ou resposta 5xx reprova. Workflow `E2E` separado do CI, com a pilha montada pelos Dockerfiles de produção.
+- **`@WebMvcTest` do `AccountController` (B04).** Exportação e exclusão sem token dão 401; a exportação é do próprio usuário e não gasta tentativa de login; exclusão sem senha para antes do serviço.
+
+### Corrigido
+- **A interface montada nesta noite não alcançava a API.** O build feito no Git Bash transformou `REACT_APP_API_URL=/api/v1` em `C:/Program Files/Git/api/v1`. Os testes por `curl` não viam isso; o E2E viu. Refeito com `MSYS_NO_PATHCONV=1`, e o E2E passou inteiro. Afetou só as imagens locais montadas fora do Docker, não o Dockerfile.
+
+### Medido
+- Tela Futuro em 375 px, com dados do Open Finance: 5.816 px de altura (B51). Continua longa mesmo com as seções recolhíveis; vira trabalho de UX.
+
+### Verificado
+- E2E: passou inteiro contra a pilha local.
+- Backend: `AccountControllerWebTest` com 4 testes; suíte completa em 324.
+- Não verificado: o workflow `E2E` no GitHub (sem `gh`).
+
 ## 25/09/2026 (noite): Sprint 13, produção segura, e o git arrumado
 
 ### Novo

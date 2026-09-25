@@ -21,11 +21,12 @@ Revisão item a item contra o código em [`analise-2026-09-25.md`](analise-2026-
 | 2 Segurança | Feita. |
 | 3 E-mail no cadastro | Feita (V24, ADR 0008). |
 | 4 Tradução e layout | Parcial. Verificação pelo DOM (Playwright headless, sem navegador real) em 375 e 1280 px, PT e EN, em 9 telas. Nomenclatura padronizada em 25/09. **A tela Futuro no celular continua com cerca de 4.700 px.** |
-| 5 Aderência OFB | Parcial (V25, V26, ADR 0009). **Faltam `GET /consents/{id}` e o sync por `/transactions-current`.** |
+| 5 Aderência OFB | Parcial (V25, V26, ADR 0009). `GET /consents/{id}` feito na Sprint 10. **Falta o sync por `/transactions-current`.** |
 | 6 API e banco | Parcial. Existe teste de integração ponta a ponta. **Faltam `@WebMvcTest` por controller e o E2E no CI.** |
 | 7 BCB | Custo do negativo, rotativo, CET, comparação com o mercado e CDI/IPCA/Selic feitos (V29, ADR 0010). **Faltam o Pix Automático simulado, Metas com CDI/IPCA e a explicação de caixa e competência na tela.** |
-| 8 Entrega | README, CHANGELOG e `.env.example` atualizados. Guia, portas e LGPD (exclusão de conta e privacidade visível) feitos na Sprint 9. **Faltam criptografia em repouso, imagens Docker e o PR para a `main`.** |
+| 8 Entrega | README, CHANGELOG e `.env.example` atualizados. Guia, portas e LGPD (exclusão de conta e privacidade visível) feitos na Sprint 9. Criptografia em repouso feita na Sprint 10 (ADR 0014). **Faltam imagens Docker e o PR para a `main`.** |
 | 9 Sem rede | Feita em 25/09. Detalhe em [`analise-2026-09-25.md`](analise-2026-09-25.md). |
+| 10 Consentimento e diferenciais | Feita em 25/09: expiração gravada, revogação no banco, quitação, criptografia em repouso. Detalhe no mesmo documento. |
 
 Detalhe de cada entrega em [`CHANGELOG.md`](../CHANGELOG.md). Numeração real dos ADRs: 0007 dia útil, 0008 e-mail no cadastro e consentimento, 0009 aderência OFB, 0010 dados do BCB. Onde o texto abaixo cita outro número, vale esta lista.
 

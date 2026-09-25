@@ -2,6 +2,24 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 25/09/2026 (noite): Sprint 10, integridade do consentimento e diferenciais
+
+### Corrigido
+- **Consentimento vencido nunca ficava gravado.** O `sync` marcava o consentimento como vencido e respondia 428 dentro da mesma transação, e o rollback desfazia a marcação. O consentimento ficava `AUTHORISED` para sempre, o sync diário tentava todo dia e os dados importados nunca saíam. O mesmo acontecia com o pedido de consentimento vencido depois de 60 minutos. Agora a expiração é gravada numa transação própria e apaga os dados importados.
+
+### Novo
+- **Revogação feita no app do banco.** Antes de ler, o gateway de participante consulta `GET /consents/v3/consents/{id}`. Se o banco diz `REJECTED`, a conexão é encerrada com o motivo que o banco informou, e os dados são apagados.
+- **Quitar mais rápido** (Compromissos). Compara maior juro primeiro e menor saldo primeiro com só pagar as parcelas: meses, juros e quanto cada ordem economiza. Nenhum crédito é oferecido (ADR 0013, `GET /api/v1/future/debt-payoff`).
+- **Criptografia em repouso.** Descrições de lançamentos e de compras no cartão ficam gravadas com AES-256-GCM. A chave é obrigatória em produção (ADR 0014, V30).
+
+### Melhorado
+- Metas passaram a usar a mesma conta de aportes do simulador de Análises, em vez de uma cópia.
+- Conferido no repositório oficial da OFB que não saiu versão de API depois de 19/12/2025.
+
+### Verificado
+- Backend: 305 testes, 0 falhas, 14 pulados (precisam de PostgreSQL).
+- Frontend: 63 testes, lint, paridade PT/EN (784 chaves) e build.
+
 ## 25/09/2026 (tarde): Sprint 9, sem rede externa
 
 ### Novo

@@ -259,16 +259,18 @@ export default function Insights() {
                     ))}
                   </Stack>
                   <Stack direction="row" spacing={2} sx={{ mt: 2.5 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      ● {t('insights.metrics.inflow')}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ '&::first-letter': { color: 'warning.main' } }}
-                    >
-                      ● {t('insights.metrics.outflow')}
-                    </Typography>
+                    {[
+                      ['success.main', 'insights.metrics.inflow'],
+                      ['warning.main', 'insights.metrics.outflow'],
+                    ].map(([color, label]) => (
+                      <Stack key={label} direction="row" spacing={0.75} alignItems="center">
+                        {/* Same colour as the bars above: the swatch is the legend. */}
+                        <Box aria-hidden="true" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color }} />
+                        <Typography variant="caption" color="text.secondary">
+                          {t(label)}
+                        </Typography>
+                      </Stack>
+                    ))}
                   </Stack>
                 </Card>
               </Grid>

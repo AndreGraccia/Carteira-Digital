@@ -1,19 +1,26 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Stack, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
+import { visuallyHidden } from '../wallet-ui';
 import { compactMoney, dayLabel, money } from '../../utils/wallet';
 
 const HEIGHT = 240;
 const PAD = { top: 16, right: 16, bottom: 28, left: 72 };
 
+/**
+ * The container width, measured before the first paint: a guessed 640 px would overflow a 375 px
+ * screen for one frame and then jump. No floor either, so a 320 px screen gets a 256 px chart.
+ */
 function useWidth() {
   const ref = useRef(null);
-  const [width, setWidth] = useState(640);
-  useEffect(() => {
-    if (!ref.current || typeof ResizeObserver === 'undefined') return undefined;
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(280, entry.contentRect.width)));
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    if (!ref.current) return undefined;
+    setWidth(ref.current.clientWidth);
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
     observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
@@ -40,6 +47,8 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
   const { t, i18n } = useTranslation();
   const [ref, width] = useWidth();
   const [hover, setHover] = useState(null);
+  // Keyboard moves are announced; pointer moves are not (one announcement per pixel would drown the page).
+  const [fromKeyboard, setFromKeyboard] = useState(false);
   const days = series[0]?.days || [];
 
   const geometry = useMemo(() => {
@@ -55,23 +64,68 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
   }, [series, width, days.length]);
 
   if (!days.length) return null;
+  // Not measured yet (or no layout, as in tests): keep the height so nothing below jumps.
+  if (width <= PAD.left + PAD.right) return <Box ref={ref} sx={{ width: '100%', height: HEIGHT }} />;
   const { ticks, x, y, plotHeight } = geometry;
   const path = (items) =>
     items.map((day, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(day.balance).toFixed(1)}`).join('');
   const labelEvery = Math.max(1, Math.round(days.length / (width < 520 ? 4 : 7)));
   const lowestIndex = lowest ? days.findIndex((day) => day.date === lowest.date) : -1;
 
-  const onMove = (event) => {
+  const last = days.length - 1;
+  const clamp = (index) => Math.min(last, Math.max(0, index));
+  // Mouse and touch: a tap on a day shows it, as hovering does.
+  const onPointer = (event) => {
     const box = event.currentTarget.getBoundingClientRect();
     const relative = ((event.clientX - box.left) / box.width) * width;
-    const index = Math.round(((relative - PAD.left) / (width - PAD.left - PAD.right)) * (days.length - 1));
-    setHover(Math.min(days.length - 1, Math.max(0, index)));
+    setFromKeyboard(false);
+    setHover(clamp(Math.round(((relative - PAD.left) / (width - PAD.left - PAD.right)) * last)));
   };
+  // Keyboard: the chart is one tab stop; arrows walk the days, Home/End jump to the ends, Esc hides.
+  const onKeyDown = (event) => {
+    const current = hover ?? (lowestIndex >= 0 ? lowestIndex : 0);
+    const next = {
+      ArrowRight: current + 1,
+      ArrowLeft: current - 1,
+      ArrowUp: current + 1,
+      ArrowDown: current - 1,
+      PageUp: current + 7,
+      PageDown: current - 7,
+      Home: 0,
+      End: last,
+    }[event.key];
+    if (event.key === 'Escape') {
+      setHover(null);
+      return;
+    }
+    if (next === undefined) return;
+    event.preventDefault();
+    setFromKeyboard(true);
+    setHover(clamp(next));
+  };
+  const hoverText =
+    hover !== null &&
+    [
+      dayLabel(days[hover].date, i18n.language, { weekday: 'short', day: '2-digit', month: 'short' }),
+      ...series.map((item) =>
+        [series.length > 1 ? item.label : null, money(item.days[hover].balance, i18n.language)]
+          .filter(Boolean)
+          .join(': ')
+      ),
+    ].join(', ');
 
   return (
-    <Box ref={ref} sx={{ position: 'relative', width: '100%' }}>
+    <Box
+      ref={ref}
+      sx={{
+        position: 'relative',
+        width: '100%',
+        '& > svg': { borderRadius: 1 },
+        '& > svg:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+      }}
+    >
       {series.length > 1 && (
-        <Stack direction="row" spacing={2} sx={{ mb: 1, p: 0, m: 0 }} component="ul">
+        <Stack direction="row" spacing={2} sx={{ p: 0, m: 0, mb: 1 }} component="ul">
           {series.map((item) => (
             <Stack
               key={item.key}
@@ -103,9 +157,17 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
         width={width}
         height={HEIGHT}
         role="img"
-        aria-label={ariaLabel}
-        onMouseMove={onMove}
-        onMouseLeave={() => setHover(null)}
+        aria-label={`${ariaLabel} ${t('future.chartKeys')}`}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        onFocus={() => {
+          setFromKeyboard(true);
+          setHover((previous) => previous ?? (lowestIndex >= 0 ? lowestIndex : 0));
+        }}
+        onBlur={() => setHover(null)}
+        onPointerMove={onPointer}
+        onPointerDown={onPointer}
+        onPointerLeave={(event) => event.pointerType === 'mouse' && setHover(null)}
         style={{ display: 'block', touchAction: 'pan-y' }}
       >
         {/* negative band: everything under zero */}
@@ -193,18 +255,33 @@ export default function ProjectionChart({ series, lowest, ariaLabel }) {
           </g>
         )}
         {hover !== null && (
-          <line
-            x1={x(hover)}
-            x2={x(hover)}
-            y1={PAD.top}
-            y2={PAD.top + plotHeight}
-            stroke={theme.palette.text.secondary}
-            strokeDasharray="2 3"
-          />
+          <g>
+            <line
+              x1={x(hover)}
+              x2={x(hover)}
+              y1={PAD.top}
+              y2={PAD.top + plotHeight}
+              stroke={theme.palette.text.secondary}
+              strokeDasharray="2 3"
+            />
+            {series.map((item) => (
+              <circle
+                key={item.key}
+                cx={x(hover)}
+                cy={y(item.days[hover].balance)}
+                r={4}
+                fill={item.color}
+                stroke={theme.palette.background.paper}
+                strokeWidth={2}
+              />
+            ))}
+          </g>
         )}
       </svg>
+      <Box role="status" aria-live="polite" sx={visuallyHidden}>
+        {fromKeyboard && hoverText}
+      </Box>
       {hover !== null && (
-        // Pointer-only detail: announcing every mouse move would drown the text alternative.
         <Box
           aria-hidden="true"
           sx={{

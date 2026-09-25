@@ -25,7 +25,14 @@ import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import ProjectionChart from '../../components/projection-chart';
 import { CertaintyLegend, DailyLimitCard, EventRow, ExitPlanList, StatBlock } from '../../components/future-ui';
-import { EmptyState, PageHeading, PageSkeleton, SectionCard, WalletIcon } from '../../components/wallet-ui';
+import {
+  EmptyState,
+  PageHeading,
+  PageSkeleton,
+  SectionCard,
+  WalletIcon,
+  visuallyHidden,
+} from '../../components/wallet-ui';
 import { dayLabel, errorKey, money } from '../../utils/wallet';
 import { forecastReady } from '../../utils/forecast';
 import Questions from './Questions';
@@ -34,19 +41,6 @@ import Goals from './Goals';
 import AlertToggle from './AlertToggle';
 import Accuracy from './Accuracy';
 import CancelGuide from './CancelGuide';
-
-// Read by screen readers, invisible on screen (same rule as MUI's visuallyHidden).
-const visuallyHidden = {
-  border: 0,
-  clip: 'rect(0 0 0 0)',
-  height: '1px',
-  margin: '-1px',
-  overflow: 'hidden',
-  padding: 0,
-  position: 'absolute',
-  whiteSpace: 'nowrap',
-  width: '1px',
-};
 
 function WhyDialog({ risk, exitPlan, onClose }) {
   const { t, i18n } = useTranslation();

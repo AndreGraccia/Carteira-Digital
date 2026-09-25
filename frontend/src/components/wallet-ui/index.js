@@ -4,6 +4,19 @@ import { useTranslation } from 'react-i18next';
 import { useWallets } from '../../context/WalletContext';
 import { dateTime, directionFor, money } from '../../utils/wallet';
 
+// Read by screen readers, invisible on screen (same rule as MUI's visuallyHidden).
+export const visuallyHidden = {
+  border: 0,
+  clip: 'rect(0 0 0 0)',
+  height: '1px',
+  margin: '-1px',
+  overflow: 'hidden',
+  padding: 0,
+  position: 'absolute',
+  whiteSpace: 'nowrap',
+  width: '1px',
+};
+
 const paths = {
   wallet: 'M3 7h17v13H3V4h14v3M20 11h-5v5h5M16.5 13.5h.01',
   home: 'm3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9',

@@ -78,7 +78,7 @@ Prioridade: **P0** bloqueia a homologação, **P1** bloqueia produção, **P2** 
 - **B31 (P0) Health check.** Actuator com `/actuator/health` (liveness e readiness), `healthcheck` no compose e `depends_on` com `condition: service_healthy`, para o backend não subir antes do banco.
 - **B32 (P1) Backup e restauração testados.** `pg_dump` diário, retenção, e um teste de restauração documentado junto com a chave de criptografia.
 - **B33 (P1) TLS e HSTS.** O nginx do frontend escuta HTTP na 3000. Documentar o proxy da borda com TLS e ligar HSTS lá.
-- **B34 (P1) Imagem de runtime.** Backend compila com Java 21 e roda em `eclipse-temurin:17-jre`. Alinhar a versão e regenerar as imagens.
+- **B34 (P1) Imagem de runtime.** Corrigido o diagnóstico: tudo já era Java 17; o JDK 21 local compilava com `source`/`target` e aceitaria API do 21. Resolvido com `<release>`.
 - **B35 (P1) Migração para Spring Boot 4.1 e Java 25.** A linha 3.5 ficou sem suporte gratuito em 30/06/2026. Primeiro o último 3.5, zerar depreciações, depois 4.x.
 - **B36 (P2) Observabilidade.** Métricas (Micrometer), logs estruturados sem dado pessoal, alerta quando o job diário falha ou demora.
 - **B37 (P2) Limites em Redis.** Só quando houver mais de uma instância da API (gatilho da estratégia).
@@ -129,7 +129,7 @@ Uma sprint por sessão, com commit verde ao fim.
 
 - **Sprint 11: homologação possível.** Feita em 25/09: B10, B11, B30, B31 e B03 (detalhe no CHANGELOG). Ficaram: B01 (conferir o CI com `gh`) e B02 (`npm audit`, precisa do registry npm). Achado durante a sprint: a readiness padrão do Spring não olha o banco; foi incluído.
 - **Sprint 12: dados do titular.** Feita em 25/09: B20, B21, B22 (ADR 0015) e B26. Achado: o Marco Civil (art. 15) pode exigir registro de acesso por 6 meses; decidir com o jurídico antes da produção.
-- **Sprint 13: produção segura.** B23, B25, B32, B33, B34.
+- **Sprint 13: produção segura.** Feita em 25/09: B23 (ADR 0016), B25, B32 e B33, com o manual em [`operacao.md`](operacao.md). B34 estava errado no backlog: pom, Dockerfile e CI já usavam Java 17; o risco real era o JDK 21 local aceitar API nova, resolvido com `<release>`. Achado e corrigido: o IP do cliente atrás do proxy TLS.
 - **Sprint 14: testes de ponta a ponta.** B04, B05, B51, B50.
 - **Sprint 15: plataforma nova.** B35 (Boot 4.1 e Java 25), B36.
 - **Sprint 16: Open Finance preparado.** B40, B41, B42, B43.

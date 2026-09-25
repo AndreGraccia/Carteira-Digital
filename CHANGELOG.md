@@ -2,6 +2,26 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 25/09/2026 (noite): Sprint 13, produção segura, e o git arrumado
+
+### Novo
+- **Rotação da chave de criptografia (B23, ADR 0016).** Valores novos saem como `enc:v2:<id da chave>:`. `data_encryption_previous_keys` lê dados de chaves antigas, e um job às 3h45 regrava em lotes o que não está na chave atual, incluindo as linhas antigas em texto puro. `enc:v1:` continua legível.
+- **Backup e restauração testados (B32).** `scripts/backup.sh` (14 dias por padrão) e `scripts/restore-check.sh`, que restaura num PostgreSQL descartável e mostra versão e contagens. Rodado no banco de dev: V31, 32 usuários, 36 carteiras, 1003 lançamentos, iguais ao original.
+- **Manual de operação** ([`docs/operacao.md`](docs/operacao.md)): TLS com proxy na frente e HSTS (B33), backup, rotação de chave e resposta a incidente com o prazo da ANPD (B25).
+
+### Corrigido
+- **Limites por IP virariam um limite só para todos atrás do proxy TLS.** O nginx repassava o IP do proxy como se fosse o do cliente. Agora confia no `X-Forwarded-For` só vindo de faixa privada (`set_real_ip_from`). Testado: 6 logins errados do cliente A bloqueiam A (429) e o cliente B continua livre.
+- **Frontend publicado em todas as interfaces.** A porta 3001 agora só escuta em `127.0.0.1`; a entrada pública é o proxy com TLS.
+- **Compilação no JDK 21 aceitava API que o JRE 17 da imagem não tem.** O `maven-compiler-plugin` usa `<release>17</release>` em vez de `source`/`target`. Provado com uma chamada a `List.getFirst()`, que agora não compila.
+
+### Git
+- `.gitattributes` com LF em todo arquivo de texto e CRLF só em `.cmd`, `.bat` e `.ps1`, nos dois repositórios. Acabam os avisos de CRLF e o falso alarme do Prettier no Windows; o índice já estava em LF, então nenhum conteúdo mudou.
+- `main` local realinhada com a `origin/main`. Os 9 commits que só ela tinha já estavam todos na `feat/wallia`.
+
+### Verificado
+- Backend: 320 testes, 0 falhas, 0 pulados, contra PostgreSQL 14.6.
+- Pilha reconstruída com as imagens novas, tudo `healthy`.
+
 ## 25/09/2026 (noite): Sprint 12, dados do titular
 
 ### Novo

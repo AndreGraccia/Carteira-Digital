@@ -1,6 +1,6 @@
-# Teste de conexão com código por e-mail
+# Roteiro de teste: cadastro com código por e-mail e consentimento Open Finance
 
-Antes de importar o sandbox para um usuário, o Wall.ia pede um código de 8 dígitos enviado ao e-mail cadastrado. Essa confirmação é uma proteção da própria carteira. Ela não representa a autenticação nem a certificação do Open Finance oficial.
+Desde a V24 (ADR 0008), o código de 8 dígitos confirma o e-mail no cadastro, uma vez por conta. A conexão com o Open Finance não pede mais código: ela segue o ciclo de consentimento do padrão (`AWAITING_AUTHORISATION`, `AUTHORISED`, `REJECTED`). Nenhuma das duas coisas representa autenticação ou certificação do Open Finance oficial; tudo roda em sandbox.
 
 ## Iniciar
 
@@ -19,7 +19,7 @@ cd frontend
 npm.cmd start
 ```
 
-O backend aplica as migrações (todas as da pasta `db/migration`) sozinho. Rodando o backend em container, o Compose já usa o host SMTP `mailpit`.
+O backend aplica as migrações sozinho. Rodando o backend em container, o Compose já usa o host SMTP `mailpit`.
 
 ## Dados para cadastrar
 
@@ -37,35 +37,40 @@ Esses dados são só locais. Nenhum código é fixo.
 
 ## Roteiro
 
-1. Entre em http://localhost:3000 e abra **Open Finance**.
-2. Clique em **Conectar dados de teste**.
-3. Abra o Mailpit em http://localhost:8025, localize a mensagem pelo destinatário e copie o código.
-4. Informe o código. A primeira conexão importa 2 contas e 59 movimentações (3 meses de histórico), 1 cartão com faturas até março/2027 e 1 empréstimo. Saldo total: R$ 2.555,61.
-5. Sincronize de novo: devem aparecer 0 novas movimentações.
-6. Abra **Futuro**. Devem aparecer 8 perguntas (salário da Concentrix S.A., aluguel, escola, luz, internet, academia, Netflix e uma renda eventual de Marina Souza).
-7. Confirme todas as sugestões. A projeção passa a mostrar saldo abaixo de zero entre 03/10 e 04/10, com mínimo de -R$ 324,87, e o botão "ver por quê" lista empréstimo, aluguel e fatura como causa e o salário do dia 5 como alívio.
-8. No topo do Futuro, o cartão do limite diário diz "Faltam R$ 324,87 mesmo sem gastar nada", com o dia 03/10 como o mais apertado e o custo máximo do cheque especial (até R$ 1,67).
-9. Nas perguntas aparece "Gastos do dia a dia": R$ 28,46 por dia, R$ 2.561,75 em 12 compras nos últimos 90 dias (Mercado Bairro). Confirme. O ponto mais baixo passa a -R$ 637,93 em 04/10 e o custo máximo, a R$ 3,20.
-10. Abra **Perguntar** e toque nas sugestões. "Posso comprar um notebook de R$ 4.000 em 10x?" responde "Melhor não agora", com mais dias abaixo de zero e a parcela de R$ 400 no Aurora Card. "Qual a previsão do tempo?" responde que ainda não sabe.
-11. Clique em "ver por quê": em "Como sair do buraco" aparece combinar o aluguel (R$ 1.500) de 01/10 para 05/10, sem nenhum dia negativo.
-12. Confirme também "Compras do dia a dia no cartão" (R$ 8,30 por dia; Posto Shell, iFood e Spotify). A estimativa entra nas faturas de 03/10 e 03/11.
-13. Em "Metas", crie "Reserva de emergência", R$ 200 por mês, dia 10. O limite e a projeção passam a descontar a meta.
-14. Ative "Avisar por e-mail". Para ver o e-mail sem esperar as 8h, suba o backend com `future_alert_cron=0 * * * * *` (a cada minuto) e confira o Mailpit: um e-mail por janela nova, nenhum repetido.
-15. Repita com a segunda conta: ela recebe os próprios dados, sem compartilhamento com a primeira.
-16. Revogue a conexão. Reconectar exige outro código.
+1. Entre em http://localhost:3001 e clique em **Criar conta**.
+2. A tela pede o código. Abra o Mailpit em http://localhost:8025, localize a mensagem pelo destinatário, copie o código e confirme.
+3. Entre com o usuário e a senha.
+4. Abra **Open Finance** e clique em **Conectar**. Confira na tela de consentimento o que será lido, a finalidade e até quando vale. Clique em **Autorizar**.
+5. A primeira conexão importa 2 contas com 3 meses de histórico, 1 cartão com faturas e 1 empréstimo.
+6. Sincronize de novo: devem aparecer 0 novas movimentações.
+7. Abra **Futuro** e responda às perguntas sobre recorrências (salário da Concentrix S.A., aluguel, escola, luz, internet, academia, Netflix e uma renda eventual de Marina Souza).
+8. Depois de confirmar, a projeção mostra a janela abaixo de zero, o "ver por quê" com as causas e o alívio, e o custo estimado do cheque especial com a origem da taxa.
+9. Confirme "Gastos do dia a dia" nas perguntas. O ponto mais baixo desce e o custo sobe.
+10. Abra **Perguntar**. "Posso comprar um notebook de R$ 4.000 em 10x?" deve responder "Melhor não agora". "Qual a previsão do tempo?" responde que ainda não sabe.
+11. Em "Como evitar o negativo" aparece combinar outra data para o aluguel, sem nenhum dia negativo.
+12. Em **Metas**, crie "Reserva de emergência", R$ 200 por mês, dia 10. O limite e a projeção passam a descontar a meta.
+13. Ative "Avisar por e-mail". Para ver o e-mail sem esperar as 8h, suba o backend com `future_alert_cron=0 * * * * *` e confira o Mailpit: um e-mail por janela nova, nenhum repetido.
+14. Repita com a segunda conta: ela vê só os próprios dados.
+15. Revogue o compartilhamento. Contas, cartões, empréstimos e lançamentos importados somem, e o status fica `REJECTED` com `CUSTOMER_MANUALLY_REVOKED`. Reconectar pede um consentimento novo.
 
-Números conferidos em 23/09/2026 com o roteiro de API contra o backend local. A massa é gerada a partir da data atual (`Clock`), então meses e valores do buraco mudam conforme o dia em que o teste roda. O cenário de 22/09/2026 está travado em `ContractSandboxOpenFinanceGatewayTest`.
+Os valores exatos (saldo total, mínimo da janela, datas) mudaram depois de 23/09 com o ajuste de dia útil (ADR 0007) e os lançamentos agendados (ADR 0009), e ainda não foram reconferidos com o backend no ar. A massa é gerada a partir da data atual (`Clock`); o cenário de 22/09/2026 está travado em `ContractSandboxOpenFinanceGatewayTest`.
 
 ## Verificações de proteção
 
-- Sem confirmar o e-mail, `POST /api/v1/open-finance/sync` retorna 428.
-- Código errado retorna 400 e não importa nada.
-- O código expira em 10 minutos e vale uma vez só.
-- Depois de 5 erros o código é bloqueado; espere o vencimento para pedir outro.
-- O reenvio exige 60 segundos de intervalo e invalida o código anterior.
-- Revogar, reutilizar um código ou usar o código de outra conta não libera nova conexão.
+Código do cadastro (`EmailVerificationService`):
+- Login antes de confirmar: 403 `EMAIL_NOT_VERIFIED`.
+- Código errado: 400 `EMAIL_CODE_INVALID`, e nada muda.
+- O código expira em 10 minutos (410 `EMAIL_CODE_EXPIRED`) e vale uma vez só.
+- Depois de 5 erros: 429 `EMAIL_CODE_ATTEMPTS_EXCEEDED`. Peça outro código.
+- Reenvio antes de 60 segundos: 429 `EMAIL_CODE_RESEND_WAIT`. O reenvio invalida o código anterior, e há um teto de envios por dia (`EMAIL_CODE_DAILY_LIMIT`).
+- Cadastro com usuário ou e-mail já existentes responde 202, igual a um cadastro novo, para não revelar quem tem conta.
 - O banco guarda o hash BCrypt, nunca o código em texto puro.
-- Conexões feitas antes dessa verificação precisam confirmar o e-mail antes da próxima sincronização.
+
+Consentimento (`OpenFinanceService`):
+- Sincronizar sem consentimento autorizado: 428 `OPEN_FINANCE_CONSENT_REQUIRED`.
+- Autorizar depois de 60 minutos: 410 `OPEN_FINANCE_CONSENT_EXPIRED`, e o consentimento vira `REJECTED` com `CONSENT_EXPIRED`.
+- Pedir outra conexão com uma já ativa: 409 `OPEN_FINANCE_ALREADY_CONNECTED`.
+- Ler o extrato de outra conta trocando o id na URL: 403.
 
 ## Receber na caixa de e-mail real
 

@@ -25,11 +25,12 @@ Comandos em PowerShell, a partir da raiz do projeto (a pasta que tem `backend/`,
 
 ```text
 Navegador
-  |  http://localhost:3000  (React, npm start)
+  |  http://localhost:3001  (React, npm start)
   v
-Frontend React  ----- axios, REACT_APP_API_URL ----->  API Spring Boot  (porta 8080)
+Frontend React  ----- axios, REACT_APP_API_URL ----->  API Spring Boot  (porta 8082)
                                                         |    |     |
                                    JDBC (porta 5432) <--+    |     +--> Gemini (opcional, só com chave)
+                                            |                |     +--> Banco Central (taxas e índices, 1x por dia)
                                             |                |
                                         PostgreSQL        SMTP (porta 1025)
                                         (Docker)             |
@@ -39,13 +40,14 @@ Frontend React  ----- axios, REACT_APP_API_URL ----->  API Spring Boot  (porta 8
 
 | Peça | O que faz | Onde está | Porta padrão |
 | --- | --- | --- | --- |
-| Frontend | Telas, rotas, traduções PT/EN. Guarda o token JWT no navegador e manda em cada chamada. | `frontend/` | 3000 |
-| Backend | Regras de negócio, segurança, motor de projeção, sandbox Open Finance. | `backend/` | 8080 |
+| Frontend | Telas, rotas, traduções PT/EN. Guarda o token JWT no navegador e manda em cada chamada. | `frontend/` | 3001 |
+| Backend | Regras de negócio, segurança, motor de projeção, sandbox Open Finance. | `backend/` | 8082 |
 | PostgreSQL | Usuários, carteiras, transações, dados importados, respostas sobre recorrências. | container `wallia-db` | 5432 |
 | Flyway | Cria e atualiza as tabelas quando o backend sobe (uma por arquivo em `db/migration`). | `backend/src/main/resources/db/migration/` | - |
-| Mailpit | Recebe o código de 8 dígitos da conexão Open Finance. Nenhum e-mail sai da máquina. | container `wallia-mailpit` | 1025 (SMTP) e 8025 (web) |
+| Mailpit | Recebe o código de 8 dígitos que confirma o e-mail no cadastro, e os alertas. Nenhum e-mail sai da máquina. | container `wallia-mailpit` | 1025 (SMTP) e 8025 (web) |
 | Sandbox Open Finance | Gera contas, cartão, faturas e empréstimo de teste a partir da data de hoje. | `backend/.../service/openfinance/ContractSandboxOpenFinanceGateway.java` | - |
 | Gemini | Só escreve o texto do relatório da tela Análise. Sem chave, uma análise local faz o mesmo papel. | `backend/.../service/InsightsService.java` | - |
+| Banco Central | Taxa de juros de cada banco (Olinda) e CDI, IPCA e Selic (SGS). Grava no banco uma vez por dia; sem rede, as telas usam o teto legal. | `backend/.../service/market/MarketRatesService.java` ([ADR 0010](adr/0010-dados-publicos-do-banco-central.md)) | - |
 
 Duas regras seguram o desenho inteiro:
 
@@ -80,15 +82,16 @@ O backend lê esse arquivo da raiz ou de `backend/` (`spring.config.import` em `
 | `db_username` | Usuário do banco | `wallia` | Não |
 | `db_password` | Senha do banco | texto de exemplo | Sim, antes do primeiro `docker compose up` |
 | `jwt_secret` | Assina os tokens de login | texto de exemplo | Sim. O backend não sobe com o texto de exemplo |
-| `frontend_origin` | Endereço do frontend que o backend aceita (CORS) | `http://localhost:3000` | Só se mudar a porta do frontend |
+| `frontend_origin` | Endereço do frontend que o backend aceita (CORS) | `http://localhost:3001` | Só se mudar a porta do frontend |
 | `db_port` | Porta do banco na sua máquina | `5432` | Só se estiver ocupada |
-| `backend_port` | Porta da API | `8080` | Só se estiver ocupada |
-| `frontend_port` | Porta do frontend quando roda em container | `3000` | Só se estiver ocupada |
+| `backend_port` | Porta da API | `8082` | Só se estiver ocupada |
+| `frontend_port` | Porta do frontend quando roda em container | `3001` | Só se estiver ocupada |
 | `gemini_api_key` | Chave da Gemini | vazio | Opcional |
 | `open_finance_mode` | `contract-sandbox` (local) ou `participant-sandbox` (credenciais reais de sandbox) | `contract-sandbox` | Não |
 | `future_alert_cron` | Quando o job de alertas por e-mail roda (cron do Spring, horário de Brasília) | `0 0 8 * * *` | Só para testar; `-` desliga |
-
-Chaves que não aparecem no exemplo, mas existem com valor padrão em `application.yml`: `mail_host` (localhost), `mail_port` (1025), `open_finance_code_ttl_minutes` (10), `open_finance_resend_cooldown_seconds` (60), `open_finance_code_max_attempts` (5).
+| `mail_host`, `mail_port` | Servidor de e-mail. O padrão é o Mailpit local | `localhost`, `1025` | Só em produção |
+| `email_code_ttl_minutes`, `email_resend_cooldown_seconds`, `email_code_max_attempts` | Validade do código do cadastro, espera para pedir outro e tentativas | `10`, `60`, `5` | Não |
+| `market_refresh_cron`, `market_refresh_on_startup` | Quando buscar as taxas do Banco Central. `false` evita a busca ao subir, útil em rede que bloqueia o `bcb.gov.br` | `0 0 6 * * *`, `true` | Só em rede bloqueada |
 
 ### Gerar os dois segredos
 
@@ -108,32 +111,33 @@ Não cole os segredos em chat, issue, print ou commit.
 
 ## 4. Portas: conferir e trocar
 
-Se você tem outros projetos nesta máquina, as portas 5432, 8080 e 3000 podem já estar em uso. Confira antes:
+Os padrões do projeto são 8082 (API) e 3001 (tela), porque 8080 e 3000 costumam estar ocupadas por outros projetos. O banco usa a 5432. Confira antes:
 
 ```powershell
-Get-NetTCPConnection -State Listen -LocalPort 3000,3001,5432,8080,8025,1025 -ErrorAction SilentlyContinue |
+Get-NetTCPConnection -State Listen -LocalPort 3000,3001,5432,8080,8082,8025,1025 -ErrorAction SilentlyContinue |
   Select-Object LocalPort, OwningProcess, @{n='Processo';e={(Get-Process -Id $_.OwningProcess).ProcessName}}
 docker ps --format "table {{.Names}}\t{{.Ports}}"
 ```
 
 Uma porta de container aparece como `com.docker.backend` no primeiro comando. O segundo diz qual container é.
 
-Para trocar, altere os três lugares juntos. Exemplo real desta máquina, onde 5432, 8080 e 3000 já eram de outros projetos:
+Para trocar, altere os três lugares juntos. Exemplo: API na 8090 e tela na 3005.
 
 `.env.properties`:
 
 ```properties
-db_port=5434
-backend_port=8082
-frontend_origin=http://localhost:3001
+backend_port=8090
+frontend_origin=http://localhost:3005
 ```
 
-`frontend/.env.local` (crie a partir de `frontend/.env.example`; também é ignorado pelo Git):
+`frontend/.env.local` (crie a partir de `frontend/.env.example`; é ignorado pelo Git e vence o `frontend/.env.development`):
 
 ```properties
-PORT=3001
-REACT_APP_API_URL=http://localhost:8082/api/v1
+PORT=3005
+REACT_APP_API_URL=http://localhost:8090/api/v1
 ```
+
+Se a 5432 estiver ocupada, mude só `db_port` (nesta máquina é `db_port=5434`).
 
 Por que três lugares: o banco escuta em `db_port`, o backend escuta em `backend_port` e só aceita chamadas vindas de `frontend_origin`, e o React só sabe o endereço da API pelo `REACT_APP_API_URL`, lido quando o `npm start` começa. Mudou o `.env.local`? Pare o `npm start` com Ctrl+C e rode de novo.
 
@@ -149,7 +153,7 @@ docker compose --env-file .env.properties exec db sh -c 'pg_isready -U "$POSTGRE
 
 Saída esperada no último comando: `accepting connections`.
 
-O Mailpit fica em http://localhost:8025. É lá que chega o código da conexão Open Finance.
+O Mailpit fica em http://localhost:8025. É lá que chega o código que confirma o e-mail no cadastro.
 
 ## 6. Subir o backend
 
@@ -166,13 +170,15 @@ A primeira execução baixa o Maven e as dependências (alguns minutos). Espere 
 Started WalliaApplication in 5.2 seconds
 ```
 
-Confira em outro terminal (troque 8080 se mudou `backend_port`):
+Confira em outro terminal (troque 8082 se mudou `backend_port`):
 
 ```powershell
-curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:8080/api/v1/future/overview
+curl.exe -s -o NUL -w "%{http_code}`n" http://localhost:8082/api/v1/future/overview
 ```
 
-`401` é o resultado certo: a API está no ar e recusou porque não há login. O Swagger fica em http://localhost:8080/swagger-ui/index.html.
+`401` é o resultado certo: a API está no ar e recusou porque não há login. O Swagger fica em http://localhost:8082/swagger-ui/index.html.
+
+Na primeira subida, o log diz quantas taxas vieram do Banco Central. Em rede que bloqueia o `bcb.gov.br` aparece um aviso e o backend segue; ponha `market_refresh_on_startup=false` para não esperar o timeout.
 
 Pelo VS Code ou IntelliJ, rode a classe `WalliaApplication` com a pasta `backend` como diretório de trabalho. Só uma instância pode usar a porta.
 
@@ -188,23 +194,23 @@ npm.cmd start
 
 O `npm.cmd install` só é necessário na primeira vez e quando o `package.json` mudar. O arquivo `frontend/.npmrc` já tem `legacy-peer-deps=true`, necessário por causa das versões do react-scripts.
 
-Espere `Compiled successfully!` e abra o endereço que aparecer (http://localhost:3000, ou a `PORT` do `.env.local`).
+Espere `Compiled successfully!` e abra o endereço que aparecer (http://localhost:3001, ou a `PORT` do `.env.local`).
 
 ## 8. Primeiro uso
 
 1. Clique em **Criar conta**. Usuário de 3 a 20 caracteres (letras, números, ponto, hífen e sublinhado; sem `@`), senha de 10 a 100.
-2. Entre com o usuário criado.
-3. Abra **Open Finance** e clique em **Conectar dados de teste**.
-4. Abra http://localhost:8025, copie o código de 8 dígitos e cole na tela.
+2. A tela pede um código de 8 dígitos. Abra http://localhost:8025, copie o código do e-mail e cole. Sem esse passo o login é recusado (`EMAIL_NOT_VERIFIED`). O código vale 10 minutos, e "reenviar" libera depois de 60 segundos.
+3. Entre com o usuário (ou o e-mail) e a senha.
+4. Abra **Open Finance** e clique em **Conectar**. Aparece a tela de consentimento, que no Open Finance real fica no app do banco: o que será lido, a finalidade e a validade. Clique em **Autorizar**. O pedido vale 60 minutos. **Recusar** não importa nada.
 5. A conexão importa 2 contas, cartão com faturas e 1 empréstimo do banco fictício "Banco Aurora Sandbox".
-6. Abra **Futuro**. Aparecem 8 perguntas sobre recorrências (salário, aluguel, escola, contas). Responda.
-7. Depois de confirmar, o gráfico mostra o saldo dia a dia e, se houver, a janela em que ele fica negativo, com o botão "ver por quê".
-
-O roteiro completo, com as proteções do código por e-mail, está em [open-finance-email-tests.md](open-finance-email-tests.md).
-
-8. O código do passo 4 também confirma o e-mail. Só depois dele o aviso por e-mail da tela Futuro pode ser ligado.
-9. **Envelopes** separa parte do saldo; o limite diário do Futuro passa a deixar esse valor de fora.
+6. Abra **Futuro**. Aparecem perguntas sobre recorrências (salário, aluguel, escola, contas). Responda.
+7. O gráfico mostra o saldo dia a dia e, se houver, a janela em que ele fica negativo, com o custo estimado do cheque especial e de onde veio a taxa: do seu banco, da mediana do mercado ou do teto legal de 8% a.m.
+8. **Compromissos** mostra a fatura mínima com o aviso do rotativo, o CET do empréstimo comparado com a mediana do mercado, e CDI, IPCA e Selic.
+9. **Envelopes** separa parte do saldo; o limite diário do Futuro deixa esse valor de fora.
 10. **Quanto a Wall.ia acertou** aparece depois do primeiro sync com perguntas respondidas. A primeira comparação sai 7 dias depois do sync seguinte.
+11. **Revogar compartilhamento** apaga o que foi importado (contas, cartões, empréstimos e lançamentos). O consentimento fica `REJECTED`, com motivo `CUSTOMER_MANUALLY_REVOKED`, como no padrão.
+
+O ciclo do consentimento segue o Open Finance Brasil ([ADR 0008](adr/0008-email-no-cadastro-e-consentimento-ofb.md) e [ADR 0009](adr/0009-aderencia-open-finance-brasil.md)).
 
 ### Avisos no navegador (Web Push)
 
@@ -257,20 +263,20 @@ Quase sempre o frontend está falando com a API errada. Abra o DevTools do naveg
 - Porta diferente da `backend_port`: ajuste `REACT_APP_API_URL` no `frontend/.env.local` e reinicie o `npm start`.
 - Porta certa, mas erro de CORS no console: `frontend_origin` no `.env.properties` não é igual ao endereço da barra do navegador (inclusive a porta). Corrija e reinicie o backend.
 - Resposta 422: o formulário tem campo inválido. A mensagem aparece embaixo do campo.
-- Resposta 409 ou "já existe": usuário ou e-mail já cadastrado.
+- Resposta 202 com usuário ou e-mail já cadastrado: é de propósito. O cadastro responde igual nos dois casos para não revelar quem tem conta.
 
 Para testar a API sem o navegador:
 
 ```powershell
 $body = '{"firstName":"Ana","lastName":"Teste","username":"ana2026","email":"ana@example.test","password":"Teste@12345"}'
-curl.exe -s -i -X POST http://localhost:8080/api/v1/auth/signup -H "Content-Type: application/json" -H "Origin: http://localhost:3000" -d $body
+curl.exe -s -i -X POST http://localhost:8082/api/v1/auth/signup -H "Content-Type: application/json" -H "Origin: http://localhost:3001" -d $body
 ```
 
-`201` e o cabeçalho `Access-Control-Allow-Origin` com o seu endereço indicam backend e CORS corretos.
+`202` e o cabeçalho `Access-Control-Allow-Origin` com o seu endereço indicam backend e CORS corretos.
 
 ### Porta já em uso
 
-`Port 8080 was already in use` no backend, `Something is already running on port 3000` no React, ou `Bind for 0.0.0.0:5432 failed` no Docker. Veja quem ocupa (seção 4) e troque a porta do Wall.ia. Não encerre processos de outros projetos sem saber o que são.
+`Port 8082 was already in use` no backend, `Something is already running on port 3001` no React, ou `Bind for 0.0.0.0:5432 failed` no Docker. Veja quem ocupa (seção 4) e troque a porta do Wall.ia. Não encerre processos de outros projetos sem saber o que são.
 
 ### `password authentication failed for user "wallia"`
 
@@ -303,7 +309,7 @@ Alguém editou uma migração que já tinha rodado. Regra do projeto: migração
 
 Falta o `frontend/.npmrc` com `legacy-peer-deps=true`, ou você rodou o install fora da pasta `frontend`.
 
-### O código do Open Finance não chega
+### O código do cadastro não chega
 
 Confira se o Mailpit está de pé (`docker ps`) e aberto em http://localhost:8025. Pedir um código novo exige esperar 60 segundos, e o pedido invalida o anterior. Cinco erros bloqueiam o código até ele vencer (10 minutos).
 
@@ -385,7 +391,8 @@ O pacote `service/future` não depende de Spring nem de banco, então dá para t
 
 | Comando | Onde | O que cobre | Tempo |
 | --- | --- | --- | --- |
-| `.\mvnw.cmd test` | `backend` | Serviços, autorização, motor de projeção, sandbox, código por e-mail | cerca de 1 min |
+| `.\mvnw.cmd test` | `backend` | Serviços, autorização dos controllers, motor de projeção, sandbox, contrato Open Finance, código por e-mail | cerca de 2 min |
+| `$env:WALLIA_IT_DB_URL='jdbc:postgresql://127.0.0.1:55432/postgres'; .\mvnw.cmd test` | `backend` | Tudo acima, mais a aplicação inteira contra um PostgreSQL de verdade e as migrações desde a V1. Suba antes: `docker run -d --rm --name wallia-it-pg -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:55432:5432 postgres:14.6-alpine` | cerca de 3 min |
 | `npm.cmd test -- --watchAll=false` | `frontend` | Formulário de movimentação, Open Finance, utilitários | cerca de 30 s |
 | `npm.cmd run lint` | `frontend` | ESLint | segundos |
 | `npm.cmd run test:i18n` | `frontend` | Troca de idioma, plurais, tipos desconhecidos | segundos |
@@ -422,6 +429,7 @@ Cuidado com `git checkout <arquivo>` e `git restore <arquivo>`: eles descartam m
 | Subir a API | `cd backend; .\mvnw.cmd spring-boot:run` |
 | Subir a interface | `cd frontend; npm.cmd start` |
 | Tudo em containers | `docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml up --build` |
-| Swagger | http://localhost:8080/swagger-ui/index.html |
+| Swagger | http://localhost:8082/swagger-ui/index.html |
 | Caixa de e-mail de teste | http://localhost:8025 |
-| Ver quem ocupa uma porta | `Get-NetTCPConnection -State Listen -LocalPort 8080` |
+| Ver quem ocupa uma porta | `Get-NetTCPConnection -State Listen -LocalPort 8082` |
+| Ver taxas e índices gravados | `GET /api/v1/market/overview` (com token) |

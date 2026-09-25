@@ -157,7 +157,7 @@ Próximas da lista, por nota (dor x diferencial / esforço):
 
 1. **Painel de dívidas** com o relatório SCR do Registrato (fonte oficial e gratuita). Começar com entrada manual.
 2. **Tarifas e IOF no mês**, lidos do extrato com a lista das linhas encontradas. Depende de dado real, porque o sandbox não tem tarifa.
-3. **Planejador de quitação do cartão** (avalanche ou bola de neve), sem oferecer empréstimo para quitar.
+3. **Planejador de quitação** (avalanche ou bola de neve), sem oferecer empréstimo para quitar. Feito para os empréstimos em 25/09 ([ADR 0013](adr/0013-planejador-de-quitacao.md)); o cartão entra quando a pessoa confirmar que está no rotativo.
 4. **Divisor da renda na chegada**: quando o salário cai, sugerir a divisão entre envelopes, sempre com confirmação.
 
 Não fazer, com motivo: adiantamento de salário e cobertura de negativo (é crédito, regra 3), sugestão de caixinha ou investimento (é venda, regra 3), poupança automática que move dinheiro sozinha (regra 1), assistente que responde com número de modelo de linguagem (regra 2).

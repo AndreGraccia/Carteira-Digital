@@ -21,6 +21,7 @@ import HttpService from '../../services/HttpService';
 import { StatBlock } from '../../components/future-ui';
 import { EmptyState, PageHeading, PageSkeleton, SectionCard } from '../../components/wallet-ui';
 import { dayLabel, errorKey, money, monthLabel, percent, subtractMoney } from '../../utils/wallet';
+import DebtPayoff from './DebtPayoff';
 
 const FULL_DATE = { day: '2-digit', month: 'short', year: 'numeric' };
 
@@ -371,6 +372,7 @@ export default function Commitments() {
                   {data.loans.map((loan) => (
                     <LoanSection key={loan.id} loan={loan} market={rate('PERSONAL_LOAN')} />
                   ))}
+                  <DebtPayoff />
                 </Stack>
               </Box>
             )}

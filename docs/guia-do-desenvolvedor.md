@@ -425,7 +425,7 @@ A homologação usa a mesma imagem que vai para produção. O que muda é só o 
 
 Diferenças do `.env.properties` da homologação:
 
-- `mail_host=mailpit` (os e-mails ficam em http://localhost:8025). Em produção, o provedor transacional.
+- `container_mail_host=mailpit` (os e-mails ficam em http://localhost:8025). Em produção, o provedor transacional. O `mail_host` continua `localhost`, porque é o que a API lê quando roda fora do Docker.
 - `data_encryption_key` preenchida (`openssl rand -base64 32`). Guarde-a junto do backup: sem ela, as descrições cifradas não voltam.
 - `open_finance_mode=sandbox`. Nunca dados reais de clientes.
 

@@ -23,8 +23,9 @@ services:
     env_file: ./.env.properties
     restart: always
     environment:
-      # Declared, never assumed: homologation sets mail_host=mailpit, production the transactional provider.
-      SPRING_MAIL_HOST: ${mail_host:?defina mail_host no .env.properties (mailpit so na homologacao)}
+      # Declared, never assumed: homologation sets container_mail_host=mailpit, production the transactional
+      # provider. Separate from mail_host, which the API run outside Docker also reads (and there it is localhost).
+      SPRING_MAIL_HOST: ${container_mail_host:?defina container_mail_host no .env.properties (mailpit so na homologacao)}
       # Production never stores descriptions in clear text (ADR 0014).
       APP_SECURITY_DATAENCRYPTIONKEY: ${data_encryption_key:?defina data_encryption_key no .env.properties}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${db_name}

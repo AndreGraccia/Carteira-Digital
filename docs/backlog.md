@@ -11,7 +11,7 @@ Premissa: o código vai para produção. A homologação existe para validar tud
 ### Ambientes
 
 - **Dev (local).** `docker compose up db mailpit` mais backend na 8082 e frontend na 3001. Open Finance no modo `sandbox` (dados sintéticos). Mailpit recebe os e-mails.
-- **Homologação.** A mesma imagem que vai para produção, com `docker-compose.yml` mais `docker-compose.prod.yml` e o arquivo `.env.homolog`. Mailpit é aceito aqui, mas declarado (`mail_host=mailpit`), nunca por omissão. Open Finance em sandbox. Dados de teste, nunca dados reais de clientes.
+- **Homologação.** A mesma imagem que vai para produção, com `docker-compose.yml` mais `docker-compose.prod.yml` e o arquivo `.env.homolog`. Mailpit é aceito aqui, mas declarado (`container_mail_host=mailpit`), nunca por omissão. Open Finance em sandbox. Dados de teste, nunca dados reais de clientes.
 - **Produção.** Mesma imagem da homologação, com e-mail transacional real, TLS no proxy da borda, backup diário testado e Open Finance só depois da épica E5.
 
 ### Caminho de uma mudança

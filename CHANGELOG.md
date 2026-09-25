@@ -13,7 +13,7 @@ Backlog novo e fluxo de entrega em [`docs/backlog.md`](docs/backlog.md).
 
 ### Novo
 - **Health check (B31).** `/actuator/health/liveness` e `/actuator/health/readiness`, sem detalhes. A readiness fica `DOWN` quando o banco cai; a liveness não, para a API não reiniciar em ciclo. Só `health` é exposto, e o nginx não repassa `/actuator`.
-- **Compose de homologação e produção (B30).** Banco com `pg_isready`, backend com health check, e cada serviço só sobe depois do anterior saudável. `mail_host` passou a ser obrigatório: produção nunca cai no Mailpit por omissão. Roteiro de homologação no guia (seção 13.1).
+- **Compose de homologação e produção (B30).** Banco com `pg_isready`, backend com health check, e cada serviço só sobe depois do anterior saudável. `container_mail_host` passou a ser obrigatório: produção nunca cai no Mailpit por omissão. É separado do `mail_host`, que a API rodando fora do Docker também lê. Roteiro de homologação no guia (seção 13.1).
 
 ### Melhorado
 - GitHub Actions `checkout`, `setup-java` e `setup-node` na v5 (runtime Node 24; a v4 avisava Node 20 depreciado).

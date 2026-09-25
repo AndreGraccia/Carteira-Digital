@@ -55,6 +55,7 @@ class WalliaApplicationTests {
         registry.add("app.open-finance.daily-sync-cron", () -> "-");
         registry.add("app.future.alert-cron", () -> "-");
         registry.add("app.market.refresh-cron", () -> "-");
+        registry.add("app.retention.cron", () -> "-");
         registry.add("app.market.refresh-on-startup", () -> "false");
         registry.add("spring.mail.port", () -> "1");
         registry.add("app.push.public-key", () -> "");
@@ -205,6 +206,64 @@ class WalliaApplicationTests {
         assertEquals("excluido#" + ana.id(), users.findById(ana.id()).orElseThrow().getUsername());
         mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isUnauthorized());
         mvc.perform(from("10.5.0.1", login(name))).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void exportGivesThePersonAllTheirDataReadableAndNoSecrets() throws Exception {
+        mvc.perform(get("/api/v1/account/export")).andExpect(status().isUnauthorized());
+        Session ana = verifiedUser("10.6.0.1");
+        JsonNode consent = body(mvc.perform(auth(ana, post("/api/v1/open-finance/connection")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"months\":6}"))).andExpect(status().isCreated()));
+        mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"consentId\":\"" + consent.path("consentId").asText() + "\"}"))).andExpect(status().isOk());
+        mvc.perform(auth(ana, post("/api/v1/future/goals").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Viagem\",\"monthlyAmount\":200,\"dayOfMonth\":10}"))).andExpect(status().isCreated());
+
+        var result = mvc.perform(auth(ana, get("/api/v1/account/export")))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Content-Disposition", org.hamcrest.Matchers.startsWith("attachment; filename=\"wallia-dados-")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")));
+        String text = result.andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        JsonNode export = json.readTree(text);
+
+        assertEquals(users.findById(ana.id()).orElseThrow().getUsername(), export.path("profile").path("username").asText());
+        assertTrue(export.path("wallets").size() >= 2, "the imported accounts");
+        assertTrue(export.path("transactions").size() > 5, "the imported history");
+        assertTrue(export.path("creditCards").size() >= 1 && export.path("cardCharges").size() >= 1);
+        assertEquals(1, export.path("openFinanceConsents").size());
+        assertEquals("Viagem", export.path("goals").get(0).path("name").asText());
+        assertTrue(export.path("transactions").get(0).path("created_at").asText().matches("\\d{4}-\\d{2}-\\d{2}T.*"),
+                "dates as ISO text, not epoch numbers");
+        // Descriptions are stored encrypted but the person gets them in clear; secrets never leave.
+        assertTrue(!text.contains("enc:v1:"), "descriptions decrypted");
+        for (String secret : java.util.List.of("\"password\"", "code_hash", "p256dh", "\"auth\"", "tokens_valid_after")) {
+            assertTrue(!text.contains(secret), secret);
+        }
+    }
+
+    @Autowired
+    private com.github.yildizmy.service.RetentionService retention;
+
+    @Test
+    void retentionDeletesOnlyWhatIsPastItsPeriod() throws Exception {
+        Session ana = verifiedUser("10.7.0.1");
+        long id = ana.id();
+        jdbc.update("INSERT INTO forecast_snapshot (user_id, taken_on, balance, projection, updated_at) VALUES "
+                + "(?, current_date - 401, 10, '[]', now()), (?, current_date - 399, 20, '[]', now())", id, id);
+        jdbc.update("INSERT INTO admin_audit (actor_id, method, path, status, at) VALUES "
+                + "(?, 'GET', '/old', 200, now() - interval '366 days'), (?, 'GET', '/new', 200, now() - interval '364 days')", id, id);
+        jdbc.update("UPDATE email_verification_challenge SET created_at = now() - interval '31 days' WHERE user_id = ?", id);
+
+        retention.purge();
+
+        assertEquals(java.util.List.of(new java.math.BigDecimal("20.00")), jdbc.queryForList(
+                "SELECT balance FROM forecast_snapshot WHERE user_id = ?", java.math.BigDecimal.class, id));
+        assertEquals(java.util.List.of("/new"), jdbc.queryForList(
+                "SELECT path FROM admin_audit WHERE actor_id = ?", String.class, id));
+        assertEquals(0L, jdbc.queryForObject(
+                "SELECT count(*) FROM email_verification_challenge WHERE user_id = ?", Long.class, id));
     }
 
     @Test

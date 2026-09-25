@@ -849,8 +849,12 @@ const resources = {
         openFinance:
           'Revogar o compartilhamento apaga tudo o que foi importado do banco. Você pode conectar de novo quando quiser.',
         deleteTitle: 'Excluir minha conta',
+        exportTitle: 'Baixar meus dados',
+        exportText:
+          'Um arquivo JSON com tudo o que a Wall.ia guarda sobre você: cadastro, carteiras, lançamentos, cartões, empréstimos, consentimentos, metas, envelopes e respostas. A senha não vai, nem guardada como hash.',
+        exportButton: 'Baixar meus dados',
         deleteText:
-          'Apaga o cadastro, os dados do Open Finance, metas, envelopes, respostas e alertas. Transferências feitas para outras pessoas continuam no extrato delas, sem o seu nome. Não tem volta.',
+          'Apaga os dados do Open Finance, metas, envelopes, respostas, alertas e as carteiras sem movimentação. Seu nome, usuário e e-mail são trocados por "Conta excluída" e a senha deixa de funcionar. Carteiras com movimentação ficam, como "Conta encerrada", com o histórico: uma transferência aparece também no extrato da outra pessoa. Baixe seus dados antes, porque não tem volta.',
         deleteButton: 'Excluir minha conta',
         dialogTitle: 'Excluir a conta?',
         dialogText:
@@ -1848,8 +1852,12 @@ const resources = {
         openFinance:
           'Revoking the sharing deletes everything imported from the bank. You can connect again whenever you want.',
         deleteTitle: 'Delete my account',
+        exportTitle: 'Download my data',
+        exportText:
+          'A JSON file with everything Wall.ia keeps about you: account, wallets, entries, cards, loans, consents, goals, envelopes and answers. The password is not included, not even as a hash.',
+        exportButton: 'Download my data',
         deleteText:
-          'Deletes the account, Open Finance data, goals, envelopes, answers and alerts. Transfers made to other people stay in their statement, without your name. This cannot be undone.',
+          'Deletes Open Finance data, goals, envelopes, answers, alerts and the wallets with no movements. Your name, username and email are replaced by "Deleted account" and the password stops working. Wallets with movements stay, as "Closed account", with their history: a transfer also shows in the other person\'s statement. Download your data first, because this cannot be undone.',
         deleteButton: 'Delete my account',
         dialogTitle: 'Delete the account?',
         dialogText:

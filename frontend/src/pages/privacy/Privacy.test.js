@@ -7,7 +7,7 @@ import ThemeProvider from '../../theme';
 import HttpService from '../../services/HttpService';
 import AuthService from '../../services/AuthService';
 
-jest.mock('../../services/HttpService', () => ({ postWithAuth: jest.fn() }));
+jest.mock('../../services/HttpService', () => ({ postWithAuth: jest.fn(), getWithAuth: jest.fn() }));
 jest.mock('../../services/AuthService', () => ({ logout: jest.fn() }));
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key) => key, i18n: { language: 'pt' } }) }));
 
@@ -21,6 +21,7 @@ beforeEach(async () => {
   document.body.appendChild(container);
   root = createRoot(container);
   HttpService.postWithAuth.mockReset();
+  HttpService.getWithAuth.mockReset();
   AuthService.logout.mockReset();
   await act(async () =>
     root.render(
@@ -66,4 +67,30 @@ test('the right password deletes, signs out and goes to the login page', async (
 
   expect(AuthService.logout).toHaveBeenCalled();
   expect(container.textContent).toContain('login-page');
+});
+
+test('downloading the data saves the export as a JSON file and keeps the session', async () => {
+  HttpService.getWithAuth.mockResolvedValue({ profile: { username: 'ana' }, transactions: [] });
+  const saved = [];
+  URL.createObjectURL = jest.fn(() => 'blob:export');
+  URL.revokeObjectURL = jest.fn();
+  const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function record() {
+    saved.push(this.download);
+  });
+
+  await act(async () => Simulate.click(byText('privacy.exportButton')));
+
+  expect(HttpService.getWithAuth).toHaveBeenCalledWith('/account/export');
+  expect(saved).toEqual([expect.stringMatching(/^wallia-dados-\d{4}-\d{2}-\d{2}\.json$/)]);
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export');
+  expect(AuthService.logout).not.toHaveBeenCalled();
+  click.mockRestore();
+});
+
+test('a failed download says so', async () => {
+  HttpService.getWithAuth.mockRejectedValue({ response: { status: 500 } });
+
+  await act(async () => Simulate.click(byText('privacy.exportButton')));
+
+  expect(document.body.textContent).toContain('app.errors.');
 });

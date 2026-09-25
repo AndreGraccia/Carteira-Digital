@@ -29,6 +29,24 @@ export default function Privacy() {
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [state, setState] = useState({ busy: false, error: null });
+  const [exporting, setExporting] = useState({ busy: false, error: null });
+
+  // The export arrives as JSON and is saved as a file here, so the token never goes into a link.
+  const download = async () => {
+    setExporting({ busy: true, error: null });
+    try {
+      const data = await HttpService.getWithAuth('/account/export');
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `wallia-dados-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setExporting({ busy: false, error: null });
+    } catch (failure) {
+      setExporting({ busy: false, error: errorKey(failure) });
+    }
+  };
 
   const close = () => {
     setOpen(false);
@@ -84,6 +102,22 @@ export default function Privacy() {
             <Typography variant="body2" sx={{ px: 3, pb: 2 }}>
               {t('privacy.openFinance')}
             </Typography>
+          </SectionCard>
+
+          <SectionCard title={t('privacy.exportTitle')}>
+            <Box sx={{ px: 3, pb: 3 }}>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                {t('privacy.exportText')}
+              </Typography>
+              {exporting.error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {t(exporting.error)}
+                </Alert>
+              )}
+              <Button variant="outlined" onClick={download} disabled={exporting.busy}>
+                {t('privacy.exportButton')}
+              </Button>
+            </Box>
           </SectionCard>
 
           <SectionCard title={t('privacy.deleteTitle')}>

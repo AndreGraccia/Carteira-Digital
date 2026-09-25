@@ -1,4 +1,4 @@
-import { dayLabel, errorKey, localDate, monthLabel, projectRegularDeposits } from './wallet';
+import { dayLabel, errorKey, subtractMoney, localDate, monthLabel, projectRegularDeposits } from './wallet';
 
 test('projects zero-rate monthly deposits without inventing earnings', () => {
   expect(projectRegularDeposits('100', 1, '0')).toEqual({
@@ -36,4 +36,10 @@ test('server and client error codes reach their own message', () => {
   // axios' own codes are not ours: they keep the status/network fallback.
   expect(errorKey({ code: 'ERR_NETWORK' })).toBe('app.errors.network');
   expect(errorKey({ code: 'ERR_BAD_RESPONSE', response: { status: 500 } })).toBe('app.errors.server');
+});
+
+test('money differences are exact in cents (no red "-R$ 0,00")', () => {
+  expect(0.3 - 0.1 - 0.2).not.toBe(0);
+  expect(subtractMoney('0.3', 0.1 + 0.2)).toBe(0);
+  expect(subtractMoney('1000.10', '999.99')).toBe(0.11);
 });

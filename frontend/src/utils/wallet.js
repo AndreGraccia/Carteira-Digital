@@ -15,6 +15,10 @@ export const dateTime = (value, language) => {
     ? new Intl.DateTimeFormat(localeFor(language), { dateStyle: 'medium', timeStyle: 'short' }).format(date)
     : '—';
 };
+/** API amounts ("12.30", 12.3) as integer cents, so a difference never leaves -0.000001 behind. */
+export const toCents = (value) => Math.round((Number(value) || 0) * 100);
+/** a - b computed in cents, back in reais. */
+export const subtractMoney = (a, b) => (toCents(a) - toCents(b)) / 100;
 export function parseAmount(value) {
   const normalized = String(value).trim().replace(',', '.');
   if (!/^\d{1,10}(\.\d{1,2})?$/.test(normalized)) return null;

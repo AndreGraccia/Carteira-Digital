@@ -1,4 +1,4 @@
-const cents = (value) => Math.round((Number(value) || 0) * 100);
+import { toCents as cents } from './wallet';
 
 /**
  * Same rule as the Future page: with nothing confirmed, a limit or a "free" amount would read as

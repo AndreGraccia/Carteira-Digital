@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import { StatBlock } from '../../components/future-ui';
 import { EmptyState, PageHeading, PageSkeleton, SectionCard } from '../../components/wallet-ui';
-import { dayLabel, errorKey, money, monthLabel } from '../../utils/wallet';
+import { dayLabel, errorKey, money, monthLabel, subtractMoney } from '../../utils/wallet';
 
 const FULL_DATE = { day: '2-digit', month: 'short', year: 'numeric' };
 
@@ -229,7 +229,7 @@ function LoanSection({ loan }) {
             <Typography variant="body2">
               {t('commitments.costNext', {
                 interest: money(loan.nextInstallmentInterest, lang),
-                principal: money(Number(loan.installmentAmount) - Number(loan.nextInstallmentInterest), lang),
+                principal: money(subtractMoney(loan.installmentAmount, loan.nextInstallmentInterest), lang),
                 installment: money(loan.installmentAmount, lang),
               })}
             </Typography>

@@ -19,7 +19,7 @@ import { useSnackbar } from 'notistack';
 import HttpService from '../../services/HttpService';
 import { StatBlock } from '../../components/future-ui';
 import { PageHeading, PageSkeleton, SectionCard, WalletIcon } from '../../components/wallet-ui';
-import { errorKey, money, parseAmount } from '../../utils/wallet';
+import { errorKey, money, parseAmount, subtractMoney } from '../../utils/wallet';
 
 const EMPTY = { name: '', amount: '' };
 // Envelopes already restored from an undo, per page load.
@@ -109,7 +109,7 @@ export default function Envelopes() {
     );
 
   const { data } = state;
-  const free = data ? Number(data.balance) - Number(data.reserved) : 0;
+  const free = data ? subtractMoney(data.balance, data.reserved) : 0;
 
   return (
     <>

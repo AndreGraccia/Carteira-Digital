@@ -58,7 +58,8 @@ public class Wallet {
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private User user;
 
-    @OneToMany(mappedBy = "fromWallet", cascade = CascadeType.ALL)
+    // No cascade: a transaction is also the counterparty's history and must never go with this wallet.
+    @OneToMany(mappedBy = "fromWallet")
     private Set<Transaction> fromTransactions = new HashSet<>();
 
     public void addFromTransaction(Transaction transaction) {
@@ -71,7 +72,7 @@ public class Wallet {
         transaction.setFromWallet(null);
     }
 
-    @OneToMany(mappedBy = "toWallet", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "toWallet")
     private Set<Transaction> toTransactions = new HashSet<>();
 
     public void addToTransaction(Transaction transaction) {

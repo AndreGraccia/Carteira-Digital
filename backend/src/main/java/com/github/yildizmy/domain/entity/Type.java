@@ -32,7 +32,7 @@ public class Type {
     @Column(length = 50)
     private String description;
 
-    @OneToMany(mappedBy = "type", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "type")
     private Set<Transaction> transactions = new HashSet<>();
 
     public void addTransaction(Transaction transaction) {

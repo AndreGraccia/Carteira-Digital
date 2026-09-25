@@ -141,3 +141,31 @@ test('a failure in /recurrences keeps the projection and shows the error only in
   await act(async () => Simulate.click(button('app.retry')));
   expect(text()).not.toContain('future.questionsError');
 });
+
+test('on a phone the tools fold behind one row each and the answer stays open', async () => {
+  const original = window.matchMedia;
+  window.matchMedia = (query) => ({
+    matches: query.includes('max-width'),
+    media: query,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  });
+  try {
+    answer(() => Promise.resolve(overview({ balance: 4242 })));
+    await renderPage();
+
+    expect(text()).toContain('4.242,00');
+    const simulator = button('future.simulatorTitle+');
+    expect(simulator.getAttribute('aria-expanded')).toBe('false');
+    expect(button('future.goals.title+')).toBeDefined();
+    expect(container.querySelector('input')).toBeNull();
+
+    await act(async () => Simulate.click(simulator));
+    expect(simulator.getAttribute('aria-expanded')).toBe('true');
+    expect(container.querySelector('input')).not.toBeNull();
+  } finally {
+    window.matchMedia = original;
+  }
+});

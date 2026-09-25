@@ -18,6 +18,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Helmet } from 'react-helmet-async';
@@ -80,6 +81,44 @@ function WhyDialog({ risk, exitPlan, onClose }) {
 }
 
 WhyDialog.propTypes = { risk: PropTypes.object, exitPlan: PropTypes.array, onClose: PropTypes.func.isRequired };
+
+// On a phone the page ran past 4.700 px. What answers "will I go negative" stays open; the tools
+// (answered questions, simulator, goals) fold into one tappable row each. Wider screens are unchanged.
+function Fold({ title, children }) {
+  const theme = useTheme();
+  const phone = useMediaQuery(theme.breakpoints.down('sm'));
+  const [open, setOpen] = useState(false);
+  if (!phone) return children;
+  return (
+    <Box>
+      <Button
+        fullWidth
+        color="inherit"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        sx={{
+          justifyContent: 'space-between',
+          minHeight: 48,
+          px: 2,
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <span>{title}</span>
+        <span aria-hidden="true">{open ? '-' : '+'}</span>
+      </Button>
+      <Collapse in={open} unmountOnExit>
+        <Box sx={{ mt: 1 }}>{children}</Box>
+      </Collapse>
+    </Box>
+  );
+}
+
+Fold.propTypes = {
+  title: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+};
 
 export default function Future() {
   const theme = useTheme();
@@ -318,8 +357,7 @@ export default function Future() {
                     amount: money(Math.abs(Number(risk.lowestBalance)), lang),
                   })}{' '}
                   {t('future.riskReason')}
-                  {Number(risk.overdraftCostCap) > 0 &&
-                    ` ${overdraftCostText(t, risk, lang)}`}
+                  {Number(risk.overdraftCostCap) > 0 && ` ${overdraftCostText(t, risk, lang)}`}
                 </Alert>
               ))}
             {!projection.riskWindows.length && overview.sources.confirmedRecurrences > 0 && (
@@ -453,9 +491,15 @@ export default function Future() {
             </Box>
 
             <Accuracy />
-            {overview.sources.confirmedRecurrences > 0 && questions}
-            <Simulator incomes={incomes} hasCard={overview.sources.cards > 0} />
-            <Goals onChanged={load} />
+            {overview.sources.confirmedRecurrences > 0 && questions && (
+              <Fold title={t('future.questionsTitle')}>{questions}</Fold>
+            )}
+            <Fold title={t('future.simulatorTitle')}>
+              <Simulator incomes={incomes} hasCard={overview.sources.cards > 0} />
+            </Fold>
+            <Fold title={t('future.goals.title')}>
+              <Goals onChanged={load} />
+            </Fold>
           </Stack>
         )}
       </Container>

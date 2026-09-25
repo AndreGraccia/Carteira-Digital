@@ -66,8 +66,8 @@ class AccountDeletionServiceTest {
         verify(openFinance).purge(7L);
         AccountDeletionService.OWN_ROWS.forEach(sql -> verify(jdbc).update(sql, 7L));
         verify(jdbc).update(eq("UPDATE wallet SET name = ? WHERE user_id = ?"), eq(AccountDeletionService.CLOSED_WALLET_NAME), eq(7L));
-        assertEquals("excluido-7", user.getUsername());
-        assertEquals("excluido-7@invalid", user.getEmail());
+        assertEquals("excluido#7", user.getUsername());
+        assertEquals("excluido#7", user.getEmail());
         assertFalse(user.getFirstName().contains("Ana") || user.getLastName().contains("Souza"));
         assertNull(user.getEmailVerifiedAt(), "login is refused from now on");
         assertEquals(NOW, user.getTokensValidAfter(), "every token already issued stops working");
@@ -83,5 +83,21 @@ class AccountDeletionServiceTest {
                 .allMatch(sql -> sql.contains("NOT EXISTS") && sql.contains("from_wallet_id") && sql.contains("to_wallet_id")));
         assertFalse(AccountDeletionService.OWN_ROWS.stream().anyMatch(sql -> sql.startsWith("DELETE FROM transaction")));
         assertFalse(AccountDeletionService.OWN_ROWS.stream().anyMatch(sql -> sql.contains("\"user\"")));
+    }
+
+    @Test
+    void theAnonymisedNameAndEmailCanNeverBeTakenBySomeoneSigningUpFirst() {
+        // Otherwise registering "excluido-<id>" in advance made the victim's deletion fail on the unique index.
+        var request = new com.github.yildizmy.dto.request.SignupRequest();
+        request.setFirstName("Ataque");
+        request.setLastName("Teste");
+        request.setUsername("excluido#7");
+        request.setEmail("excluido#7");
+        request.setPassword("Senha-forte-123");
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            var fields = factory.getValidator().validate(request).stream()
+                    .map(violation -> violation.getPropertyPath().toString()).collect(java.util.stream.Collectors.toSet());
+            assertTrue(fields.containsAll(java.util.Set.of("username", "email")), fields.toString());
+        }
     }
 }

@@ -15,7 +15,7 @@ O obstáculo é uma transferência entre Ana e Bruno: a linha em `transaction` a
 1. A senha é pedida de novo, porque uma sessão roubada não pode apagar a conta. As tentativas contam no mesmo limite do login.
 2. É apagado o que é só da pessoa: os dados do Open Finance (o mesmo `purge` da revogação) e a conexão, as respostas às recorrências, as metas, os envelopes, os alertas, os snapshots do placar, as inscrições de push, os códigos de e-mail, os papéis e as carteiras locais sem nenhuma movimentação.
 3. A linha do usuário fica, anonimizada:
-   - usuário `excluido-<id>` e e-mail `excluido-<id>@invalid`;
+   - usuário e e-mail `excluido#<id>`. O `#` fica fora do padrão do cadastro e não há `@`, então ninguém consegue registrar esses valores antes para travar a exclusão (achado da revisão de segurança de 25/09);
    - nome "Conta excluida";
    - senha aleatória;
    - `email_verified_at` nulo, então o login é recusado;

@@ -194,7 +194,7 @@ class WalliaApplicationTests {
                 "SELECT count(*) FROM wallet WHERE user_id = ?", Long.class, ana.id())));
         assertEquals("0", String.valueOf(jdbc.queryForObject(
                 "SELECT count(*) FROM open_finance_connection WHERE user_id = ?", Long.class, ana.id())));
-        assertEquals("excluido-" + ana.id(), users.findById(ana.id()).orElseThrow().getUsername());
+        assertEquals("excluido#" + ana.id(), users.findById(ana.id()).orElseThrow().getUsername());
         mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isUnauthorized());
         mvc.perform(from("10.5.0.1", login(name))).andExpect(status().isUnauthorized());
     }

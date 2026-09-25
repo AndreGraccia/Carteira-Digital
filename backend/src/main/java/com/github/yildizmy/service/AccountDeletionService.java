@@ -65,9 +65,11 @@ public class AccountDeletionService {
         OWN_ROWS.forEach(sql -> jdbc.update(sql, userId));
         jdbc.update("UPDATE wallet SET name = ? WHERE user_id = ?", CLOSED_WALLET_NAME, userId);
 
-        String tag = "excluido-" + userId;
+        // "#" is outside the sign-up username pattern and there is no "@": nobody can register these first and make
+        // the deletion fail on the unique indexes (security review of 25/09).
+        String tag = "excluido#" + userId;
         user.setUsername(tag);
-        user.setEmail(tag + "@invalid");
+        user.setEmail(tag);
         user.setFirstName("Conta");
         user.setLastName("excluida");
         user.setPassword(passwordEncoder.encode(randomSecret()));

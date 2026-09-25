@@ -277,7 +277,9 @@ public class FutureService {
     /** In what order to pay the loans off with {@code extra} more a month, and what each order saves (ADR 0013). */
     @Transactional(readOnly = true)
     public FutureResponses.DebtPayoff debtPayoff(long userId, BigDecimal extra) {
-        if (extra == null || extra.signum() < 0 || extra.compareTo(new BigDecimal("1000000")) > 0) {
+        // Scale and precision first: "1e-40000000" is in range, and any arithmetic on it burns seconds of CPU.
+        if (extra == null || extra.scale() > 2 || extra.precision() > 12
+                || extra.signum() < 0 || extra.compareTo(new BigDecimal("1000000")) > 0) {
             throw new WalletRuleException("INVALID_AMOUNT");
         }
         List<com.github.yildizmy.service.future.DebtPayoff.Debt> debts = new java.util.ArrayList<>();

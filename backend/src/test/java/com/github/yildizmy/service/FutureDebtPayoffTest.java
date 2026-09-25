@@ -63,4 +63,13 @@ class FutureDebtPayoffTest {
         assertThrows(WalletRuleException.class, () -> service.debtPayoff(7L, new BigDecimal("-1")));
         assertThrows(WalletRuleException.class, () -> service.debtPayoff(7L, new BigDecimal("1000001")));
     }
+
+    @Test
+    void anAmountWithAHugeExponentIsRefusedBeforeAnyArithmetic() {
+        // ?extra=1e-40000000 passed the range check and setScale(2) then took 14 s of CPU per request.
+        org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(java.time.Duration.ofSeconds(1), () -> {
+            assertThrows(WalletRuleException.class, () -> service.debtPayoff(7L, new BigDecimal("1e-40000000")));
+            assertThrows(WalletRuleException.class, () -> service.debtPayoff(7L, new BigDecimal("0.001")));
+        });
+    }
 }

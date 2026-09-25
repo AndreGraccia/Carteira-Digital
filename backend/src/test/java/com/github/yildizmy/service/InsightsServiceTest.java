@@ -54,7 +54,7 @@ class InsightsServiceTest {
     @Test
     void aggregatesCashFlowWithoutCountingInternalTransfersAsIncomeOrSpending() {
         when(narrativeGenerator.isEnabled()).thenReturn(false);
-        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of(
+        when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of(
                 transaction("100.00", "Deposit", primary, primary, "2026-07-03T10:00:00Z", Status.SUCCESS),
                 transaction("25.00", "Withdrawal", primary, primary, "2026-08-04T10:00:00Z", Status.SUCCESS),
                 transaction("10.00", "Transfer", primary, reserve, "2026-09-05T10:00:00Z", Status.SUCCESS),
@@ -79,7 +79,7 @@ class InsightsServiceTest {
     void usesAiNarrativeWhenConfiguredButKeepsServerCalculatedMetricsAndReferences() {
         when(narrativeGenerator.isEnabled()).thenReturn(true);
         when(rateLimiter.tryGlobal()).thenReturn(true);
-        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of());
+        when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of());
         var generated = new GeneratedNarrative(
                 "Leitura personalizada",
                 "Resumo seguro.",
@@ -99,7 +99,7 @@ class InsightsServiceTest {
     void fallsBackToLocalAnalysisWhenTheSharedGeminiBudgetIsUsedUp() {
         when(narrativeGenerator.isEnabled()).thenReturn(true);
         when(rateLimiter.tryGlobal()).thenReturn(false);
-        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of());
+        when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of());
 
         var report = service.generate(7L, 1, "pt-BR");
 
@@ -110,7 +110,7 @@ class InsightsServiceTest {
     @Test
     void moveBetweenOwnImportedAccountsIsNeitherIncomeNorSpending() {
         when(narrativeGenerator.isEnabled()).thenReturn(false);
-        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of(
+        when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of(
                 transaction("300.00", "Withdrawal", primary, primary, "2026-09-05T13:00:00Z", Status.SUCCESS),
                 transaction("300.00", "Deposit", reserve, reserve, "2026-09-05T13:00:05Z", Status.SUCCESS),
                 transaction("40.00", "Withdrawal", primary, primary, "2026-09-06T13:00:00Z", Status.SUCCESS)
@@ -129,7 +129,7 @@ class InsightsServiceTest {
         service = new InsightsService(transactionRepository, walletRepository, narrativeGenerator, rateLimiter, clock,
                 org.springframework.transaction.support.TransactionOperations.withoutTransaction());
         when(narrativeGenerator.isEnabled()).thenReturn(false);
-        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of(
+        when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of(
                 transaction("70.00", "Deposit", primary, primary, "2026-10-01T01:30:00Z", Status.SUCCESS)));
 
         var report = service.generate(7L, 1, "pt-BR");
@@ -156,7 +156,7 @@ class InsightsServiceTest {
                 });
         when(narrativeGenerator.isEnabled()).thenReturn(true);
         when(rateLimiter.tryGlobal()).thenReturn(true);
-        when(transactionRepository.findAllByUserId(7L)).thenReturn(List.of());
+        when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of());
         when(narrativeGenerator.generate(any(), any(), any(Map.class))).thenAnswer(invocation -> {
             org.junit.jupiter.api.Assertions.assertFalse(inTransaction[0], "no connection held during the AI call");
             return Optional.empty();

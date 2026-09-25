@@ -67,10 +67,9 @@ public class TransactionService {
      * @return List of TransactionResponse
      */
     @Transactional(readOnly = true)
-    public List<TransactionResponse> findAllByUserId(Long userId) {
-        final List<Transaction> transactions = transactionRepository.findAllByUserId(userId);
-        return transactions.stream().map(transactionResponseMapper::toTransactionResponse)
-                .toList();
+    public Page<TransactionResponse> findAllByUserId(Long userId, java.time.Instant from, Pageable pageable) {
+        return transactionRepository.findPageByUserId(userId, from, pageable)
+                .map(transactionResponseMapper::toTransactionResponse);
     }
 
     /**

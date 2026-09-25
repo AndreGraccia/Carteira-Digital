@@ -156,7 +156,7 @@ public class InsightsService {
         BigDecimal internalTransfers = BigDecimal.ZERO;
         long count = 0;
 
-        List<Transaction> relevant = transactionRepository.findAllByUserId(userId).stream()
+        List<Transaction> relevant = transactionRepository.findAllByUserIdSince(userId, start).stream()
                 .filter(transaction -> transaction.getStatus() == Status.SUCCESS && !transaction.getCreatedAt().isBefore(start))
                 .filter(transaction -> !"Initial balance".equals(transaction.getType().getName()))
                 .toList();

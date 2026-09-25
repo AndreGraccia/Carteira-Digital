@@ -75,6 +75,8 @@ public class FutureService {
     /** Category of an entry the bank itself scheduled (Open Finance LANCAMENTO_FUTURO). */
     static final String SCHEDULED = "SCHEDULED";
     static final int SAME_BILL_DAYS = 5;
+    /** History the engine reads: a year of recurrences plus a month of margin. */
+    static final int HISTORY_MONTHS = 13;
     static final String CARD_SPENDING_KEY = "card-spending";
 
     private final WalletRepository walletRepository;
@@ -497,7 +499,9 @@ public class FutureService {
         LocalDate today = LocalDate.now(clock.withZone(ZONE));
         List<Wallet> wallets = walletRepository.findByUserId(userId);
         BigDecimal balance = wallets.stream().map(Wallet::getBalance).reduce(BigDecimal.ZERO, BigDecimal::add);
-        List<Transaction> transactions = transactionRepository.findAllByUserId(userId);
+        // Recurrences look back up to a year; everyday spending 90 days. Older history changes nothing here.
+        List<Transaction> transactions = transactionRepository.findAllByUserIdSince(userId,
+                today.minusMonths(HISTORY_MONTHS).atStartOfDay(ZONE).toInstant());
         List<Movement> movements = movements(transactions, wallets);
         List<RecurrencePattern> patterns = RecurrenceDetector.detect(movements);
         Map<String, RecurrenceDecision> decisions = decisionRepository.findByUserId(userId).stream()
@@ -596,7 +600,9 @@ public class FutureService {
      * are skipped: they move money, they don't create income or expense.
      */
     List<Movement> movements(long userId, List<Wallet> wallets) {
-        return movements(transactionRepository.findAllByUserId(userId), wallets);
+        LocalDate today = LocalDate.now(clock.withZone(ZONE));
+        return movements(transactionRepository.findAllByUserIdSince(userId,
+                today.minusMonths(HISTORY_MONTHS).atStartOfDay(ZONE).toInstant()), wallets);
     }
 
     static List<Movement> movements(List<Transaction> transactions, List<Wallet> wallets) {

@@ -65,7 +65,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
     @ExceptionHandler(WalletRuleException.class)
     public ResponseEntity<Object> handleWalletRule(WalletRuleException ex) {
-        return ResponseEntity.badRequest().body(java.util.Map.of("code", ex.getMessage()));
+        return ResponseEntity.status(statusOf(ex.getMessage())).body(java.util.Map.of("code", ex.getMessage()));
+    }
+
+    /**
+     * The status says what kind of problem it is; the code in the body says which one (the UI translates the code).
+     * Missing resource 404, state conflict 409, malformed input 400, well-formed but breaks a rule 422.
+     */
+    static HttpStatus statusOf(String code) {
+        if (code == null) return HttpStatus.BAD_REQUEST;
+        if (code.endsWith("_NOT_FOUND")) return HttpStatus.NOT_FOUND;
+        if (code.endsWith("_LIMIT") || code.equals("IDEMPOTENCY_CONFLICT") || code.equals("OPEN_FINANCE_READ_ONLY")
+                || code.equals("IMMUTABLE_WALLET")) return HttpStatus.CONFLICT;
+        if (code.endsWith("_UNAVAILABLE")) return HttpStatus.SERVICE_UNAVAILABLE;
+        if (code.startsWith("INVALID_")) return HttpStatus.BAD_REQUEST;
+        return HttpStatus.UNPROCESSABLE_ENTITY;
     }
 
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
@@ -147,10 +161,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * @return ResponseEntity<Object> with detailed information related to the error
      */
     @ExceptionHandler(InsufficientFundsException.class)
-    @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public ResponseEntity<Object> handleInsufficientFundsException(InsufficientFundsException ex, WebRequest request) {
         log.warn("Request validation failed");
-        return buildErrorResponse(ex, HttpStatus.PRECONDITION_FAILED, request);
+        return buildErrorResponse(ex, HttpStatus.UNPROCESSABLE_ENTITY, request);
     }
 
     /**

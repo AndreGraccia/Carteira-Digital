@@ -37,4 +37,24 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             + "or t.toWallet.id in (select w.id from Wallet w where w.user.id = :userId "
             + "and w.source = com.github.yildizmy.domain.enums.WalletSource.OPEN_FINANCE)")
     int deleteOpenFinanceByUserId(@Param("userId") Long userId);
+
+    /**
+     * The user's movements since {@code from}, newest first, paged in the database. Both sides are checked so a
+     * transfer received from someone else is listed too. Scheduled entries (PENDING) belong to the projection,
+     * not to the statement.
+     */
+    @Query(value = "SELECT t FROM Transaction t "
+            + "WHERE (t.fromWallet.user.id = :userId OR t.toWallet.user.id = :userId) "
+            + "AND t.createdAt >= :from AND t.status <> com.github.yildizmy.domain.enums.Status.PENDING",
+            countQuery = "SELECT count(t) FROM Transaction t "
+                    + "WHERE (t.fromWallet.user.id = :userId OR t.toWallet.user.id = :userId) "
+                    + "AND t.createdAt >= :from AND t.status <> com.github.yildizmy.domain.enums.Status.PENDING")
+    org.springframework.data.domain.Page<Transaction> findPageByUserId(@Param("userId") Long userId,
+                                                                      @Param("from") java.time.Instant from,
+                                                                      org.springframework.data.domain.Pageable pageable);
+
+    /** Everything since {@code from}, scheduled entries included: what the projection and the report read. */
+    @Query("SELECT t FROM Transaction t WHERE (t.fromWallet.user.id = :userId OR t.toWallet.user.id = :userId) "
+            + "AND t.createdAt >= :from ORDER BY t.createdAt DESC")
+    List<Transaction> findAllByUserIdSince(@Param("userId") Long userId, @Param("from") java.time.Instant from);
 }

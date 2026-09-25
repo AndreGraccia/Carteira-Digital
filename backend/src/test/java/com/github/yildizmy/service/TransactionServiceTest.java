@@ -110,33 +110,20 @@ class TransactionServiceTest {
     }
 
     @Test
-    void findAllByUserId_shouldReturnListOfTransactionResponses() {
+    void findAllByUserId_readsOnePageFromTheDatabase() {
         var userId = 1L;
-        var transactions = List.of(testTransaction, testTransaction);
-
-        when(transactionRepository.findAllByUserId(userId)).thenReturn(transactions);
+        var pageable = org.springframework.data.domain.PageRequest.of(0, 2);
+        var from = java.time.Instant.parse("2026-01-01T03:00:00Z");
+        when(transactionRepository.findPageByUserId(userId, from, pageable))
+                .thenReturn(new PageImpl<>(List.of(testTransaction, testTransaction), pageable, 5));
         when(transactionResponseMapper.toTransactionResponse(any(Transaction.class))).thenReturn(testTransactionResponse);
 
-        var result = transactionService.findAllByUserId(userId);
+        var result = transactionService.findAllByUserId(userId, from, pageable);
 
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        assertEquals(testTransactionResponse, result.get(0));
-        assertEquals(testTransactionResponse, result.get(1));
-
-        verify(transactionRepository).findAllByUserId(userId);
-        verify(transactionResponseMapper, times(2)).toTransactionResponse(any(Transaction.class));
-    }
-
-    @Test
-    void findAllByUserId_shouldReturnEmptyHistory() {
-        var userId = 1L;
-
-        when(transactionRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
-
-        assertTrue(transactionService.findAllByUserId(userId).isEmpty());
-
-        verify(transactionRepository).findAllByUserId(userId);
+        assertEquals(2, result.getNumberOfElements());
+        assertEquals(5, result.getTotalElements());
+        assertEquals(3, result.getTotalPages());
+        verify(transactionRepository).findPageByUserId(userId, from, pageable);
     }
 
     @Test

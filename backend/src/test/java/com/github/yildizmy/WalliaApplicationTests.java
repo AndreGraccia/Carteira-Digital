@@ -1,7 +1,171 @@
 package com.github.yildizmy;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.yildizmy.repository.UserRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-@SuppressWarnings("squid:S2699")
+import java.time.Instant;
+import java.util.Base64;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * The whole application against a real PostgreSQL: Spring context, Flyway, every JPQL query, security rules and the
+ * main journeys over HTTP. Runs when WALLIA_IT_DB_URL points to a database (always in CI; locally with Docker, see
+ * the developer guide). The datasource and secrets are overridden here, so a local .env.properties is never used.
+ */
 @SpringBootTest
-class WalliaApplicationTests {}
+@AutoConfigureMockMvc
+@EnabledIfEnvironmentVariable(named = "WALLIA_IT_DB_URL", matches = ".+")
+class WalliaApplicationTests {
+
+    @Autowired
+    private MockMvc mvc;
+    @Autowired
+    private UserRepository users;
+    private final ObjectMapper json = new ObjectMapper();
+
+    @DynamicPropertySource
+    static void properties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", () -> System.getenv("WALLIA_IT_DB_URL"));
+        registry.add("spring.datasource.username", () -> System.getenv().getOrDefault("WALLIA_IT_DB_USER", "postgres"));
+        registry.add("spring.datasource.password", () -> System.getenv().getOrDefault("WALLIA_IT_DB_PASSWORD", "postgres"));
+        registry.add("app.security.jwtSecret", () -> Base64.getEncoder().encodeToString(new byte[48]));
+        registry.add("app.ai.geminiApiKey", () -> "");
+        registry.add("app.open-finance.mode", () -> "contract-sandbox");
+        registry.add("app.open-finance.daily-sync-cron", () -> "-");
+        registry.add("app.future.alert-cron", () -> "-");
+        registry.add("spring.mail.port", () -> "1");
+        registry.add("app.push.public-key", () -> "");
+        registry.add("app.push.private-key", () -> "");
+    }
+
+    @Test
+    void protectedRoutesNeedAToken() throws Exception {
+        mvc.perform(get("/api/v1/future/overview")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void signupVerifiesTheEmailBeforeTheFirstLogin() throws Exception {
+        String name = unique();
+        mvc.perform(from("10.1.0.1", post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
+                        .content(signup(name))))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.maskedEmail").value(name.charAt(0) + "***@example.test"));
+
+        mvc.perform(from("10.1.0.1", login(name))).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"));
+
+        // The same e-mail again: same answer, no second account.
+        mvc.perform(from("10.1.0.1", post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
+                        .content(signup("x" + name.substring(1), name + "@example.test"))))
+                .andExpect(status().isAccepted());
+        assertTrue(users.findByUsernameIgnoreCase("x" + name.substring(1)).isEmpty());
+    }
+
+    @Test
+    void openFinanceJourneyFromConsentToRevocationAndTheStatementIsPaged() throws Exception {
+        Session ana = verifiedUser("10.2.0.1");
+        Session bruno = verifiedUser("10.2.0.2");
+
+        JsonNode consent = body(mvc.perform(auth(ana, post("/api/v1/open-finance/connection")
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"months\":6}")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("AWAITING_AUTHORISATION")));
+        mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"consentId\":\"" + consent.path("consentId").asText() + "\"}")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("AUTHORISED"));
+
+        JsonNode page = body(mvc.perform(auth(ana, get("/api/v1/transactions/users/" + ana.id() + "?page=0&size=5")))
+                .andExpect(status().isOk()));
+        assertEquals(5, page.path("content").size());
+        assertTrue(page.path("totalElements").asInt() > 5, "the sandbox imports months of history");
+
+        mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.sources.accounts").value(2));
+        mvc.perform(auth(ana, get("/api/v1/future/commitments"))).andExpect(status().isOk());
+
+        // Another user's statement is not reachable by changing the id.
+        mvc.perform(auth(bruno, get("/api/v1/transactions/users/" + ana.id()))).andExpect(status().isForbidden());
+
+        mvc.perform(auth(ana, delete("/api/v1/open-finance/connection"))).andExpect(status().isNoContent());
+        mvc.perform(auth(ana, get("/api/v1/open-finance/status"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("CUSTOMER_MANUALLY_REVOKED"))
+                .andExpect(jsonPath("$.accountCount").value(0));
+        assertEquals(0, body(mvc.perform(auth(ana, get("/api/v1/transactions/users/" + ana.id()))))
+                .path("totalElements").asInt(), "revoking deletes what was imported");
+    }
+
+    @Test
+    void ruleErrorsCarryTheirOwnStatus() throws Exception {
+        Session ana = verifiedUser("10.3.0.1");
+
+        mvc.perform(auth(ana, delete("/api/v1/future/goals/999999"))).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("GOAL_NOT_FOUND"));
+    }
+
+    private Session verifiedUser(String address) throws Exception {
+        String name = unique();
+        mvc.perform(from(address, post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON).content(signup(name))))
+                .andExpect(status().isAccepted());
+        // The code travels by e-mail; here the account is marked as verified directly.
+        var user = users.findByUsernameIgnoreCase(name).orElseThrow();
+        user.setEmailVerifiedAt(Instant.now());
+        users.save(user);
+        JsonNode token = body(mvc.perform(from(address, login(name))).andExpect(status().isOk()));
+        return new Session(user.getId(), token.path("token").asText());
+    }
+
+    private static MockHttpServletRequestBuilder login(String name) {
+        return post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + name + "\",\"password\":\"Senha-forte-123\"}");
+    }
+
+    private static String signup(String name) {
+        return signup(name, name + "@example.test");
+    }
+
+    private static String signup(String name, String email) {
+        return "{\"firstName\":\"Ana\",\"lastName\":\"Teste\",\"username\":\"" + name + "\",\"email\":\"" + email
+                + "\",\"password\":\"Senha-forte-123\"}";
+    }
+
+    private static String unique() {
+        return "it" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+    }
+
+    private static MockHttpServletRequestBuilder from(String address, MockHttpServletRequestBuilder request) {
+        return request.with(servlet -> {
+            servlet.setRemoteAddr(address);
+            return servlet;
+        });
+    }
+
+    private static MockHttpServletRequestBuilder auth(Session session, MockHttpServletRequestBuilder request) {
+        return request.header("Authorization", "Bearer " + session.token());
+    }
+
+    private JsonNode body(org.springframework.test.web.servlet.ResultActions result) throws Exception {
+        return json.readTree(result.andReturn().getResponse().getContentAsString());
+    }
+
+    private record Session(long id, String token) {
+    }
+}

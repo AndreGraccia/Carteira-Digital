@@ -72,8 +72,7 @@ function AnswerBody({ answer }) {
               <EventRow key={`${event.reference}-${event.date}`} event={event} dense />
             ))}
           </Box>
-          {Number(answer.risk.overdraftCostCap) > 0 &&
-            line(overdraftCostText(t, answer.risk, lang))}
+          {Number(answer.risk.overdraftCostCap) > 0 && line(overdraftCostText(t, answer.risk, lang))}
           <ExitPlanList actions={answer.exitPlan} />
         </>
       );

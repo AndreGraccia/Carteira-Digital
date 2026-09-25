@@ -156,7 +156,9 @@ test('revoking warns that imported data is deleted and what stays, then refreshe
   expect(HttpService.deleteWithAuth).not.toHaveBeenCalled();
 
   HttpService.deleteWithAuth.mockResolvedValue(undefined);
-  HttpService.getWithAuth.mockResolvedValue(status({ status: 'REJECTED', rejectionReason: 'CUSTOMER_MANUALLY_REVOKED' }));
+  HttpService.getWithAuth.mockResolvedValue(
+    status({ status: 'REJECTED', rejectionReason: 'CUSTOMER_MANUALLY_REVOKED' })
+  );
   await click('openFinance.revoke.confirm');
 
   expect(HttpService.deleteWithAuth).toHaveBeenCalledWith('/open-finance/connection');

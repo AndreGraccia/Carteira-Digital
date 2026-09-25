@@ -80,9 +80,9 @@ test('the minimum payment warns about revolving credit and loans show CET and th
     ],
     indicators: [{ code: 'CDI', referenceDate: '2026-09-23', value: '13.65' }],
   };
-  HttpService.getWithAuth.mockReset().mockImplementation((url) =>
-    Promise.resolve(url === '/market/overview' ? market : commitments)
-  );
+  HttpService.getWithAuth
+    .mockReset()
+    .mockImplementation((url) => Promise.resolve(url === '/market/overview' ? market : commitments));
   await act(async () =>
     root.render(
       <MemoryRouter>

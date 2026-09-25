@@ -6,27 +6,52 @@ import ThemeProvider from '../../theme';
 import HttpService from '../../services/HttpService';
 import { useWallets } from '../../context/WalletContext';
 
-jest.mock('../../services/HttpService', () => ({ getWithAuth: jest.fn(), postWithAuth: jest.fn() }));
+jest.mock('../../services/HttpService', () => ({
+  getWithAuth: jest.fn(),
+  postWithAuth: jest.fn(),
+  deleteWithAuth: jest.fn(),
+}));
 jest.mock('../../context/WalletContext', () => ({ useWallets: jest.fn() }));
 jest.mock('notistack', () => ({ enqueueSnackbar: jest.fn() }));
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key) => key, i18n: { language: 'pt' } }) }));
 
+const PERMISSIONS = [
+  'ACCOUNTS_READ',
+  'ACCOUNTS_BALANCES_READ',
+  'CREDIT_CARDS_ACCOUNTS_READ',
+  'LOANS_READ',
+  'RESOURCES_READ',
+];
+const status = (overrides = {}) => ({
+  mode: 'contract-sandbox',
+  simulated: true,
+  status: 'DISCONNECTED',
+  consentId: null,
+  institutionName: 'Banco Sandbox',
+  createdAt: null,
+  expiresAt: null,
+  rejectionReason: null,
+  accountCount: 0,
+  permissions: PERMISSIONS,
+  notice: 'CONTRACT_SANDBOX',
+  ...overrides,
+});
+const consent = {
+  consentId: 'urn:consent:1',
+  status: 'AWAITING_AUTHORISATION',
+  institutionName: 'Banco Sandbox',
+  permissions: PERMISSIONS,
+  createdAt: new Date().toISOString(),
+  expiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
+  authoriseBefore: new Date(Date.now() + 3600000).toISOString(),
+};
+
 let root;
 let container;
 let refresh;
-const challenge = () => ({
-  pending: true,
-  maskedEmail: 'a***@example.test',
-  expiresAt: new Date(Date.now() + 600000).toISOString(),
-  resendAvailableAt: new Date(Date.now() + 60000).toISOString(),
-});
-const status = (verification = null) => ({
-  status: verification ? 'PENDING_EMAIL_VERIFICATION' : 'DISCONNECTED',
-  simulated: true,
-  permissions: [],
-  verification,
-});
+const text = () => document.body.textContent;
 const button = (key) => [...document.querySelectorAll('button')].find((item) => item.textContent === key);
+const click = (key) => act(async () => Simulate.click(button(key)));
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -35,8 +60,7 @@ beforeEach(() => {
   root = createRoot(container);
   refresh = jest.fn().mockResolvedValue(undefined);
   useWallets.mockReturnValue({ refresh });
-  HttpService.getWithAuth.mockReset();
-  HttpService.postWithAuth.mockReset();
+  Object.values(HttpService).forEach((fn) => fn.mockReset());
 });
 afterEach(() => {
   act(() => root.unmount());
@@ -54,63 +78,102 @@ async function renderPage() {
   );
 }
 
-test('pending connection reopens its code dialog without sending another email', async () => {
-  HttpService.getWithAuth.mockResolvedValue(status(challenge()));
+test('connect creates a consent for the chosen period and the bank screen authorises it', async () => {
+  HttpService.getWithAuth.mockResolvedValue(status());
   await renderPage();
-  await act(async () => Simulate.click(button('openFinance.verification.enterCode')));
-  expect(document.querySelector('input[autocomplete="one-time-code"]')).not.toBeNull();
-  expect(HttpService.postWithAuth).not.toHaveBeenCalled();
-  expect(button('openFinance.verification.resendIn').disabled).toBe(true);
-});
+  await click('openFinance.duration.months');
+  const six = [...document.querySelectorAll('button[value="6"]')][0];
+  await act(async () => Simulate.click(six));
 
-test('confirmation sends one request even on double click and refreshes imported accounts', async () => {
-  HttpService.getWithAuth.mockResolvedValue(status(challenge()));
-  await renderPage();
-  await act(async () => Simulate.click(button('openFinance.verification.enterCode')));
-  act(() => Simulate.change(document.querySelector('input'), { target: { value: '12345678' } }));
-  let finish;
-  HttpService.postWithAuth.mockReturnValue(
-    new Promise((resolve) => {
-      finish = resolve;
-    })
-  );
-  const confirm = button('openFinance.verification.confirm');
-  act(() => {
-    Simulate.click(confirm);
-    Simulate.click(confirm);
+  HttpService.postWithAuth.mockResolvedValueOnce(consent);
+  HttpService.getWithAuth.mockResolvedValue(status({ status: 'AWAITING_AUTHORISATION', consentId: consent.consentId }));
+  await click('openFinance.connect');
+  expect(HttpService.postWithAuth).toHaveBeenCalledWith('/open-finance/connection', { months: 6 });
+
+  // The "bank" screen: institution, sandbox seal, permissions grouped in plain language.
+  const dialog = document.querySelector('[role="dialog"]');
+  expect(dialog.textContent).toContain('Banco Sandbox');
+  expect(dialog.textContent).toContain('openFinance.consent.sandbox');
+  expect(dialog.textContent).toContain('openFinance.permissionGroups.cards');
+  expect(dialog.textContent).toContain('openFinance.permissions.LOANS_READ');
+  expect(dialog.textContent).toContain('openFinance.consent.purpose');
+
+  HttpService.postWithAuth.mockResolvedValueOnce({ accountsSynced: 2, newTransactions: 15 });
+  HttpService.getWithAuth.mockResolvedValue(status({ status: 'AUTHORISED', accountCount: 2 }));
+  await click('openFinance.consent.authorise');
+
+  expect(HttpService.postWithAuth).toHaveBeenLastCalledWith('/open-finance/connection/authorise', {
+    consentId: consent.consentId,
   });
-  expect(HttpService.postWithAuth).toHaveBeenCalledTimes(1);
-  expect(HttpService.postWithAuth).toHaveBeenCalledWith('/open-finance/connection/confirm', { code: '12345678' });
-  HttpService.getWithAuth.mockResolvedValue({ ...status(), status: 'AUTHORISED', accountCount: 2 });
-  await act(async () => finish({ accountsSynced: 2, newTransactions: 15 }));
   expect(refresh).toHaveBeenCalledTimes(1);
-  expect(container.textContent).toContain('openFinance.sync');
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(text()).toContain('openFinance.status.AUTHORISED');
 });
 
-test('expired pending code requests a fresh challenge instead of trapping the user', async () => {
+test('a consent left waiting can be declined from the page', async () => {
   HttpService.getWithAuth.mockResolvedValue(
-    status({ ...challenge(), expiresAt: new Date(Date.now() - 1000).toISOString() })
+    status({ status: 'AWAITING_AUTHORISATION', consentId: 'urn:consent:9', createdAt: new Date().toISOString() })
   );
   await renderPage();
-  HttpService.postWithAuth.mockResolvedValue(challenge());
-  HttpService.getWithAuth.mockResolvedValue(status(challenge()));
-  await act(async () => Simulate.click(button('openFinance.connect')));
-  expect(HttpService.postWithAuth).toHaveBeenCalledWith('/open-finance/connection/challenge', {});
-  expect(document.querySelector('input[autocomplete="one-time-code"]').disabled).toBe(false);
+  expect(text()).toContain('openFinance.awaiting.text');
+
+  await click('openFinance.awaiting.resume');
+  expect(document.querySelector('[role="dialog"]').textContent).toContain('openFinance.consent.authorise');
+
+  HttpService.postWithAuth.mockResolvedValueOnce(undefined);
+  HttpService.getWithAuth.mockResolvedValue(
+    status({ status: 'REJECTED', rejectionReason: 'CUSTOMER_MANUALLY_REJECTED' })
+  );
+  await click('openFinance.consent.reject');
+
+  expect(HttpService.postWithAuth).toHaveBeenCalledWith('/open-finance/connection/reject', {
+    consentId: 'urn:consent:9',
+  });
+  expect(text()).toContain('openFinance.rejected.CUSTOMER_MANUALLY_REJECTED');
+  expect(refresh).not.toHaveBeenCalled();
 });
 
-test('an invalid code keeps the dialog available with the specific error', async () => {
-  HttpService.getWithAuth.mockResolvedValue(status(challenge()));
+test('a rejected consent says why and offers to connect again', async () => {
+  HttpService.getWithAuth.mockResolvedValue(status({ status: 'REJECTED', rejectionReason: 'CONSENT_EXPIRED' }));
   await renderPage();
-  await act(async () => Simulate.click(button('openFinance.verification.enterCode')));
-  act(() => Simulate.change(document.querySelector('input'), { target: { value: '11111111' } }));
-  HttpService.postWithAuth.mockRejectedValue({
-    response: { status: 400, data: { code: 'OPEN_FINANCE_CODE_INVALID' } },
+  expect(text()).toContain('openFinance.rejected.CONSENT_EXPIRED');
+  expect(button('openFinance.connectAgain')).toBeDefined();
+});
+
+test('revoking warns that imported data is deleted and what stays, then refreshes the wallets', async () => {
+  HttpService.getWithAuth.mockResolvedValue(status({ status: 'AUTHORISED', accountCount: 2 }));
+  await renderPage();
+  await click('openFinance.revoke.open');
+
+  const dialog = document.querySelector('[role="dialog"]');
+  expect(dialog.textContent).toContain('openFinance.revoke.deleted');
+  expect(dialog.textContent).toContain('openFinance.revoke.kept');
+  expect(HttpService.deleteWithAuth).not.toHaveBeenCalled();
+
+  HttpService.deleteWithAuth.mockResolvedValue(undefined);
+  HttpService.getWithAuth.mockResolvedValue(status({ status: 'REJECTED', rejectionReason: 'CUSTOMER_MANUALLY_REVOKED' }));
+  await click('openFinance.revoke.confirm');
+
+  expect(HttpService.deleteWithAuth).toHaveBeenCalledWith('/open-finance/connection');
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(text()).toContain('openFinance.rejected.CUSTOMER_MANUALLY_REVOKED');
+});
+
+test('an authorisation past 60 minutes closes the bank screen and shows the expiry', async () => {
+  HttpService.getWithAuth.mockResolvedValue(status());
+  await renderPage();
+  HttpService.postWithAuth.mockResolvedValueOnce(consent);
+  await click('openFinance.connect');
+
+  HttpService.postWithAuth.mockRejectedValueOnce({
+    response: { status: 409, data: { code: 'OPEN_FINANCE_CONSENT_EXPIRED' } },
   });
-  await act(async () => Simulate.click(button('openFinance.verification.confirm')));
-  expect(document.body.textContent).toContain('app.errors.OPEN_FINANCE_CODE_INVALID');
-  expect(button('openFinance.verification.confirm').disabled).toBe(false);
-  expect(refresh).not.toHaveBeenCalled();
+  HttpService.getWithAuth.mockResolvedValue(status({ status: 'REJECTED', rejectionReason: 'CONSENT_EXPIRED' }));
+  await click('openFinance.consent.authorise');
+
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(text()).toContain('app.errors.OPEN_FINANCE_CONSENT_EXPIRED');
+  expect(text()).toContain('openFinance.rejected.CONSENT_EXPIRED');
 });
 
 test('without a status the card claims nothing while loading, and a failure offers a retry', async () => {
@@ -122,17 +185,15 @@ test('without a status the card claims nothing while loading, and a failure offe
   );
   await renderPage();
   expect(container.querySelector('.MuiSkeleton-root')).not.toBeNull();
-  expect(container.textContent).not.toContain('openFinance.participantSandbox');
-  expect(container.textContent).not.toContain('openFinance.bankPlaceholder');
+  expect(text()).not.toContain('openFinance.participantSandbox');
+  expect(text()).not.toContain('openFinance.bankPlaceholder');
 
   await act(async () => fail({ response: { status: 500 } }));
-  expect(container.textContent).toContain('app.errors.server');
-  expect(container.textContent).not.toContain('openFinance.participantSandbox');
+  expect(text()).toContain('app.errors.server');
 
   HttpService.getWithAuth.mockResolvedValue(status());
-  await act(async () => Simulate.click(button('app.retry')));
-  expect(container.textContent).not.toContain('app.errors.server');
-  expect(container.textContent).toContain('openFinance.contractSandbox');
-  // The notice is translated from the mode, never the raw PT text sent by the server.
-  expect(container.textContent).toContain('openFinance.notice.contract');
+  await click('app.retry');
+  expect(text()).not.toContain('app.errors.server');
+  // The notice is translated from the mode, never the raw text sent by the server.
+  expect(text()).toContain('openFinance.notice.contract');
 });

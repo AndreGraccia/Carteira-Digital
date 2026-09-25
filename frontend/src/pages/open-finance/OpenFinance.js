@@ -1,5 +1,5 @@
 import { alpha } from '@mui/material/styles';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -10,11 +10,13 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   Divider,
   Grid,
   Stack,
-  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
@@ -25,29 +27,37 @@ import { PageHeading, PageSkeleton, WalletIcon, IconTile } from '../../component
 import { useWallets } from '../../context/WalletContext';
 import HttpService from '../../services/HttpService';
 import { dateTime, errorKey } from '../../utils/wallet';
+import ConsentDialog, { PermissionGroups } from './ConsentDialog';
 
+const DURATIONS = [3, 6, 12];
+// Open Finance Brasil: a consent not authorised within 60 minutes is rejected with CONSENT_EXPIRED.
+const AUTHORISE_WINDOW_MS = 60 * 60 * 1000;
+const STATUS_COLOR = { AUTHORISED: 'success', AWAITING_AUTHORISATION: 'warning' };
+
+/**
+ * The consent journey of Open Finance Brasil (ADR 0008): choose how long to share, authorise at the
+ * institution (the sandbox plays the bank), sync, revoke. Revoking deletes what was imported.
+ */
 export default function OpenFinance() {
   const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const { refresh } = useWallets();
   const [status, setStatus] = useState(null);
-  const [verification, setVerification] = useState(null);
-  const [code, setCode] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [clock, setClock] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [error, setError] = useState(null);
-  const [verificationError, setVerificationError] = useState(null);
+  const [months, setMonths] = useState(12);
+  // The consent being authorised on the "bank" screen, and that screen's own error.
+  const [consent, setConsent] = useState(null);
+  const [consentError, setConsentError] = useState(null);
+  const [revokeOpen, setRevokeOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const nextStatus = await HttpService.getWithAuth('/open-finance/status');
-      setStatus(nextStatus);
-      setVerification(nextStatus.verification?.pending ? nextStatus.verification : null);
-      setError(null);
+      setStatus(await HttpService.getWithAuth('/open-finance/status'));
     } catch (failure) {
       setError(errorKey(failure));
     } finally {
@@ -59,158 +69,99 @@ export default function OpenFinance() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    if (!dialogOpen && !verification?.pending) return undefined;
-    setClock(Date.now());
-    const timer = window.setInterval(() => setClock(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [dialogOpen, verification?.pending]);
-
-  const resendSeconds = useMemo(() => {
-    if (!verification?.resendAvailableAt) return 0;
-    return Math.max(0, Math.ceil((new Date(verification.resendAvailableAt).getTime() - clock) / 1000));
-  }, [clock, verification]);
-
-  const verificationActive = verification?.pending && new Date(verification.expiresAt).getTime() > clock;
-
-  const notifySync = (result) => {
-    enqueueSnackbar(
-      t('openFinance.syncSuccess', {
-        accounts: result.accountsSynced,
-        transactions: result.newTransactions,
-      }),
-      { variant: 'success' }
-    );
-  };
-
-  const sync = async () => {
+  /** One request at a time: a double click must not create two consents or authorise twice. */
+  const run = async (action, onError = setError) => {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
+      await action();
+    } catch (failure) {
+      // Reload first: the status may have changed (expired, already connected), then say what failed.
+      await load();
+      onError(errorKey(failure));
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+
+  const connect = () =>
+    run(async () => {
+      const created = await HttpService.postWithAuth('/open-finance/connection', { months });
+      setConsentError(null);
+      setConsent(created);
+      await load();
+    });
+
+  const resume = () => {
+    setConsentError(null);
+    setConsent({
+      consentId: status.consentId,
+      institutionName: status.institutionName,
+      permissions: status.permissions,
+      expiresAt: status.expiresAt,
+      authoriseBefore: status.createdAt
+        ? new Date(new Date(status.createdAt).getTime() + AUTHORISE_WINDOW_MS).toISOString()
+        : null,
+    });
+  };
+
+  const authorise = () =>
+    run(
+      async () => {
+        const result = await HttpService.postWithAuth('/open-finance/connection/authorise', {
+          consentId: consent.consentId,
+        });
+        setConsent(null);
+        await Promise.all([load(), refresh()]);
+        enqueueSnackbar(
+          t('openFinance.syncSuccess', { accounts: result.accountsSynced, transactions: result.newTransactions }),
+          { variant: 'success' }
+        );
+      },
+      (key) => {
+        // Past the 60 minutes the consent is gone: the page shows why (REJECTED, CONSENT_EXPIRED).
+        if (key === 'app.errors.OPEN_FINANCE_CONSENT_EXPIRED' || key === 'app.errors.OPEN_FINANCE_CONSENT_NOT_FOUND') {
+          setConsent(null);
+          setError(key);
+        } else setConsentError(key);
+      }
+    );
+
+  const reject = (consentId) =>
+    run(
+      async () => {
+        await HttpService.postWithAuth('/open-finance/connection/reject', { consentId });
+        setConsent(null);
+        await load();
+        enqueueSnackbar(t('openFinance.consent.rejected'), { variant: 'info' });
+      },
+      (key) => (consent ? setConsentError(key) : setError(key))
+    );
+
+  const sync = () =>
+    run(async () => {
       const result = await HttpService.postWithAuth('/open-finance/sync', {});
       await Promise.all([load(), refresh()]);
-      notifySync(result);
-    } catch (failure) {
-      await load();
-      setError(errorKey(failure));
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  };
+      enqueueSnackbar(
+        t('openFinance.syncSuccess', { accounts: result.accountsSynced, transactions: result.newTransactions }),
+        { variant: 'success' }
+      );
+    });
 
-  const requestCode = async () => {
-    if (busyRef.current) return;
-    if (verification?.pending && new Date(verification.expiresAt).getTime() > Date.now()) {
-      setVerificationError(null);
-      setDialogOpen(true);
-      return;
-    }
-    busyRef.current = true;
-    setBusy(true);
-    setError(null);
-    try {
-      const challenge = await HttpService.postWithAuth('/open-finance/connection/challenge', {});
-      setVerification({ ...challenge, pending: true });
-      setCode('');
-      setVerificationError(null);
-      setDialogOpen(true);
-      enqueueSnackbar(t('openFinance.verification.sent'), { variant: 'success' });
-      await load();
-    } catch (failure) {
-      await load();
-      setError(errorKey(failure));
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  };
-
-  const resendCode = async () => {
-    if (busyRef.current || resendSeconds > 0) return;
-    busyRef.current = true;
-    setBusy(true);
-    setVerificationError(null);
-    try {
-      const challenge = await HttpService.postWithAuth('/open-finance/connection/challenge', {});
-      setVerification({ ...challenge, pending: true });
-      setCode('');
-      setClock(Date.now());
-      enqueueSnackbar(t('openFinance.verification.resent'), { variant: 'success' });
-      await load();
-    } catch (failure) {
-      setVerificationError(errorKey(failure));
-      await load();
-      applyRetryDelay(failure);
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  };
-
-  const applyRetryDelay = (failure) => {
-    const seconds = Number(failure.response?.headers?.['retry-after']);
-    if (seconds > 0) {
-      setClock(Date.now());
-      setVerification((current) => ({
-        ...current,
-        resendAvailableAt: new Date(Date.now() + seconds * 1000).toISOString(),
-      }));
-    }
-  };
-
-  const confirmConnection = async () => {
-    if (busyRef.current || !/^\d{8}$/.test(code) || !verificationActive) return;
-    busyRef.current = true;
-    setBusy(true);
-    setVerificationError(null);
-    try {
-      const result = await HttpService.postWithAuth('/open-finance/connection/confirm', { code });
-      setDialogOpen(false);
-      setVerification(null);
-      setCode('');
-      await Promise.all([load(), refresh()]);
-      notifySync(result);
-    } catch (failure) {
-      setVerificationError(errorKey(failure));
-      await load();
-      applyRetryDelay(failure);
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  };
-
-  const disconnect = async () => {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setError(null);
-    try {
+  const revoke = () =>
+    run(async () => {
       await HttpService.deleteWithAuth('/open-finance/connection');
-      setVerification(null);
-      setDialogOpen(false);
-      await load();
-      enqueueSnackbar(t('openFinance.revoked'), { variant: 'success' });
-    } catch (failure) {
-      await load();
-      setError(errorKey(failure));
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  };
+      setRevokeOpen(false);
+      // The imported accounts and statement are gone: the wallets on every screen must follow.
+      await Promise.all([load(), refresh()]);
+      enqueueSnackbar(t('openFinance.revoke.done'), { variant: 'success' });
+    });
 
-  const connected = status?.status === 'AUTHORISED';
-  const pending = !connected && verificationActive;
-  const connectionStatus = pending
-    ? 'PENDING_EMAIL_VERIFICATION'
-    : status?.status === 'PENDING_EMAIL_VERIFICATION'
-    ? 'DISCONNECTED'
-    : status?.status || 'DISCONNECTED';
-  const statusColor = connected ? 'success' : pending ? 'warning' : 'default';
+  const state = status?.status || 'DISCONNECTED';
+  const canConnect = state === 'DISCONNECTED' || state === 'REJECTED';
 
   return (
     <>
@@ -240,8 +191,13 @@ export default function OpenFinance() {
             {/* No status yet: nothing is known about the connection, so the card claims nothing. */}
             {!status && loading && <PageSkeleton rows={0} />}
             {status && (
-              <Card sx={{ p: { xs: 3, sm: 4 }, overflow: 'hidden', position: 'relative' }}>
+              <Card
+                component="section"
+                aria-labelledby="of-institution"
+                sx={{ p: { xs: 3, sm: 4 }, overflow: 'hidden', position: 'relative' }}
+              >
                 <Box
+                  aria-hidden="true"
                   sx={{
                     position: 'absolute',
                     width: 220,
@@ -253,63 +209,129 @@ export default function OpenFinance() {
                     top: -90,
                   }}
                 />
-                <Stack spacing={3} sx={{ position: 'relative' }}>
+                <Stack spacing={3} sx={{ position: 'relative' }} aria-busy={loading}>
                   <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
                     <IconTile name="bank" />
-                    <Chip color={statusColor} label={t(`openFinance.status.${connectionStatus}`)} />
+                    <Chip color={STATUS_COLOR[state] || 'default'} label={t(`openFinance.status.${state}`)} />
                   </Stack>
                   <Box>
                     <Typography variant="overline" color="text.secondary">
                       {status.simulated ? t('openFinance.contractSandbox') : t('openFinance.participantSandbox')}
                     </Typography>
-                    <Typography variant="h4" sx={{ mt: 0.5 }}>
+                    <Typography id="of-institution" variant="h4" component="h2" sx={{ mt: 0.5 }}>
                       {status.institutionName || t('openFinance.bankPlaceholder')}
                     </Typography>
                     <Typography color="text.secondary" sx={{ mt: 1.5, maxWidth: 580 }}>
                       {t(status.simulated ? 'openFinance.notice.contract' : 'openFinance.notice.participant')}
                     </Typography>
                   </Box>
-                  {connected && (
-                    <Stack
-                      direction={{ xs: 'column', sm: 'row' }}
-                      spacing={3}
-                      divider={<Divider orientation="vertical" flexItem />}
-                    >
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {t('openFinance.accounts')}
+
+                  {state === 'AUTHORISED' && (
+                    <>
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={3}
+                        divider={<Divider orientation="vertical" flexItem />}
+                      >
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {t('openFinance.accounts')}
+                          </Typography>
+                          <Typography variant="h5">{status.accountCount}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {t('openFinance.lastSync')}
+                          </Typography>
+                          <Typography variant="subtitle1">{dateTime(status.lastSyncedAt, lang)}</Typography>
+                        </Box>
+                      </Stack>
+                      {status.expiresAt && (
+                        <Typography variant="body2" color="text.secondary">
+                          {t('openFinance.validUntil', { date: dateTime(status.expiresAt, lang) })}
                         </Typography>
-                        <Typography variant="h5">{status.accountCount}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {t('openFinance.lastSync')}
-                        </Typography>
-                        <Typography variant="subtitle1">{dateTime(status.lastSyncedAt, i18n.language)}</Typography>
-                      </Box>
-                    </Stack>
-                  )}
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                    <LoadingButton
-                      loading={busy || loading}
-                      variant="contained"
-                      onClick={connected ? sync : requestCode}
-                      startIcon={<WalletIcon name={connected ? 'sync' : 'shield'} />}
-                    >
-                      {t(
-                        connected
-                          ? 'openFinance.sync'
-                          : pending
-                          ? 'openFinance.verification.enterCode'
-                          : 'openFinance.connect'
                       )}
-                    </LoadingButton>
-                    {connected && (
-                      <Button color="inherit" disabled={busy} onClick={disconnect}>
-                        {t('openFinance.disconnect')}
-                      </Button>
-                    )}
-                  </Stack>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                        <LoadingButton
+                          loading={busy}
+                          variant="contained"
+                          onClick={sync}
+                          startIcon={<WalletIcon name="sync" />}
+                        >
+                          {t('openFinance.sync')}
+                        </LoadingButton>
+                        <Button color="inherit" disabled={busy} onClick={() => setRevokeOpen(true)}>
+                          {t('openFinance.revoke.open')}
+                        </Button>
+                      </Stack>
+                    </>
+                  )}
+
+                  {state === 'AWAITING_AUTHORISATION' && (
+                    <>
+                      <Alert severity="warning">
+                        {t('openFinance.awaiting.text', {
+                          institution: status.institutionName,
+                          time: status.createdAt
+                            ? dateTime(new Date(new Date(status.createdAt).getTime() + AUTHORISE_WINDOW_MS), lang)
+                            : '—',
+                        })}
+                      </Alert>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                        <Button variant="contained" disabled={busy} onClick={resume}>
+                          {t('openFinance.awaiting.resume')}
+                        </Button>
+                        <Button color="inherit" disabled={busy} onClick={() => reject(status.consentId)}>
+                          {t('openFinance.awaiting.reject')}
+                        </Button>
+                      </Stack>
+                    </>
+                  )}
+
+                  {state === 'REJECTED' && (
+                    <Alert severity="info">
+                      {t(
+                        {
+                          CUSTOMER_MANUALLY_REVOKED: 'openFinance.rejected.CUSTOMER_MANUALLY_REVOKED',
+                          CUSTOMER_MANUALLY_REJECTED: 'openFinance.rejected.CUSTOMER_MANUALLY_REJECTED',
+                          CONSENT_EXPIRED: 'openFinance.rejected.CONSENT_EXPIRED',
+                          CONSENT_MAX_DATE_REACHED: 'openFinance.rejected.CONSENT_MAX_DATE_REACHED',
+                        }[status.rejectionReason] || 'openFinance.rejected.unknown'
+                      )}
+                    </Alert>
+                  )}
+
+                  {canConnect && (
+                    <Box>
+                      <Typography id="of-duration" variant="subtitle2" component="p">
+                        {t('openFinance.duration.label')}
+                      </Typography>
+                      <ToggleButtonGroup
+                        exclusive
+                        value={months}
+                        onChange={(_, value) => value && setMonths(value)}
+                        aria-labelledby="of-duration"
+                        sx={{ mt: 1 }}
+                      >
+                        {DURATIONS.map((option) => (
+                          <ToggleButton key={option} value={option} sx={{ px: 2 }}>
+                            {t('openFinance.duration.months', { count: option })}
+                          </ToggleButton>
+                        ))}
+                      </ToggleButtonGroup>
+                      <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 1, mb: 2 }}>
+                        {t('openFinance.duration.help')}
+                      </Typography>
+                      <LoadingButton
+                        loading={busy}
+                        variant="contained"
+                        onClick={connect}
+                        startIcon={<WalletIcon name="shield" />}
+                      >
+                        {t(state === 'REJECTED' ? 'openFinance.connectAgain' : 'openFinance.connect')}
+                      </LoadingButton>
+                    </Box>
+                  )}
                 </Stack>
               </Card>
             )}
@@ -317,15 +339,13 @@ export default function OpenFinance() {
           <Grid item xs={12} md={5}>
             <Stack spacing={3}>
               <Card sx={{ p: 3 }}>
-                <Typography variant="h6">{t('openFinance.permissionsTitle')}</Typography>
+                <Typography variant="h6" component="h2">
+                  {t('openFinance.permissionsTitle')}
+                </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2.5 }}>
                   {t('openFinance.permissionsHelp')}
                 </Typography>
-                <Stack direction="row" gap={1} flexWrap="wrap">
-                  {(status?.permissions || []).map((permission) => (
-                    <Chip key={permission} size="small" label={t(`openFinance.permissions.${permission}`)} />
-                  ))}
-                </Stack>
+                <PermissionGroups permissions={status?.permissions || []} />
               </Card>
               <Alert severity="info" icon={<WalletIcon name="shield" />}>
                 <Typography variant="subtitle2">{t('openFinance.credentialTitle')}</Typography>
@@ -344,68 +364,37 @@ export default function OpenFinance() {
         </Grid>
       </Container>
 
+      <ConsentDialog
+        consent={consent}
+        busy={busy}
+        error={consentError}
+        onAuthorise={authorise}
+        onReject={() => reject(consent.consentId)}
+        onClose={() => setConsent(null)}
+      />
+
       <Dialog
-        open={dialogOpen}
-        onClose={busy ? undefined : () => setDialogOpen(false)}
-        fullWidth
+        open={revokeOpen}
+        onClose={busy ? undefined : () => setRevokeOpen(false)}
+        aria-labelledby="revoke-title"
+        aria-describedby="revoke-deleted"
         maxWidth="xs"
-        PaperProps={{ sx: { borderRadius: 4, p: 1 } }}
+        fullWidth
       >
-        <DialogTitle>{t('openFinance.verification.title')}</DialogTitle>
+        <DialogTitle id="revoke-title">{t('openFinance.revoke.title')}</DialogTitle>
         <DialogContent>
-          <Stack spacing={2.5} sx={{ pt: 1 }}>
-            <Typography color="text.secondary">
-              {t('openFinance.verification.sentTo', { email: verification?.maskedEmail || '' })}
-            </Typography>
-            {verificationError && <Alert severity="error">{t(verificationError)}</Alert>}
-            {!verificationActive && !verificationError && (
-              <Alert severity="warning">{t('app.errors.OPEN_FINANCE_CODE_EXPIRED')}</Alert>
-            )}
-            <TextField
-              autoFocus
-              fullWidth
-              label={t('openFinance.verification.code')}
-              value={code}
-              disabled={busy || !verificationActive}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') confirmConnection();
-              }}
-              onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))}
-              autoComplete="one-time-code"
-              inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', maxLength: 8 }}
-              helperText={t('openFinance.verification.codeHelp')}
-            />
-            <Alert severity="warning" icon={<WalletIcon name="shield" />}>
-              {t('openFinance.verification.safety')}
-            </Alert>
-            {verification?.expiresAt && (
-              <Typography variant="caption" color="text.secondary">
-                {t('openFinance.verification.expires', {
-                  date: dateTime(verification.expiresAt, i18n.language),
-                })}
-              </Typography>
-            )}
-          </Stack>
+          <Alert severity="warning" id="revoke-deleted">
+            {t('openFinance.revoke.deleted')}
+          </Alert>
+          <DialogContentText sx={{ mt: 2 }}>{t('openFinance.revoke.kept')}</DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'space-between' }}>
-          <Button disabled={busy || resendSeconds > 0} onClick={resendCode}>
-            {resendSeconds > 0
-              ? t('openFinance.verification.resendIn', { seconds: resendSeconds })
-              : t('openFinance.verification.resend')}
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button color="inherit" disabled={busy} onClick={() => setRevokeOpen(false)}>
+            {t('openFinance.revoke.cancel')}
           </Button>
-          <Stack direction="row" spacing={1}>
-            <Button color="inherit" disabled={busy} onClick={() => setDialogOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <LoadingButton
-              loading={busy}
-              disabled={code.length !== 8 || !verificationActive}
-              variant="contained"
-              onClick={confirmConnection}
-            >
-              {t('openFinance.verification.confirm')}
-            </LoadingButton>
-          </Stack>
+          <LoadingButton color="error" variant="contained" loading={busy} onClick={revoke}>
+            {t('openFinance.revoke.confirm')}
+          </LoadingButton>
         </DialogActions>
       </Dialog>
     </>

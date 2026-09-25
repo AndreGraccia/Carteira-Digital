@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import DashboardLayout from './layouts/dashboard/DashboardLayout';
@@ -10,17 +11,20 @@ import Unauthorized from './pages/auth/Unauthorized';
 import NotFound from './pages/auth/NotFound';
 
 import Dashboard from './pages/dashboard/Dashboard';
-import Transaction from './pages/transaction/Transaction';
-import Envelopes from './pages/envelopes/Envelopes';
-import About from './pages/About';
-import NewWallet from './pages/wallet/NewWallet';
-import Wallet from './pages/wallet/Wallet';
-import Insights from './pages/insights/Insights';
-import OpenFinance from './pages/open-finance/OpenFinance';
-import Future from './pages/future/Future';
-import Ask from './pages/ask/Ask';
-import Commitments from './pages/commitments/Commitments';
-import Metrics from './pages/admin/Metrics';
+
+// One chunk per screen: the landing dashboard and login stay in the main bundle, the rest loads on
+// first visit (DashboardLayout shows a skeleton meanwhile).
+const Transaction = lazy(() => import('./pages/transaction/Transaction'));
+const Envelopes = lazy(() => import('./pages/envelopes/Envelopes'));
+const About = lazy(() => import('./pages/About'));
+const NewWallet = lazy(() => import('./pages/wallet/NewWallet'));
+const Wallet = lazy(() => import('./pages/wallet/Wallet'));
+const Insights = lazy(() => import('./pages/insights/Insights'));
+const OpenFinance = lazy(() => import('./pages/open-finance/OpenFinance'));
+const Future = lazy(() => import('./pages/future/Future'));
+const Ask = lazy(() => import('./pages/ask/Ask'));
+const Commitments = lazy(() => import('./pages/commitments/Commitments'));
+const Metrics = lazy(() => import('./pages/admin/Metrics'));
 
 const USER_ROLES = ['ROLE_USER', 'ROLE_ADMIN'];
 

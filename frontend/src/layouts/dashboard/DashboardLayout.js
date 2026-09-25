@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Avatar,
@@ -19,7 +19,7 @@ import { alpha } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { WalletProvider } from '../../context/WalletContext';
 import LanguageSelector from '../../components/language-selector';
-import { WalletIcon } from '../../components/wallet-ui';
+import { PageSkeleton, WalletIcon } from '../../components/wallet-ui';
 import { WalliaLogo } from '../../components/brand';
 import { forgetThisBrowser } from '../../utils/push';
 import AuthService from '../../services/AuthService';
@@ -213,7 +213,15 @@ export default function DashboardLayout() {
             </Container>
           </Box>
           <Box component="main" sx={{ pt: { xs: 3, md: 5 }, pb: { xs: 14, lg: 6 } }}>
-            <Outlet />
+            <Suspense
+              fallback={
+                <Container maxWidth="lg">
+                  <PageSkeleton />
+                </Container>
+              }
+            >
+              <Outlet />
+            </Suspense>
           </Box>
         </Box>
         <Box

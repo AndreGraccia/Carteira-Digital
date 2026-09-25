@@ -218,6 +218,9 @@ export default function DashboardLayout() {
                     <Button component={RouterLink} to="/about" onClick={() => setAccountOpen(false)}>
                       {t('app.about')}
                     </Button>
+                    <Button component={RouterLink} to="/privacy" onClick={() => setAccountOpen(false)}>
+                      {t('app.privacy')}
+                    </Button>
                     <Button onClick={logout} startIcon={<WalletIcon name="logout" />}>
                       {t('actions.logout')}
                     </Button>

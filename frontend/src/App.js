@@ -17,6 +17,7 @@ import Dashboard from './pages/dashboard/Dashboard';
 const Transaction = lazy(() => import('./pages/transaction/Transaction'));
 const Envelopes = lazy(() => import('./pages/envelopes/Envelopes'));
 const About = lazy(() => import('./pages/About'));
+const Privacy = lazy(() => import('./pages/privacy/Privacy'));
 const NewWallet = lazy(() => import('./pages/wallet/NewWallet'));
 const Wallet = lazy(() => import('./pages/wallet/Wallet'));
 const Insights = lazy(() => import('./pages/insights/Insights'));
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="insights" element={<Insights />} />
             <Route path="open-finance" element={<OpenFinance />} />
             <Route path="about" element={<About />} />
+            <Route path="privacy" element={<Privacy />} />
             <Route element={<ProtectedRoute roles={['ROLE_ADMIN']} />}>
               <Route path="admin/metrics" element={<Metrics />} />
             </Route>

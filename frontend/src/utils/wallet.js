@@ -127,6 +127,7 @@ export function errorKey(error) {
       'EMAIL_UNAVAILABLE',
       'EMAIL_VERIFICATION_REQUIRED',
       'USERNAME_TAKEN',
+      'INVALID_PASSWORD',
     ].includes(code)
   )
     return `app.errors.${code}`;

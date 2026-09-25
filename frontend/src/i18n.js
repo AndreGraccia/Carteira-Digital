@@ -9,6 +9,7 @@ const resources = {
         demoNotice: 'Ambiente de demonstração com saldos simulados. Nenhum valor real é movimentado.',
         navigation: 'Navegação principal',
         about: 'Transparência e escopo',
+        privacy: 'Privacidade e dados',
         retry: 'Tentar novamente',
         noActivity: 'Nenhuma movimentação ainda',
         noActivityHelp: 'Quando você movimentar seu saldo, os detalhes aparecerão aqui.',
@@ -93,6 +94,7 @@ const resources = {
           EMAIL_CODE_DAILY_LIMIT: 'Você pediu muitos códigos hoje. Tente de novo em 24 horas.',
           EMAIL_CODE_ATTEMPTS_EXCEEDED: 'Você errou o código muitas vezes. Peça um novo código.',
           EMAIL_NOT_VERIFIED: 'Confirme seu e-mail para entrar. Digite o código que enviamos.',
+          INVALID_PASSWORD: 'Senha incorreta.',
           EMAIL_ALREADY_VERIFIED: 'Este e-mail já foi confirmado. Entre com seu usuário e senha.',
           EMAIL_UNAVAILABLE: 'Não foi possível enviar o e-mail agora. Tente de novo em instantes.',
           EMAIL_VERIFICATION_REQUIRED: 'Confirme seu e-mail para usar este recurso.',
@@ -806,6 +808,36 @@ const resources = {
         indicatorDate: 'dado de {{date}}',
         progressLabel: 'Parcelas pagas',
       },
+      privacy: {
+        pageTitle: 'Privacidade e dados | Wall.ia',
+        heading: 'Privacidade e dados',
+        description: 'O que a Wall.ia guarda, para que serve e como apagar.',
+        storedTitle: 'O que guardamos',
+        stored: {
+          account:
+            'Cadastro: nome, usuário e e-mail, para você entrar e receber o código e os alertas. A senha fica só como hash BCrypt.',
+          wallets: 'Carteiras e movimentações que você criou, para mostrar saldo e extrato.',
+          openFinance:
+            'Dados do Open Finance (contas, cartões, empréstimos e lançamentos), só com o seu consentimento e só para projetar o saldo.',
+          answers: 'Suas respostas às perguntas, metas e envelopes, para o Futuro calcular com o que você confirmou.',
+          alerts: 'Preferência de alertas e inscrição de avisos no navegador, só se você ligar.',
+        },
+        aiTitle: 'O que vai para a IA',
+        ai: 'Só a Análise usa IA, e só quando o servidor tem uma chave do Gemini. Vão totais por mês (entradas, saídas, transferências). Nunca nome, e-mail, conta ou lançamento. Sem chave, a análise é feita aqui mesmo.',
+        openFinanceTitle: 'Compartilhamento do Open Finance',
+        openFinance:
+          'Revogar o compartilhamento apaga tudo o que foi importado do banco. Você pode conectar de novo quando quiser.',
+        deleteTitle: 'Excluir minha conta',
+        deleteText:
+          'Apaga o cadastro, os dados do Open Finance, metas, envelopes, respostas e alertas. Transferências feitas para outras pessoas continuam no extrato delas, sem o seu nome. Não tem volta.',
+        deleteButton: 'Excluir minha conta',
+        dialogTitle: 'Excluir a conta?',
+        dialogText:
+          'Digite sua senha para confirmar. Depois disso você sai e não consegue mais entrar com este usuário.',
+        password: 'Senha',
+        confirm: 'Excluir definitivamente',
+        cancel: 'Cancelar',
+      },
       navigation: {
         metrics: 'Métricas',
         envelopes: 'Envelopes',
@@ -957,6 +989,7 @@ const resources = {
         demoNotice: 'Demonstration environment with simulated balances. No real money is moved.',
         navigation: 'Main navigation',
         about: 'Transparency and scope',
+        privacy: 'Privacy and data',
         retry: 'Try again',
         noActivity: 'No activity yet',
         noActivityHelp: 'Your balance movements will appear here.',
@@ -1042,6 +1075,7 @@ const resources = {
           EMAIL_CODE_DAILY_LIMIT: 'You requested too many codes today. Try again in 24 hours.',
           EMAIL_CODE_ATTEMPTS_EXCEEDED: 'Too many wrong attempts. Request a new code.',
           EMAIL_NOT_VERIFIED: 'Confirm your email to sign in. Enter the code we sent you.',
+          INVALID_PASSWORD: 'Wrong password.',
           EMAIL_ALREADY_VERIFIED: 'This email is already confirmed. Sign in with your username and password.',
           EMAIL_UNAVAILABLE: 'We could not send the email right now. Try again in a moment.',
           EMAIL_VERIFICATION_REQUIRED: 'Confirm your email to use this feature.',
@@ -1751,6 +1785,36 @@ const resources = {
         },
         indicatorDate: 'as of {{date}}',
         progressLabel: 'Instalments paid',
+      },
+      privacy: {
+        pageTitle: 'Privacy and data | Wall.ia',
+        heading: 'Privacy and data',
+        description: 'What Wall.ia keeps, what it is for and how to delete it.',
+        storedTitle: 'What we keep',
+        stored: {
+          account:
+            'Account: name, username and email, so you can sign in and get the code and alerts. The password is kept only as a BCrypt hash.',
+          wallets: 'Wallets and transactions you created, to show balance and statement.',
+          openFinance:
+            'Open Finance data (accounts, cards, loans and entries), only with your consent and only to project your balance.',
+          answers: 'Your answers to the questions, goals and envelopes, so Future calculates with what you confirmed.',
+          alerts: 'Alert preference and browser notification subscription, only if you turn them on.',
+        },
+        aiTitle: 'What goes to the AI',
+        ai: 'Only Insights uses AI, and only when the server has a Gemini key. It gets monthly totals (in, out, transfers). Never name, email, account or entries. Without a key, the analysis runs here.',
+        openFinanceTitle: 'Open Finance sharing',
+        openFinance:
+          'Revoking the sharing deletes everything imported from the bank. You can connect again whenever you want.',
+        deleteTitle: 'Delete my account',
+        deleteText:
+          'Deletes the account, Open Finance data, goals, envelopes, answers and alerts. Transfers made to other people stay in their statement, without your name. This cannot be undone.',
+        deleteButton: 'Delete my account',
+        dialogTitle: 'Delete the account?',
+        dialogText:
+          'Enter your password to confirm. After that you are signed out and cannot sign in with this username again.',
+        password: 'Password',
+        confirm: 'Delete for good',
+        cancel: 'Cancel',
       },
       navigation: {
         metrics: 'Metrics',

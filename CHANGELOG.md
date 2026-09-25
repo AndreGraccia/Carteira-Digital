@@ -2,6 +2,28 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 25/09/2026 (noite): Sprint 11, homologação possível
+
+Backlog novo e fluxo de entrega em [`docs/backlog.md`](docs/backlog.md).
+
+### Corrigido
+- **CI vermelho desde a Sprint 9.** O `prettier --check` falhava em 3 arquivos do frontend e os testes do frontend e o build nunca rodavam no GitHub. Formatados, e o `reportWebVitals.js` (chamado sem função, não media nada) removido.
+- **Parcela no cartão perdia centavos (B10).** R$ 100,00 em 3 aparecia como 3 x R$ 33,33 nas faturas projetadas. Agora a 1ª parcela leva o resto (R$ 33,34), a mesma divisão do simulador, e a soma fecha com o valor da compra.
+- **Receita e despesa escondidas como transferência (B11).** Um boleto pago numa conta e um Pix recebido em outra, de mesmo valor e no mesmo dia, sumiam dos totais de Análises. Agora só se pareiam lançamentos importados, de contas diferentes, com tipo de transferência do Open Finance (Pix, TED, DOC, TEF, mesma instituição). O tipo passa a ser gravado (V31). Lançamentos digitados à mão nunca se pareiam.
+
+### Novo
+- **Health check (B31).** `/actuator/health/liveness` e `/actuator/health/readiness`, sem detalhes. A readiness fica `DOWN` quando o banco cai; a liveness não, para a API não reiniciar em ciclo. Só `health` é exposto, e o nginx não repassa `/actuator`.
+- **Compose de homologação e produção (B30).** Banco com `pg_isready`, backend com health check, e cada serviço só sobe depois do anterior saudável. `mail_host` passou a ser obrigatório: produção nunca cai no Mailpit por omissão. Roteiro de homologação no guia (seção 13.1).
+
+### Melhorado
+- GitHub Actions `checkout`, `setup-java` e `setup-node` na v5 (runtime Node 24; a v4 avisava Node 20 depreciado).
+
+### Verificado
+- Backend: 311 testes, 0 falhas, **0 pulados**: a suíte rodou contra PostgreSQL 14.6 no Docker, com a V31.
+- Imagem do backend construída e rodada: health check `healthy`; com o banco parado, readiness `DOWN` e liveness `UP`.
+- Frontend: lint, Prettier, i18n, 63 testes e build.
+- Não verificado: o CI do GitHub depois do push (sem `gh`) e o `npm audit` (registry bloqueado na rede corporativa).
+
 ## 25/09/2026 (noite): Sprint 10, integridade do consentimento e diferenciais
 
 ### Corrigido

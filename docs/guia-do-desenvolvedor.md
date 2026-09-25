@@ -419,6 +419,39 @@ Prefira `git add` com caminhos a `git add .`, para não levar `.env.properties`,
 
 Cuidado com `git checkout <arquivo>` e `git restore <arquivo>`: eles descartam mudanças não commitadas sem pedir confirmação. Na dúvida, `git stash` guarda tudo e deixa recuperar depois.
 
+## 13.1 Homologação
+
+A homologação usa a mesma imagem que vai para produção. O que muda é só o `.env.properties`. Fluxo completo em [`backlog.md`](backlog.md).
+
+Diferenças do `.env.properties` da homologação:
+
+- `mail_host=mailpit` (os e-mails ficam em http://localhost:8025). Em produção, o provedor transacional.
+- `data_encryption_key` preenchida (`openssl rand -base64 32`). Guarde-a junto do backup: sem ela, as descrições cifradas não voltam.
+- `open_finance_mode=sandbox`. Nunca dados reais de clientes.
+
+Subir:
+
+```
+docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml ps
+```
+
+O `ps` precisa mostrar `healthy` no banco e no backend. O frontend só sobe depois do backend saudável.
+
+Sondas de saúde (só dentro da rede; o nginx não repassa `/actuator`):
+
+- `/actuator/health/liveness`: o processo está de pé. Não olha o banco, para uma queda do banco não reiniciar a API.
+- `/actuator/health/readiness`: pronto para receber tráfego. Fica `DOWN` quando o banco não responde.
+
+Roteiro mínimo de validação a cada versão:
+
+1. Cadastro, código pelo Mailpit e login.
+2. Futuro, Compromissos e Análises abrem sem erro em 375 px e 1280 px, em PT e EN.
+3. Conectar o Open Finance sandbox, autorizar, sincronizar e revogar. Depois de revogar, os dados importados somem.
+4. A transferência entre conta e reserva aparece como transferência interna, não como receita e despesa.
+5. Uma compra parcelada no cartão: a soma das parcelas nas faturas é igual ao valor da compra.
+6. Privacidade: exclusão da conta de ponta a ponta com um usuário de teste.
+
 ## 14. Referência rápida
 
 | Quero... | Comando |

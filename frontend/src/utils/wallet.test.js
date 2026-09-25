@@ -6,6 +6,7 @@ import {
   monthLabel,
   overdraftCostText,
   projectRegularDeposits,
+  savingsInAYear,
 } from './wallet';
 
 test('projects zero-rate monthly deposits without inventing earnings', () => {
@@ -82,5 +83,19 @@ describe('overdraftCostText', () => {
     expect(text).toContain('2,94%');
     expect(text).toContain('future.limit.rateSource.BANK');
     expect(text).toContain('03/09');
+  });
+});
+
+describe('savingsInAYear', () => {
+  it('compounds monthly deposits at the CDI and deflates by the IPCA', () => {
+    expect(savingsInAYear('200.00', '13.65', '4.22')).toEqual({
+      saved: 2400,
+      withCdi: 2546.68,
+      inTodaysMoney: 2443.56,
+    });
+  });
+
+  it('with a zero rate the money only adds up', () => {
+    expect(savingsInAYear(100, 0, 0)).toEqual({ saved: 1200, withCdi: 1200, inTodaysMoney: 1200 });
   });
 });

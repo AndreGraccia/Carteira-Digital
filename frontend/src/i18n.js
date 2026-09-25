@@ -428,6 +428,8 @@ const resources = {
           add: 'Criar meta',
           perMonth: '{{amount}} por mês, todo dia {{day}}',
           next: 'próxima em {{date}}',
+          inAYear:
+            'Em 12 meses: {{saved}} guardados. A 100% do CDI ({{cdi}} a.a.), cerca de {{withCdi}} antes do IR; descontada a inflação ({{ipca}}), {{real}} em dinheiro de hoje. Banco Central, {{date}}.',
           remove: 'Remover',
           removeLabel: 'Remover a meta {{name}}',
           saved: 'Meta criada. A projeção foi atualizada.',
@@ -1374,6 +1376,8 @@ const resources = {
           add: 'Create goal',
           perMonth: '{{amount}} a month, every day {{day}}',
           next: 'next on {{date}}',
+          inAYear:
+            'In 12 months: {{saved}} put aside. At 100% of the CDI ({{cdi}} a year), about {{withCdi}} before income tax; after inflation ({{ipca}}), {{real}} in today\'s money. Banco Central, {{date}}.',
           remove: 'Remove',
           removeLabel: 'Remove the goal {{name}}',
           saved: 'Goal created. The projection was updated.',

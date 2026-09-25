@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useSnackbar } from 'notistack';
 import HttpService from '../../services/HttpService';
 import { SectionCard, WalletIcon } from '../../components/wallet-ui';
-import { dayLabel, errorKey, money, parseAmount } from '../../utils/wallet';
+import { dayLabel, errorKey, money, parseAmount, percent, savingsInAYear } from '../../utils/wallet';
 
 const EMPTY = { name: '', amount: '', day: '' };
 
@@ -35,8 +35,18 @@ export default function Goals({ onChanged }) {
     }
   }, []);
 
+  // CDI and IPCA stored daily from Banco Central (ADR 0010). Without them the goals simply show no projection.
+  const [indicators, setIndicators] = useState(null);
   useEffect(() => {
     load();
+    HttpService.getWithAuth('/market/overview')
+      .then((market) => {
+        const find = (code) => market?.indicators?.find((item) => item.code === code);
+        const cdi = find('CDI');
+        const ipca = find('IPCA_12M');
+        setIndicators(cdi && ipca ? { cdi, ipca } : null);
+      })
+      .catch(() => setIndicators(null));
   }, [load]);
 
   // An answer about R$ 300 must not stay next to R$ 3.000.
@@ -171,6 +181,21 @@ export default function Goals({ onChanged }) {
               {t('future.goals.perMonth', { amount: money(goal.monthlyAmount, lang), day: goal.dayOfMonth })}
               {goal.nextDate ? ` · ${t('future.goals.next', { date: dayLabel(goal.nextDate, lang) })}` : ''}
             </Typography>
+            {indicators && (
+              <Typography variant="caption" color="text.secondary" component="p">
+                {(() => {
+                  const year = savingsInAYear(goal.monthlyAmount, indicators.cdi.value, indicators.ipca.value);
+                  return t('future.goals.inAYear', {
+                    saved: money(year.saved, lang),
+                    withCdi: money(year.withCdi, lang),
+                    real: money(year.inTodaysMoney, lang),
+                    cdi: percent(indicators.cdi.value, lang),
+                    ipca: percent(indicators.ipca.value, lang),
+                    date: dayLabel(indicators.cdi.referenceDate, lang),
+                  });
+                })()}
+              </Typography>
+            )}
           </Box>
           <Tooltip title={t('future.goals.remove')}>
             <span>

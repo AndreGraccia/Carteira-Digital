@@ -151,7 +151,26 @@ export const dayLabel = (isoDay, language, options = { day: '2-digit', month: '2
   isoDay ? new Intl.DateTimeFormat(localeFor(language), options).format(localDate(isoDay)) : '—';
 /** Monthly rate given in percent (2.94) as "2,94%". */
 export const percent = (value, language) =>
-  new Intl.NumberFormat(localeFor(language), { style: 'percent', maximumFractionDigits: 2 }).format(Number(value) / 100);
+  new Intl.NumberFormat(localeFor(language), { style: 'percent', maximumFractionDigits: 2 }).format(
+    Number(value) / 100
+  );
+
+/**
+ * A goal kept for 12 months: what was put aside, what it becomes at 100% of the CDI (deposit at the end of
+ * each month, before income tax) and what that is worth in today's money after 12-month IPCA.
+ * ponytail: Number is fine for a shown estimate; nothing here is stored or moved.
+ */
+export function savingsInAYear(monthly, cdiAnnualPercent, ipcaPercent) {
+  const deposit = Number(monthly);
+  const rate = (1 + Number(cdiAnnualPercent) / 100) ** (1 / 12) - 1;
+  const withCdi = rate > 0 ? (deposit * ((1 + rate) ** 12 - 1)) / rate : deposit * 12;
+  const cents = (value) => Math.round(value * 100) / 100;
+  return {
+    saved: cents(deposit * 12),
+    withCdi: cents(withCdi),
+    inTodaysMoney: cents(withCdi / (1 + Number(ipcaPercent) / 100)),
+  };
+}
 
 /**
  * What a negative window costs on the overdraft (ADR 0010): the estimate at the bank's or the market rate with

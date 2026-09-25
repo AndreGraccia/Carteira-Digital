@@ -170,9 +170,12 @@ public class FutureAlertService {
     static String body(String firstName, FutureResponses.RiskWindow window, FutureResponses.SpendingLimit limit, String url) {
         NumberFormat currency = NumberFormat.getCurrencyInstance(PT_BR);
         String cost = window.overdraftCostCap() == null || window.overdraftCostCap().signum() <= 0 ? ""
-                : window.overdraftEstimate() == null || "LEGAL_CAP".equals(window.overdraftEstimate().source())
+                : window.overdraftEstimate() == null
                 ? "\nSe o banco cobrir com cheque especial, os juros podem chegar a %s (teto legal de 8%% ao mês), mais IOF."
                         .formatted(currency.format(window.overdraftCostCap()))
+                : "LEGAL_CAP".equals(window.overdraftEstimate().source())
+                ? "\nSe o banco cobrir com cheque especial, os juros podem chegar a %s (teto legal de 8%% ao mês), mais %s de IOF."
+                        .formatted(currency.format(window.overdraftCostCap()), currency.format(window.overdraftEstimate().iof()))
                 : ("\nSe o banco cobrir com cheque especial, deve custar cerca de %s (juros de %s%% ao mês, %s, mais IOF)."
                         + " No teto legal, os juros chegariam a %s.")
                         .formatted(currency.format(window.overdraftEstimate().total()),

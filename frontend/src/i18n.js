@@ -479,6 +479,8 @@ const resources = {
           laterRisk: '{{start}} a {{end}}, até {{amount}}',
           seeWayOut: 'Ver como evitar o negativo',
           cost: 'Se o banco cobrir com cheque especial, os juros podem chegar a {{amount}} (teto legal de 8% ao mês), mais IOF.',
+          costCapIof:
+            'Se o banco cobrir com cheque especial, os juros podem chegar a {{amount}} (teto legal de 8% ao mês), mais {{iof}} de IOF.',
           costEstimate:
             'Se o banco cobrir com cheque especial, deve custar cerca de {{amount}} com IOF (juros de {{rate}} ao mês, {{source}}, semana de {{date}}). No teto legal, os juros chegariam a {{cap}}.',
           rateSource: {
@@ -1422,6 +1424,8 @@ const resources = {
           laterRisk: '{{start}} to {{end}}, down to {{amount}}',
           seeWayOut: 'See how to avoid going negative',
           cost: 'If your bank covers it with an overdraft, interest could reach {{amount}} (legal cap of 8% a month), plus IOF tax.',
+          costCapIof:
+            'If your bank covers it with an overdraft, interest could reach {{amount}} (legal cap of 8% a month), plus {{iof}} of IOF tax.',
           costEstimate:
             'If your bank covers it with an overdraft, it should cost about {{amount}} with IOF tax ({{rate}} a month, {{source}}, week of {{date}}). At the legal cap, interest would reach {{cap}}.',
           rateSource: {

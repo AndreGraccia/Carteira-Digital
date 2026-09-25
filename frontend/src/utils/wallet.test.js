@@ -59,6 +59,8 @@ describe('overdraftCostText', () => {
   it('says nothing without a cost and only the ceiling without a Banco Central rate', () => {
     expect(overdraftCostText(t, { overdraftCostCap: 0 }, 'pt')).toBe('');
     expect(overdraftCostText(t, risk, 'pt')).toContain('future.limit.cost ');
+    const capped = { ...risk, overdraftEstimate: { source: 'LEGAL_CAP', iof: '2.04', total: '27.73' } };
+    expect(overdraftCostText(t, capped, 'pt')).toContain('future.limit.costCapIof');
   });
 
   it("uses the bank's rate with IOF and names where it came from", () => {

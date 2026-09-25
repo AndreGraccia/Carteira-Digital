@@ -4,7 +4,7 @@ Status: aceito e implementado no backend. 25/09/2026.
 
 ## Contexto
 
-Até aqui, o custo de uma janela negativa era calculado sempre no teto legal do cheque especial, 8% ao mês (Res. CMN 4.765/2019). É o número mais alto possível, e não é o que o banco do usuário cobra: na janela de 04/09/2026 a mediana dos 29 bancos que publicam a taxa ficou bem abaixo do teto. O IOF também não entrava na conta.
+Até aqui, o custo de uma janela negativa era calculado sempre no teto legal do cheque especial, 8% ao mês (Res. CMN 4.765/2019), sem dizer se é isso que o banco do usuário cobra e sem o IOF. O Banco Central publica a taxa média de cada banco. Na janela de 04/09/2026, 29 bancos publicaram a taxa do cheque especial: ela vai de menos de 1% a 8,27% ao mês, e a mediana fica em 8,12%. Quem está nos bancos grandes paga, na prática, o teto. Quem está num banco com taxa baixa paga bem menos.
 
 O Banco Central publica dados abertos, sem chave:
 
@@ -39,6 +39,7 @@ O Banco Central publica dados abertos, sem chave:
 
 - A estimativa do IOF usa o pico do negativo como base dos 0,38%. O banco cobra essa parte sobre cada aumento do saldo devedor, então o valor real pode variar um pouco.
 - A taxa do Olinda é a **média praticada** pela instituição, não a do contrato do usuário. A tela diz isso.
+- A média publicada pode passar de 8% a.m. (é o caso da mediana em setembro de 2026), porque inclui encargos além dos juros. O app limita os juros no teto legal e mostra o IOF à parte.
 - O sandbox de participante não tem CNPJ no `institutionId` e sempre usa a mediana.
 - As janelas antigas ficam na tabela, cerca de 150 linhas por dia. Isso serve de histórico; se crescer demais, limpa-se o que tiver mais de um ano.
 

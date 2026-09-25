@@ -160,8 +160,13 @@ export const percent = (value, language) =>
 export function overdraftCostText(t, risk, language) {
   if (!risk || !(Number(risk.overdraftCostCap) > 0)) return '';
   const estimate = risk.overdraftEstimate;
-  if (!estimate || estimate.source === 'LEGAL_CAP') {
-    return t('future.limit.cost', { amount: money(risk.overdraftCostCap, language) });
+  if (!estimate) return t('future.limit.cost', { amount: money(risk.overdraftCostCap, language) });
+  // Banco Central's averages can sit above the cap (they are at it in 2026): interest stops at the cap.
+  if (estimate.source === 'LEGAL_CAP') {
+    return t('future.limit.costCapIof', {
+      amount: money(risk.overdraftCostCap, language),
+      iof: money(estimate.iof, language),
+    });
   }
   return t('future.limit.costEstimate', {
     amount: money(estimate.total, language),

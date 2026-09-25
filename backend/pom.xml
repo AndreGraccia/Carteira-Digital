@@ -132,8 +132,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.13.0</version>
 				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
+					<!-- release, not source/target: a newer local JDK must not accept APIs the Java 17 runtime lacks. -->
+					<release>${java.version}</release>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>

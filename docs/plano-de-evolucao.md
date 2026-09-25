@@ -1,5 +1,7 @@
 # Plano de evolução — Wall.ia
 
+> Histórico das Sprints 0 a 10. O que falta, a partir da Sprint 11, está em [`backlog.md`](backlog.md).
+
 Auditoria de 24/09/2026 sobre a branch `feat/wallia` (`2228112`). Fontes, com evidência arquivo:linha, em [`auditoria-2026-09-24/`](auditoria-2026-09-24/):
 
 | Relatório | O que cobre |

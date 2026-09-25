@@ -23,6 +23,7 @@ import { WalletIcon } from '../../components/wallet-ui';
 import AuthService from '../../services/AuthService';
 import { safeReturnPath } from '../../services/HttpService';
 import { errorKey } from '../../utils/wallet';
+import EmailCode from './EmailCode';
 
 export default function AuthView({ signup = false }) {
   const { t } = useTranslation();
@@ -33,7 +34,27 @@ export default function AuthView({ signup = false }) {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  // Waiting for the e-mail code. Holds the password typed a moment ago, in memory only (never storage),
+  // to sign in right after the code is confirmed.
+  const [pending, setPending] = useState(null);
   const sending = useRef(false);
+  const enter = async (username, password) => {
+    await AuthService.login({ username, password });
+    // `state.from` comes from PrivateRoute, `?from=` from an expired session (HttpService).
+    const from = location.state?.from ?? new URLSearchParams(location.search).get('from');
+    navigate(safeReturnPath(from), { replace: true });
+  };
+  const afterVerified = async () => {
+    try {
+      await enter(pending.login, pending.password);
+    } catch {
+      // Confirmed, but the automatic sign-in failed (password changed, rate limit): the login form says why.
+      setPending(null);
+      setValues((previous) => ({ ...previous, password: '' }));
+      enqueueSnackbar(t('auth.verify.verified'), { variant: 'success' });
+      if (signup) navigate('/login', { replace: true });
+    }
+  };
   const submit = async (event) => {
     event.preventDefault();
     if (sending.current) return;
@@ -42,23 +63,27 @@ export default function AuthView({ signup = false }) {
     setError(null);
     try {
       if (signup) {
-        await AuthService.signup({
+        const username = values.username.trim();
+        const answer = await AuthService.signup({
           ...values,
           firstName: values.firstName.trim(),
           lastName: values.lastName.trim(),
-          username: values.username.trim(),
+          username,
           email: values.email.trim(),
         });
-        enqueueSnackbar(t('auth.signup.success'), { variant: 'success' });
-        navigate('/login', { replace: true });
+        setPending({ login: username, password: values.password, ...answer });
       } else {
-        await AuthService.login({ username: values.username.trim(), password: values.password });
-        // `state.from` comes from PrivateRoute, `?from=` from an expired session (HttpService).
-        const from = location.state?.from ?? new URLSearchParams(location.search).get('from');
-        navigate(safeReturnPath(from), { replace: true });
+        await enter(values.username.trim(), values.password);
       }
     } catch (failure) {
-      setError(!signup && failure.response?.status === 401 ? 'app.errors.credentials' : errorKey(failure));
+      const key = errorKey(failure);
+      if (!signup && key === 'app.errors.EMAIL_NOT_VERIFIED') {
+        // Right password, e-mail never confirmed: same code screen as after sign-up, with a resend.
+        setPending({ login: values.username.trim(), password: values.password, maskedEmail: null });
+        setError(null);
+        return;
+      }
+      setError(!signup && failure.response?.status === 401 ? 'app.errors.credentials' : key);
     } finally {
       sending.current = false;
       setBusy(false);
@@ -68,7 +93,7 @@ export default function AuthView({ signup = false }) {
   return (
     <>
       <Helmet>
-        <title>{t(`auth.${group}.pageTitle`)}</title>
+        <title>{t(pending ? 'auth.verify.pageTitle' : `auth.${group}.pageTitle`)}</title>
       </Helmet>
       <Box sx={{ minHeight: '100vh', display: 'flex' }}>
         <Box
@@ -143,72 +168,87 @@ export default function AuthView({ signup = false }) {
             <Typography variant="overline" color="text.secondary">
               {t('app.demo')}
             </Typography>
-            <Typography variant="h3" component="h1" sx={{ mt: 1, mb: 1 }}>
-              {t(`auth.${group}.title`)}
+            <Typography variant="h3" component="h1" sx={{ mt: 1, mb: pending ? 3 : 1 }}>
+              {pending ? t('auth.verify.title') : t(`auth.${group}.title`)}
             </Typography>
-            <Typography color="text.secondary" sx={{ mb: 4 }}>
-              {t(signup ? 'auth.signup.hasAccount' : 'auth.login.noAccount')}{' '}
-              <Button component={RouterLink} to={signup ? '/login' : '/signup'} sx={{ p: 0, minHeight: 28 }}>
-                {t(signup ? 'auth.signup.login' : 'auth.login.createAccount')}
-              </Button>
-            </Typography>
-            <Box component="form" onSubmit={submit}>
-              <Stack spacing={2.5}>
-                {error && <Alert severity="error">{t(error)}</Alert>}
-                {fields.map((field) => (
-                  <TextField
-                    key={field}
-                    label={t(`auth.${group}.${field}`)}
-                    name={field}
-                    required
-                    fullWidth
-                    value={values[field]}
-                    onChange={(event) => setValues({ ...values, [field]: event.target.value })}
-                    autoComplete={
-                      {
-                        firstName: 'given-name',
-                        lastName: 'family-name',
-                        username: 'username',
-                        password: signup ? 'new-password' : 'current-password',
-                        email: 'email',
-                      }[field]
-                    }
-                    type={field === 'password' ? (visible ? 'text' : 'password') : field === 'email' ? 'email' : 'text'}
-                    inputProps={{
-                      minLength: signup ? (field === 'password' ? 10 : field === 'email' ? 6 : 3) : 1,
-                      maxLength: field === 'password' ? 100 : field === 'username' && signup ? 20 : 50,
-                      // Phones capitalize the first letter by default; "Gui_oliveira" used to fail the login.
-                      ...(field === 'username' || field === 'email'
-                        ? { autoCapitalize: 'none', spellCheck: false }
-                        : {}),
-                    }}
-                    helperText={signup && field === 'password' ? t('app.passwordHelp') : undefined}
-                    InputProps={
-                      field === 'password'
-                        ? {
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <IconButton
-                                  aria-label={t(visible ? 'common.hidePassword' : 'common.showPassword')}
-                                  onClick={() => setVisible(!visible)}
-                                >
-                                  <WalletIcon name="eye" />
-                                </IconButton>
-                              </InputAdornment>
-                            ),
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
-                <LoadingButton type="submit" variant="contained" size="large" loading={busy}>
-                  {t(`auth.${group}.submit`)}
-                </LoadingButton>
-                <Typography variant="caption" color="text.secondary">
-                  {t('app.demoNotice')}
+            {pending && (
+              <EmailCode
+                login={pending.login}
+                maskedEmail={pending.maskedEmail}
+                resendAvailableAt={pending.resendAvailableAt}
+                onVerified={afterVerified}
+                onBack={() => setPending(null)}
+              />
+            )}
+            {!pending && (
+              <>
+                <Typography color="text.secondary" sx={{ mb: 4 }}>
+                  {t(signup ? 'auth.signup.hasAccount' : 'auth.login.noAccount')}{' '}
+                  <Button component={RouterLink} to={signup ? '/login' : '/signup'} sx={{ p: 0, minHeight: 28 }}>
+                    {t(signup ? 'auth.signup.login' : 'auth.login.createAccount')}
+                  </Button>
                 </Typography>
-              </Stack>
-            </Box>
+                <Box component="form" onSubmit={submit}>
+                  <Stack spacing={2.5}>
+                    {error && <Alert severity="error">{t(error)}</Alert>}
+                    {fields.map((field) => (
+                      <TextField
+                        key={field}
+                        label={t(`auth.${group}.${field}`)}
+                        name={field}
+                        required
+                        fullWidth
+                        value={values[field]}
+                        onChange={(event) => setValues({ ...values, [field]: event.target.value })}
+                        autoComplete={
+                          {
+                            firstName: 'given-name',
+                            lastName: 'family-name',
+                            username: 'username',
+                            password: signup ? 'new-password' : 'current-password',
+                            email: 'email',
+                          }[field]
+                        }
+                        type={
+                          field === 'password' ? (visible ? 'text' : 'password') : field === 'email' ? 'email' : 'text'
+                        }
+                        inputProps={{
+                          minLength: signup ? (field === 'password' ? 10 : field === 'email' ? 6 : 3) : 1,
+                          maxLength: field === 'password' ? 100 : field === 'username' && signup ? 20 : 50,
+                          // Phones capitalize the first letter by default; "Gui_oliveira" used to fail the login.
+                          ...(field === 'username' || field === 'email'
+                            ? { autoCapitalize: 'none', spellCheck: false }
+                            : {}),
+                        }}
+                        helperText={signup && field === 'password' ? t('app.passwordHelp') : undefined}
+                        InputProps={
+                          field === 'password'
+                            ? {
+                                endAdornment: (
+                                  <InputAdornment position="end">
+                                    <IconButton
+                                      aria-label={t(visible ? 'common.hidePassword' : 'common.showPassword')}
+                                      onClick={() => setVisible(!visible)}
+                                    >
+                                      <WalletIcon name="eye" />
+                                    </IconButton>
+                                  </InputAdornment>
+                                ),
+                              }
+                            : undefined
+                        }
+                      />
+                    ))}
+                    <LoadingButton type="submit" variant="contained" size="large" loading={busy}>
+                      {t(`auth.${group}.submit`)}
+                    </LoadingButton>
+                    <Typography variant="caption" color="text.secondary">
+                      {t('app.demoNotice')}
+                    </Typography>
+                  </Stack>
+                </Box>
+              </>
+            )}
           </Container>
         </Box>
       </Box>

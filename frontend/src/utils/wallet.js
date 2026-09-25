@@ -120,6 +120,16 @@ export function errorKey(error) {
       'INVALID_PERIOD',
       'INITIAL_BALANCE_NOT_ALLOWED',
       'INVALID_TOKEN',
+      'EMAIL_CODE_INVALID',
+      'EMAIL_CODE_EXPIRED',
+      'EMAIL_CODE_RESEND_WAIT',
+      'EMAIL_CODE_DAILY_LIMIT',
+      'EMAIL_CODE_ATTEMPTS_EXCEEDED',
+      'EMAIL_NOT_VERIFIED',
+      'EMAIL_ALREADY_VERIFIED',
+      'EMAIL_UNAVAILABLE',
+      'EMAIL_VERIFICATION_REQUIRED',
+      'USERNAME_TAKEN',
     ].includes(code)
   )
     return `app.errors.${code}`;

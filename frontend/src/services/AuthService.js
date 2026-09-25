@@ -22,6 +22,10 @@ const signup = (body) => {
   return axios.post(url, body).then((response) => response.data);
 };
 
+// The account only signs in after the e-mail code (ADR 0008). Verify answers 204 and never a token.
+const verifyEmail = (login, code) => axios.post('/auth/email/verify', { login, code });
+const resendCode = (login) => axios.post('/auth/email/resend', { login }).then((response) => response.data);
+
 const logout = () => {
   sessionStorage.removeItem('user');
   localStorage.removeItem('user');
@@ -58,6 +62,8 @@ const getCurrentUser = () => {
 const AuthService = {
   login,
   signup,
+  verifyEmail,
+  resendCode,
   logout,
   getCurrentUser,
 };

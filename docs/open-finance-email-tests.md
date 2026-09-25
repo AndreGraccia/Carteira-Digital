@@ -63,7 +63,7 @@ Código do cadastro (`EmailVerificationService`):
 - O código expira em 10 minutos (410 `EMAIL_CODE_EXPIRED`) e vale uma vez só.
 - Depois de 5 erros: 429 `EMAIL_CODE_ATTEMPTS_EXCEEDED`. Peça outro código.
 - Reenvio antes de 60 segundos: 429 `EMAIL_CODE_RESEND_WAIT`. O reenvio invalida o código anterior, e há um teto de envios por dia (`EMAIL_CODE_DAILY_LIMIT`).
-- Cadastro com usuário ou e-mail já existentes responde 202, igual a um cadastro novo, para não revelar quem tem conta.
+- Cadastro com e-mail que já tem conta responde 202, igual a um cadastro novo, e o dono do e-mail recebe um aviso. Usuário repetido responde 409 `USERNAME_TAKEN`, porque o nome de usuário é público.
 - O banco guarda o hash BCrypt, nunca o código em texto puro.
 
 Consentimento (`OpenFinanceService`):

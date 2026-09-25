@@ -263,7 +263,8 @@ Quase sempre o frontend está falando com a API errada. Abra o DevTools do naveg
 - Porta diferente da `backend_port`: ajuste `REACT_APP_API_URL` no `frontend/.env.local` e reinicie o `npm start`.
 - Porta certa, mas erro de CORS no console: `frontend_origin` no `.env.properties` não é igual ao endereço da barra do navegador (inclusive a porta). Corrija e reinicie o backend.
 - Resposta 422: o formulário tem campo inválido. A mensagem aparece embaixo do campo.
-- Resposta 202 com usuário ou e-mail já cadastrado: é de propósito. O cadastro responde igual nos dois casos para não revelar quem tem conta.
+- Resposta 409 `USERNAME_TAKEN`: o nome de usuário já existe; escolha outro.
+- Resposta 202 com um e-mail que já tem conta: é de propósito. O cadastro responde igual a um cadastro novo, para não revelar quem tem conta, e o dono do e-mail recebe um aviso no Mailpit.
 
 Para testar a API sem o navegador:
 

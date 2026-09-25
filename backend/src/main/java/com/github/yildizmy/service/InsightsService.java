@@ -105,13 +105,15 @@ public class InsightsService {
     /**
      * Open Finance imports each side of a move between the user's own accounts separately: a Withdrawal in one
      * wallet and a Deposit in another, same value, same day. Those pairs are neither income nor expense.
-     * ponytail: matched by value and day only; a real income and an unrelated expense of the exact same value on
-     * the same day in two different accounts would be paired too. Upgrade: match on the counterparty when the
-     * import keeps it.
+     * Only imported entries whose Open Finance type is a move (Pix, TED, DOC, TEF, same-bank transfer) pair, so a
+     * boleto and a salary of the same value do not. Imports saved before V31 have no type and still pair.
+     * ponytail: a Pix received and an unrelated Pix sent from another own account, same value and day, still
+     * pair. Upgrade: match on the counterparty when the import keeps it.
      */
     static Set<Transaction> ownAccountPairs(List<Transaction> transactions) {
         Map<String, List<Transaction>> deposits = new LinkedHashMap<>();
         for (Transaction transaction : transactions) {
+            if (!isImportedMove(transaction)) continue;
             if ("Deposit".equals(transaction.getType().getName())) {
                 deposits.computeIfAbsent(pairKey(transaction), key -> new ArrayList<>()).add(transaction);
             }
@@ -119,7 +121,7 @@ public class InsightsService {
         // Identity, not equals: entities compare by id and unsaved ones would all look the same.
         Set<Transaction> paired = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         for (Transaction withdrawal : transactions) {
-            if (!"Withdrawal".equals(withdrawal.getType().getName())) continue;
+            if (!isImportedMove(withdrawal) || !"Withdrawal".equals(withdrawal.getType().getName())) continue;
             List<Transaction> candidates = deposits.getOrDefault(pairKey(withdrawal), List.of());
             candidates.stream()
                     .filter(deposit -> !paired.contains(deposit)
@@ -131,6 +133,13 @@ public class InsightsService {
                     });
         }
         return paired;
+    }
+
+    private static final Set<String> MOVE_TYPES = Set.of("PIX", "TED", "DOC", "TEF", "TRANSFERENCIA_MESMA_INSTITUICAO");
+
+    private static boolean isImportedMove(Transaction transaction) {
+        return transaction.getSource() == com.github.yildizmy.domain.enums.TransactionSource.OPEN_FINANCE
+                && (transaction.getPaymentType() == null || MOVE_TYPES.contains(transaction.getPaymentType()));
     }
 
     private static String pairKey(Transaction transaction) {

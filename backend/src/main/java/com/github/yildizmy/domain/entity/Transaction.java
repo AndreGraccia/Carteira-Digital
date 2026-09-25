@@ -57,6 +57,10 @@ public class Transaction {
     @Column(length = 255, unique = true)
     private String externalId;
 
+    /** Open Finance {@code type} of an imported entry (PIX, TED, BOLETO...); null for local ones and older imports. */
+    @Column(length = 40)
+    private String paymentType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "from_wallet_id", referencedColumnName = "id", nullable = false)
     private Wallet fromWallet;

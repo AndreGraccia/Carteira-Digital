@@ -170,7 +170,7 @@ public class OpenFinanceImportService {
                 charge.setDescription(truncate(item.transactionName(), 120));
                 charge.setPurchaseDate(item.purchaseDate());
                 charge.setTotalAmount(item.amount().setScale(2, RoundingMode.HALF_EVEN));
-                // ponytail: instalment rounded down, same as the sandbox bill; leftover cents are ignored.
+                // Rounded down here; the projection adds the leftover cents to instalment 1 (CardPlan.amountFor).
                 charge.setInstallmentAmount(item.amount().divide(BigDecimal.valueOf(item.installments()), 2, RoundingMode.DOWN));
                 charge.setInstallments(item.installments());
                 charge.setFirstInvoice(item.firstInvoiceDue().withDayOfMonth(1));

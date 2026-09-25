@@ -217,6 +217,7 @@ class OpenFinanceImportServiceTest {
         var saved = ArgumentCaptor.forClass(Transaction.class);
         verify(transactions).save(saved.capture());
         assertEquals(com.github.yildizmy.domain.enums.Status.PENDING, saved.getValue().getStatus());
+        assertEquals("PIX", saved.getValue().getPaymentType(), "the Open Finance type is kept for the transfer check");
         assertEquals(0, first.newTransactions(), "a scheduled entry is not a new movement yet");
 
         // Next day the bank settles it under the same id.

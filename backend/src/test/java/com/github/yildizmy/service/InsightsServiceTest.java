@@ -111,8 +111,8 @@ class InsightsServiceTest {
     void moveBetweenOwnImportedAccountsIsNeitherIncomeNorSpending() {
         when(narrativeGenerator.isEnabled()).thenReturn(false);
         when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of(
-                transaction("300.00", "Withdrawal", primary, primary, "2026-09-05T13:00:00Z", Status.SUCCESS),
-                transaction("300.00", "Deposit", reserve, reserve, "2026-09-05T13:00:05Z", Status.SUCCESS),
+                imported(transaction("300.00", "Withdrawal", primary, primary, "2026-09-05T13:00:00Z", Status.SUCCESS), "TRANSFERENCIA_MESMA_INSTITUICAO"),
+                imported(transaction("300.00", "Deposit", reserve, reserve, "2026-09-05T13:00:05Z", Status.SUCCESS), "TRANSFERENCIA_MESMA_INSTITUICAO"),
                 transaction("40.00", "Withdrawal", primary, primary, "2026-09-06T13:00:00Z", Status.SUCCESS)
         ));
 
@@ -121,6 +121,44 @@ class InsightsServiceTest {
         assertEquals(new BigDecimal("0.00"), report.metrics().inflow());
         assertEquals(new BigDecimal("40.00"), report.metrics().outflow());
         assertEquals(new BigDecimal("300.00"), report.metrics().internalTransfers());
+    }
+
+    @Test
+    void sameValueSameDayIsNotATransferWhenOneSideIsNotAMove() {
+        when(narrativeGenerator.isEnabled()).thenReturn(false);
+        when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of(
+                // A card bill paid by boleto and a Pix received in the other account: unrelated, same value and day.
+                imported(transaction("500.00", "Withdrawal", primary, primary, "2026-09-05T13:00:00Z", Status.SUCCESS), "BOLETO"),
+                imported(transaction("500.00", "Deposit", reserve, reserve, "2026-09-05T15:00:00Z", Status.SUCCESS), "PIX"),
+                // Typed by hand: never paired, whatever the value.
+                transaction("80.00", "Withdrawal", primary, primary, "2026-09-06T13:00:00Z", Status.SUCCESS),
+                transaction("80.00", "Deposit", reserve, reserve, "2026-09-06T13:00:00Z", Status.SUCCESS)
+        ));
+
+        var report = service.generate(7L, 1, "pt-BR");
+
+        assertEquals(new BigDecimal("580.00"), report.metrics().inflow());
+        assertEquals(new BigDecimal("580.00"), report.metrics().outflow());
+        assertEquals(new BigDecimal("0.00"), report.metrics().internalTransfers());
+    }
+
+    @Test
+    void importsFromBeforeTheTypeWasStoredStillPair() {
+        when(narrativeGenerator.isEnabled()).thenReturn(false);
+        when(transactionRepository.findAllByUserIdSince(eq(7L), any())).thenReturn(List.of(
+                imported(transaction("300.00", "Withdrawal", primary, primary, "2026-09-05T13:00:00Z", Status.SUCCESS), null),
+                imported(transaction("300.00", "Deposit", reserve, reserve, "2026-09-05T13:00:05Z", Status.SUCCESS), null)
+        ));
+
+        var report = service.generate(7L, 1, "pt-BR");
+
+        assertEquals(new BigDecimal("300.00"), report.metrics().internalTransfers());
+    }
+
+    private Transaction imported(Transaction transaction, String paymentType) {
+        transaction.setSource(com.github.yildizmy.domain.enums.TransactionSource.OPEN_FINANCE);
+        transaction.setPaymentType(paymentType);
+        return transaction;
     }
 
     @Test

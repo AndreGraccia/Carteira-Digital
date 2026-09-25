@@ -227,7 +227,7 @@ function LoanSection({ loan, market }) {
         aria-label={t('commitments.progressLabel')}
         sx={{ mt: 3, height: 8, borderRadius: 4, bgcolor: 'background.neutral' }}
       />
-      <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={0.5} sx={{ mt: 1 }}>
         <Typography variant="caption" color="text.secondary">
           {t('commitments.progressLabel')}: {loan.installmentsPaid}/{loan.installmentsTotal}
         </Typography>

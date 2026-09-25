@@ -136,6 +136,7 @@ public class OpenFinanceService {
 
     /** The person said yes on the institution's screen: authorise, then import for the first time. */
     public OpenFinanceSyncResponse authorise(long userId, String consentId) {
+        transactions.executeWithoutResult(status -> expireIfDue(userId));
         transactions.executeWithoutResult(status -> {
             OpenFinanceConnection connection = awaiting(userId, consentId);
             connection.setStatus(OpenFinanceConnectionStatus.AUTHORISED);
@@ -147,6 +148,7 @@ public class OpenFinanceService {
 
     @Transactional(noRollbackFor = CodedException.class)
     public void reject(long userId, String consentId) {
+        expireIfDue(userId);
         OpenFinanceConnection connection = awaiting(userId, consentId);
         connection.reject("USER", "CUSTOMER_MANUALLY_REJECTED", clock.instant());
         connectionRepository.save(connection);
@@ -154,6 +156,7 @@ public class OpenFinanceService {
 
     /** Reads the institution outside any transaction, then imports in a short one. */
     public OpenFinanceSyncResponse sync(long userId) {
+        transactions.executeWithoutResult(status -> expireIfDue(userId));
         transactions.executeWithoutResult(status -> activeConnection(userId));
         OpenFinanceSnapshot snapshot = gateway.fetch(userId);
         return transactions.execute(status -> {
@@ -221,27 +224,37 @@ public class OpenFinanceService {
         userRepository.findByIdForUpdate(userId);
         OpenFinanceConnection connection = connectionRepository.findFirstByUserIdOrderByIdDesc(userId)
                 .filter(found -> found.getConsentId().equals(consentId))
-                .filter(found -> found.getStatus() == OpenFinanceConnectionStatus.AWAITING_AUTHORISATION)
+                .filter(found -> found.getStatus() == OpenFinanceConnectionStatus.AWAITING_AUTHORISATION
+                        || "CONSENT_EXPIRED".equals(found.getRejectionReason()))
                 .orElseThrow(() -> new CodedException("OPEN_FINANCE_CONSENT_NOT_FOUND", HttpStatus.NOT_FOUND));
-        if (!clock.instant().isBefore(connection.getCreatedAt().plus(AUTHORISATION_WINDOW))) {
-            connection.reject("ASPSP", "CONSENT_EXPIRED", clock.instant());
-            connectionRepository.save(connection);
+        if (connection.getStatus() == OpenFinanceConnectionStatus.REJECTED
+                && "CONSENT_EXPIRED".equals(connection.getRejectionReason())) {
             throw new CodedException("OPEN_FINANCE_CONSENT_EXPIRED", HttpStatus.GONE);
         }
         return connection;
     }
 
-    /** The authorised connection, or 428 asking to connect again; persists an expiry it finds on the way. */
-    private OpenFinanceConnection activeConnection(long userId) {
+    /**
+     * Records a consent that time alone has ended and deletes what was imported under it (LGPD art. 15 and 16;
+     * the receiving institution stops using the data when the consent ends). Runs in its own transaction and never
+     * throws: a write followed by a 428 in the same transaction was rolled back, so expiries were never saved.
+     */
+    private void expireIfDue(long userId) {
         Instant now = clock.instant();
-        OpenFinanceConnection connection = connectionRepository.findFirstByUserIdOrderByIdDesc(userId)
-                .orElseThrow(OpenFinanceService::consentRequired);
-        String[] rejection = pendingRejection(connection, now);
-        if (rejection != null) {
+        connectionRepository.findFirstByUserIdOrderByIdDesc(userId).ifPresent(connection -> {
+            String[] rejection = pendingRejection(connection, now);
+            if (rejection == null) return;
             connection.reject(rejection[0], rejection[1], now);
             connectionRepository.save(connection);
-        }
-        if (!isActive(connection, now)) throw consentRequired();
+            importService.purge(userId);
+        });
+    }
+
+    /** The authorised connection, or 428 asking to connect again. Only reads; {@link #expireIfDue} writes. */
+    private OpenFinanceConnection activeConnection(long userId) {
+        OpenFinanceConnection connection = connectionRepository.findFirstByUserIdOrderByIdDesc(userId)
+                .orElseThrow(OpenFinanceService::consentRequired);
+        if (!isActive(connection, clock.instant())) throw consentRequired();
         return connection;
     }
 

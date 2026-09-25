@@ -58,16 +58,32 @@ class OpenFinanceServiceTest {
         when(importService.importSnapshot(anyLong(), any(), any())).thenReturn(new OpenFinanceImportService.ImportResult(1, 3));
         service = new OpenFinanceService(gateway, importService, connections, mock(WalletRepository.class), users, clock,
                 new TransactionOperations() {
+                    // Behaves like TransactionTemplate: a RuntimeException rolls back what the callback wrote.
                     @Override
                     public <T> T execute(TransactionCallback<T> action) {
                         inTransaction[0] = true;
+                        OpenFinanceConnection before = stored == null ? null : copy(stored);
+                        int purgesBefore = committedPurges[0];
                         try {
                             return action.doInTransaction(null);
+                        } catch (RuntimeException rollback) {
+                            stored = before;
+                            committedPurges[0] = purgesBefore;
+                            throw rollback;
                         } finally {
                             inTransaction[0] = false;
                         }
                     }
                 });
+        doAnswer(invocation -> ++committedPurges[0]).when(importService).purge(7L);
+    }
+
+    private final int[] committedPurges = {0};
+
+    private static OpenFinanceConnection copy(OpenFinanceConnection source) {
+        OpenFinanceConnection copy = new OpenFinanceConnection();
+        org.springframework.beans.BeanUtils.copyProperties(source, copy);
+        return copy;
     }
 
     @Test
@@ -160,8 +176,9 @@ class OpenFinanceServiceTest {
         var error = assertThrows(CodedException.class, () -> service.sync(7L));
 
         assertEquals("OPEN_FINANCE_CONSENT_REQUIRED", error.getCode());
-        assertEquals(OpenFinanceConnectionStatus.REJECTED, stored.getStatus());
+        assertEquals(OpenFinanceConnectionStatus.REJECTED, stored.getStatus(), "the expiry survives the rollback of the 428");
         assertEquals("CONSENT_MAX_DATE_REACHED", stored.getRejectionReason());
+        assertEquals(1, committedPurges[0], "data imported under an ended consent stops being used (LGPD, OFB)");
         verify(gateway, times(1)).fetch(7L);
     }
 

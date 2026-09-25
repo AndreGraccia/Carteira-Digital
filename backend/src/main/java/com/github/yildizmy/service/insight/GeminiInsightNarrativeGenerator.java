@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
+@lombok.extern.slf4j.Slf4j
 public class GeminiInsightNarrativeGenerator implements InsightNarrativeGenerator {
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -28,19 +29,56 @@ public class GeminiInsightNarrativeGenerator implements InsightNarrativeGenerato
     private final URI endpoint;
     private final boolean searchGroundingEnabled;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public GeminiInsightNarrativeGenerator(
             ObjectMapper objectMapper,
             @Value("${app.ai.geminiApiKey:}") String apiKey,
             @Value("${app.ai.geminiModel:gemini-3.8-flash}") String model,
             @Value("${app.ai.endpoint}") String endpoint,
-            @Value("${app.ai.searchGroundingEnabled:true}") boolean searchGroundingEnabled
+            @Value("${app.ai.searchGroundingEnabled:false}") boolean searchGroundingEnabled
     ) {
+        this(objectMapper, apiKey, model, endpoint, searchGroundingEnabled,
+                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build(), Thread::sleep);
+    }
+
+    GeminiInsightNarrativeGenerator(ObjectMapper objectMapper, String apiKey, String model, String endpoint,
+                                    boolean searchGroundingEnabled, HttpClient httpClient, Sleeper sleeper) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
         this.model = model;
         this.endpoint = URI.create(endpoint);
         this.searchGroundingEnabled = searchGroundingEnabled;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
+        this.httpClient = httpClient;
+        this.sleeper = sleeper;
+    }
+
+    /** Attempts in total for a rate limit (429) or a server error (5xx); other errors are not retried. */
+    static final int MAX_ATTEMPTS = 3;
+
+    interface Sleeper {
+        void sleep(long millis) throws InterruptedException;
+    }
+
+    private final Sleeper sleeper;
+
+    /**
+     * Sends with retries on 429 and 5xx: Retry-After when the API sends it (capped at 8 s), otherwise 1 s, 2 s with
+     * jitter. The status and model are logged, never the prompt or the answer.
+     */
+    private HttpResponse<String> send(HttpRequest request) throws Exception {
+        for (int attempt = 1; ; attempt++) {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            int status = response.statusCode();
+            if (status >= 200 && status < 300) return response;
+            boolean retryable = status == 429 || status >= 500;
+            log.warn("Gemini returned HTTP {} for model {} (attempt {}/{})", status, model, attempt, MAX_ATTEMPTS);
+            if (!retryable || attempt == MAX_ATTEMPTS) {
+                throw new IllegalStateException("Gemini request failed with status " + status);
+            }
+            long wait = response.headers().firstValueAsLong("Retry-After").orElse(-1) * 1000;
+            if (wait <= 0) wait = 1000L * (1L << (attempt - 1)) + java.util.concurrent.ThreadLocalRandom.current().nextLong(250);
+            sleeper.sleep(Math.min(wait, 8000));
+        }
     }
 
     @Override
@@ -69,16 +107,13 @@ public class GeminiInsightNarrativeGenerator implements InsightNarrativeGenerato
             }
 
             HttpRequest request = HttpRequest.newBuilder(endpoint)
-                    .timeout(Duration.ofSeconds(20))
+                    .timeout(Duration.ofSeconds(15))
                     .header("Content-Type", "application/json")
                     .header("x-goog-api-key", apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(requestBody)))
                     .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("Gemini request failed with status " + response.statusCode());
-            }
+            HttpResponse<String> response = send(request);
             return Optional.of(parseNarrative(response.body(), researchContext.keySet()));
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

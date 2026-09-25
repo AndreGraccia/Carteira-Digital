@@ -20,17 +20,25 @@ public class OpenFinanceDailySync {
     private final OpenFinanceConnectionRepository connectionRepository;
     private final OpenFinanceService openFinanceService;
     private final ForecastService forecastService;
+    private final com.github.yildizmy.service.job.JobLock jobLock;
 
     public OpenFinanceDailySync(OpenFinanceConnectionRepository connectionRepository,
                                 OpenFinanceService openFinanceService,
-                                ForecastService forecastService) {
+                                ForecastService forecastService,
+                                com.github.yildizmy.service.job.JobLock jobLock) {
         this.connectionRepository = connectionRepository;
         this.openFinanceService = openFinanceService;
         this.forecastService = forecastService;
+        this.jobLock = jobLock;
+    }
+
+    /** One instance runs it; the others skip (advisory lock). */
+    @Scheduled(cron = "${app.open-finance.daily-sync-cron:0 30 7 * * *}", zone = "America/Sao_Paulo")
+    public void scheduled() {
+        jobLock.runExclusive("open-finance-daily-sync", this::runDaily);
     }
 
     // ponytail: one user after another on the scheduler thread. Parallelise or queue when a run takes minutes.
-    @Scheduled(cron = "${app.open-finance.daily-sync-cron:0 30 7 * * *}", zone = "America/Sao_Paulo")
     public Result runDaily() {
         int synced = 0;
         int skipped = 0;

@@ -92,7 +92,7 @@ app:
   ai:
     geminiApiKey: ${gemini_api_key:}
     geminiModel: ${gemini_model:gemini-3.8-flash}
-    searchGroundingEnabled: ${gemini_search_grounding:true}
+    searchGroundingEnabled: ${gemini_search_grounding:false}
     endpoint: https://generativelanguage.googleapis.com/v1beta/interactions
   future:
     # Daily e-mail about new negative windows, only for users who turned it on. "-" disables the job.

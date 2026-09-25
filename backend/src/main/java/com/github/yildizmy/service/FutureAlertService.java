@@ -42,6 +42,7 @@ public class FutureAlertService {
     private final Clock clock;
     private final String from;
     private final String appUrl;
+    private final com.github.yildizmy.service.job.JobLock jobLock;
 
     public FutureAlertService(
             FutureAlertRepository alertRepository,
@@ -51,7 +52,9 @@ public class FutureAlertService {
             PushService pushService,
             Clock clock,
             @Value("${app.email-verification.mail-from}") String from,
-            @Value("${app.security.allowedOrigin}") String appUrl) {
+            @Value("${app.security.allowedOrigin}") String appUrl,
+            com.github.yildizmy.service.job.JobLock jobLock) {
+        this.jobLock = jobLock;
         this.alertRepository = alertRepository;
         this.userRepository = userRepository;
         this.futureService = futureService;
@@ -95,8 +98,12 @@ public class FutureAlertService {
         alertRepository.save(alert);
     }
 
-    /** Every morning in Brasília time; "-" in {@code future_alert_cron} turns it off. */
+    /** Every morning in Brasília time, on one instance only; "-" in {@code future_alert_cron} turns it off. */
     @Scheduled(cron = "${app.future.alert-cron:0 0 8 * * *}", zone = "America/Sao_Paulo")
+    public void scheduled() {
+        jobLock.runExclusive("future-alerts", this::runDaily);
+    }
+
     public int runDaily() {
         int sent = 0;
         for (FutureAlert alert : alertRepository.findByEnabledTrue()) {

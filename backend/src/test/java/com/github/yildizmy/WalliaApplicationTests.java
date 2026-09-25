@@ -113,6 +113,31 @@ class WalliaApplicationTests {
                 .path("totalElements").asInt(), "revoking deletes what was imported");
     }
 
+    @Autowired
+    private com.github.yildizmy.service.job.JobLock jobLock;
+
+    @Test
+    void aJobAlreadyRunningElsewhereIsSkipped() throws Exception {
+        java.util.concurrent.CountDownLatch holding = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        Thread other = new Thread(() -> jobLock.runExclusive("it-job", () -> {
+            holding.countDown();
+            try {
+                release.await();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+            return 1;
+        }));
+        other.start();
+        holding.await();
+
+        assertTrue(jobLock.runExclusive("it-job", () -> 2).isEmpty(), "second instance skips");
+        release.countDown();
+        other.join();
+        assertEquals(java.util.Optional.of(3), jobLock.runExclusive("it-job", () -> 3), "free again after the run");
+    }
+
     @Test
     void ruleErrorsCarryTheirOwnStatus() throws Exception {
         Session ana = verifiedUser("10.3.0.1");

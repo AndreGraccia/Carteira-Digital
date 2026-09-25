@@ -20,7 +20,8 @@ class OpenFinanceDailySyncTest {
     private final OpenFinanceConnectionRepository connections = mock(OpenFinanceConnectionRepository.class);
     private final OpenFinanceService openFinance = mock(OpenFinanceService.class);
     private final ForecastService forecast = mock(ForecastService.class);
-    private final OpenFinanceDailySync job = new OpenFinanceDailySync(connections, openFinance, forecast);
+    private final OpenFinanceDailySync job = new OpenFinanceDailySync(connections, openFinance, forecast,
+            com.github.yildizmy.service.job.JobLock.inProcess());
 
     @Test
     void anExpiredConsentIsSkippedAndTheOthersAreSyncedAndRecorded() {

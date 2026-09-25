@@ -40,7 +40,8 @@ class FutureAlertServiceTest {
     private final JavaMailSender mail = mock(JavaMailSender.class);
     private final PushService push = mock(PushService.class);
     private final FutureAlertService service = new FutureAlertService(alerts, users, future, mail, push,
-            Clock.fixed(Instant.parse("2026-09-23T11:00:00Z"), ZoneOffset.UTC), "no-reply@wallia.local", "http://localhost:3000");
+            Clock.fixed(Instant.parse("2026-09-23T11:00:00Z"), ZoneOffset.UTC), "no-reply@wallia.local", "http://localhost:3000",
+            com.github.yildizmy.service.job.JobLock.inProcess());
 
     @Test
     void writesOncePerWindowAndAgainOnlyAfterTheHoleIsGone() {

@@ -48,18 +48,12 @@ public class User {
     /** Tokens issued before this instant are rejected (logout from every device). */
     private java.time.Instant tokensValidAfter;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    /**
+     * No cascade: wallets are saved through their own repository, and removing a user must never take wallets,
+     * and through them the other side's transfers, along with it (account deletion anonymises instead, ADR 0012).
+     */
+    @OneToMany(mappedBy = "user")
     private Set<Wallet> wallets = new HashSet<>();
-
-    public void addWallet(Wallet wallet) {
-        wallets.add(wallet);
-        wallet.setUser(this);
-    }
-
-    public void removeWallet(Wallet wallet) {
-        wallets.remove(wallet);
-        wallet.setUser(null);
-    }
 
     @ManyToMany(cascade = CascadeType.MERGE)
     @JoinTable(name = "user_role",

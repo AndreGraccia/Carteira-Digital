@@ -116,7 +116,7 @@ class WalliaApplicationTests {
         JsonNode page = body(mvc.perform(auth(ana, get("/api/v1/transactions/users/" + ana.id() + "?page=0&size=5")))
                 .andExpect(status().isOk()));
         assertEquals(5, page.path("content").size());
-        assertTrue(page.path("totalElements").asInt() > 5, "the sandbox imports months of history");
+        assertTrue(page.path("page").path("totalElements").asInt() > 5, "the sandbox imports months of history");
 
         mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.sources.accounts").value(2));
@@ -131,7 +131,7 @@ class WalliaApplicationTests {
                 .andExpect(jsonPath("$.rejectionReason").value("CUSTOMER_MANUALLY_REVOKED"))
                 .andExpect(jsonPath("$.accountCount").value(0));
         assertEquals(0, body(mvc.perform(auth(ana, get("/api/v1/transactions/users/" + ana.id()))))
-                .path("totalElements").asInt(), "revoking deletes what was imported");
+                .path("page").path("totalElements").asInt(), "revoking deletes what was imported");
     }
 
     @Autowired

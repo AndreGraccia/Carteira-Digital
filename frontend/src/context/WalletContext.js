@@ -18,7 +18,8 @@ export async function fetchAllTransactions(userId) {
     if (Array.isArray(response)) return response;
     const content = response?.content || [];
     rows.push(...content);
-    if (response?.last !== false || content.length < PAGE_SIZE) break;
+    const info = response?.page;
+    if (!info || info.number + 1 >= info.totalPages || content.length < PAGE_SIZE) break;
   }
   return rows;
 }

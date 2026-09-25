@@ -8,8 +8,11 @@ const rows = (from, count) => Array.from({ length: count }, (_, index) => ({ id:
 
 test('reads every page of the statement until the last one', async () => {
   HttpService.getWithAuth
-    .mockResolvedValueOnce({ content: rows(0, 500), last: false })
-    .mockResolvedValueOnce({ content: rows(500, 20), last: true });
+    .mockResolvedValueOnce({ content: rows(0, 500), page: { size: 500, number: 0, totalElements: 520, totalPages: 2 } })
+    .mockResolvedValueOnce({
+      content: rows(500, 20),
+      page: { size: 500, number: 1, totalElements: 520, totalPages: 2 },
+    });
 
   const all = await fetchAllTransactions(7);
 

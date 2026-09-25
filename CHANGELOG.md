@@ -2,6 +2,20 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 25/09/2026 (noite): Sprint 12, dados do titular
+
+### Novo
+- **Baixar meus dados (B20, LGPD art. 18, II e V).** `GET /api/v1/account/export` e botão na tela Privacidade. Um JSON com tudo o que existe sobre a pessoa, descrições decifradas e datas em ISO. Hash da senha, hash do código de e-mail e chaves do aviso no navegador ficam de fora; as colunas são uma lista fechada, então coluna nova não vaza por padrão (ADR 0015).
+- **Retenção automática (B22).** Job diário às 3h30 apaga códigos de e-mail com mais de 30 dias, snapshots da previsão com mais de 400 dias e auditoria de admin com mais de 1 ano. Prazos e motivos no ADR 0015. `retention_cron=-` desliga.
+
+### Corrigido
+- **A tela Privacidade prometia mais do que a exclusão faz (B21).** Dizia "apaga o cadastro". A exclusão troca nome, usuário e e-mail, invalida a senha e mantém as carteiras com movimentação e o histórico, porque uma transferência aparece também no extrato da outra pessoa. O texto agora diz isso e sugere baixar os dados antes.
+- **Cascata perigosa em `User.wallets` (B26).** `CascadeType.ALL` faria um `delete` de usuário levar as carteiras e, por elas, os lançamentos da outra pessoa. Ninguém usava; removida, com teste que impede a volta. Os métodos `addWallet`/`removeWallet`, sem uso, saíram.
+
+### Verificado
+- Backend: 314 testes, 0 falhas, 0 pulados, contra PostgreSQL 14.6 em banco limpo.
+- Frontend: lint, Prettier, i18n, 65 testes e build.
+
 ## 25/09/2026 (noite): Sprint 11, homologação possível
 
 Backlog novo e fluxo de entrega em [`docs/backlog.md`](docs/backlog.md).

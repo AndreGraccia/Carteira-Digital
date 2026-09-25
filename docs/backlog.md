@@ -128,7 +128,7 @@ No Windows, o `--end-of-line auto` evita os falsos alarmes de CRLF (ERR-TOOL-023
 Uma sprint por sessão, com commit verde ao fim.
 
 - **Sprint 11: homologação possível.** Feita em 25/09: B10, B11, B30, B31 e B03 (detalhe no CHANGELOG). Ficaram: B01 (conferir o CI com `gh`) e B02 (`npm audit`, precisa do registry npm). Achado durante a sprint: a readiness padrão do Spring não olha o banco; foi incluído.
-- **Sprint 12: dados do titular.** B20, B21, B22, B26.
+- **Sprint 12: dados do titular.** Feita em 25/09: B20, B21, B22 (ADR 0015) e B26. Achado: o Marco Civil (art. 15) pode exigir registro de acesso por 6 meses; decidir com o jurídico antes da produção.
 - **Sprint 13: produção segura.** B23, B25, B32, B33, B34.
 - **Sprint 14: testes de ponta a ponta.** B04, B05, B51, B50.
 - **Sprint 15: plataforma nova.** B35 (Boot 4.1 e Java 25), B36.

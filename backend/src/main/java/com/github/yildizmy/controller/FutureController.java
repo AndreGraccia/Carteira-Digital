@@ -196,6 +196,13 @@ public class FutureController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/debt-payoff")
+    public ResponseEntity<FutureResponses.DebtPayoff> debtPayoff(
+            @AuthenticationPrincipal UserDetailsImpl user,
+            @RequestParam(defaultValue = "0") java.math.BigDecimal extra) {
+        return noStore(futureService.debtPayoff(user.getId(), extra));
+    }
+
     @GetMapping("/commitments")
     public ResponseEntity<FutureResponses.Commitments> commitments(@AuthenticationPrincipal UserDetailsImpl user) {
         return noStore(futureService.commitments(user.getId()));

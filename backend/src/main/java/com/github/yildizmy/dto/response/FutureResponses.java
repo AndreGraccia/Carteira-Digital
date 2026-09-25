@@ -346,4 +346,11 @@ public final class FutureResponses {
             Projection scenarioProjection
     ) {
     }
+
+    /**
+     * @param plan             baseline, avalanche and snowball for the loans with balance, instalment and rate
+     * @param loansWithoutRate loans left out because the bank did not send what the plan needs
+     */
+    public record DebtPayoff(com.github.yildizmy.service.future.DebtPayoff.Comparison plan, int loansWithoutRate) {
+    }
 }

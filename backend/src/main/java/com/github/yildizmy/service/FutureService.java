@@ -274,6 +274,33 @@ public class FutureService {
         decisionRepository.save(decision);
     }
 
+    /** In what order to pay the loans off with {@code extra} more a month, and what each order saves (ADR 0013). */
+    @Transactional(readOnly = true)
+    public FutureResponses.DebtPayoff debtPayoff(long userId, BigDecimal extra) {
+        if (extra == null || extra.signum() < 0 || extra.compareTo(new BigDecimal("1000000")) > 0) {
+            throw new WalletRuleException("INVALID_AMOUNT");
+        }
+        List<com.github.yildizmy.service.future.DebtPayoff.Debt> debts = new java.util.ArrayList<>();
+        int withoutRate = 0;
+        for (var loan : loanRepository.findByUserIdOrderById(userId)) {
+            if (loan.getOutstandingBalance() == null || loan.getOutstandingBalance().signum() <= 0) continue;
+            if (loan.getInstallmentAmount() == null || loan.getInstallmentAmount().signum() <= 0
+                    || loan.getAnnualRate() == null) {
+                withoutRate++;
+                continue;
+            }
+            debts.add(new com.github.yildizmy.service.future.DebtPayoff.Debt(
+                    String.valueOf(loan.getId()),
+                    loan.getProduct() + " - " + loan.getInstitution(),
+                    loan.getOutstandingBalance(),
+                    loan.getInstallmentAmount(),
+                    loan.getAnnualRate()));
+        }
+        return new FutureResponses.DebtPayoff(
+                com.github.yildizmy.service.future.DebtPayoff.compare(debts, extra.setScale(2, java.math.RoundingMode.HALF_UP)),
+                withoutRate);
+    }
+
     @Transactional(readOnly = true)
     public FutureResponses.Commitments commitments(long userId) {
         LocalDate today = LocalDate.now(clock.withZone(ZONE));

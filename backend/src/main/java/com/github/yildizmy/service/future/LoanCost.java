@@ -54,7 +54,7 @@ public final class LoanCost {
         return interest.setScale(2, RoundingMode.HALF_UP);
     }
 
-    private static BigDecimal monthlyRate(BigDecimal annualRatePercent) {
+    static BigDecimal monthlyRate(BigDecimal annualRatePercent) {
         return new BigDecimal(Math.pow(1 + annualRatePercent.doubleValue() / 100, 1.0 / 12) - 1, MathContext.DECIMAL64);
     }
 }

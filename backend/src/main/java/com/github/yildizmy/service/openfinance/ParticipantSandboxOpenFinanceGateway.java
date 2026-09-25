@@ -47,7 +47,9 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final HttpClient client;
-    private final String baseUrl;
+    static final int MAX_PAGES = 50;
+    /** Root of the APIs, e.g. https://host/open-banking; each API adds its own /name/vN. */
+    private final String apiRoot;
     private final String accessToken;
     private final String consentId;
     private final String configuredInstitutionId;
@@ -65,13 +67,14 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
             @Value("${app.open-finance.owner-user-id:0}") long ownerUserId) {
         this.objectMapper = objectMapper;
         this.clock = clock;
-        this.baseUrl = baseUrl.replaceAll("/+$", "");
+        // Before the cards and loans APIs, base-url pointed at .../accounts/v2; both forms are accepted.
+        this.apiRoot = baseUrl.replaceAll("/+$", "").replaceAll("/accounts/v2$", "");
         this.accessToken = accessToken;
         this.consentId = consentId;
         this.configuredInstitutionId = institutionId;
         this.ownerUserId = ownerUserId;
         this.client = httpClient(keyStorePath, keyStorePassword);
-        if (this.baseUrl.isBlank() || accessToken.isBlank() || consentId.isBlank()) {
+        if (this.apiRoot.isBlank() || accessToken.isBlank() || consentId.isBlank()) {
             throw new IllegalStateException(
                     "participant-sandbox requires base-url, access-token and consent-id configuration");
         }
@@ -86,72 +89,114 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
         if (userId != ownerUserId) {
             throw new OpenFinanceUnavailableException("This sandbox consent belongs to another user");
         }
-        JsonNode accountsPayload = getJson("/accounts");
-        List<OpenFinanceSnapshot.Account> accounts = new ArrayList<>();
+        LocalDate today = LocalDate.now(clock.withZone(OfbResponses.ZONE));
+        JsonNode resources = optional("/resources/v3/resources");
         String institutionName = "Open Finance Sandbox";
         String institutionId = configuredInstitutionId;
 
-        for (JsonNode accountNode : accountsPayload.path("data")) {
-            String accountId = requiredText(accountNode, "accountId");
-            String brandName = accountNode.path("brandName").asText(institutionName);
-            institutionName = brandName;
+        List<OpenFinanceSnapshot.Account> accounts = new ArrayList<>();
+        for (JsonNode accountNode : pages("/accounts/v2/accounts")) {
+            String accountId = OfbResponses.text(accountNode, "accountId");
+            if (!isAvailable(resources, "ACCOUNT", accountId)) continue;
+            institutionName = accountNode.path("brandName").asText(institutionName);
             if (accountNode.hasNonNull("companyCnpj")) institutionId = accountNode.path("companyCnpj").asText();
-
-            JsonNode balancePayload = getJson("/accounts/" + encode(accountId) + "/balances");
-            BigDecimal balance = decimal(balancePayload.path("data").path("availableAmount").path("amount"));
-            List<OpenFinanceSnapshot.Entry> entries = fetchTransactions(accountId);
-
-            accounts.add(new OpenFinanceSnapshot.Account(
-                    accountId,
-                    brandName,
+            String base = "/accounts/v2/accounts/" + encode(accountId);
+            BigDecimal balance = OfbResponses.availableBalance(getJson(base + "/balances").path("data"));
+            List<OpenFinanceSnapshot.Entry> entries = new ArrayList<>();
+            for (JsonNode transaction : pages(base + "/transactions?fromBookingDate=" + today.minusMonths(12)
+                    + "&toBookingDate=" + today.plusMonths(3) + "&page-size=1000")) {
+                entries.add(OfbResponses.entry(transaction));
+            }
+            accounts.add(new OpenFinanceSnapshot.Account(accountId, institutionName,
                     accountNode.path("type").asText("CONTA_DEPOSITO_A_VISTA"),
-                    accountNode.path("branchCode").asText(""),
-                    accountNode.path("number").asText(""),
-                    accountNode.path("checkDigit").asText(""),
-                    balance,
-                    entries
-            ));
+                    accountNode.path("branchCode").asText(""), accountNode.path("number").asText(""),
+                    accountNode.path("checkDigit").asText(""), balance, List.copyOf(entries)));
         }
 
-        Instant now = clock.instant();
-        return new OpenFinanceSnapshot(
-                institutionId,
-                institutionName,
-                consentId,
-                now,
-                null,
-                List.copyOf(accounts)
-        );
+        return new OpenFinanceSnapshot(institutionId, institutionName, consentId, clock.instant(), null,
+                List.copyOf(accounts), cards(resources, today), loans(resources, today));
     }
 
-    private List<OpenFinanceSnapshot.Entry> fetchTransactions(String accountId) {
-        LocalDate to = LocalDate.now(clock);
-        LocalDate from = to.minusMonths(12);
-        List<OpenFinanceSnapshot.Entry> entries = new ArrayList<>();
-        int page = 1;
-        int totalPages;
-        do {
-            String query = "?fromBookingDate=" + from + "&toBookingDate=" + to + "&page-size=100&page=" + page;
-            JsonNode payload = getJson("/accounts/" + encode(accountId) + "/transactions" + query);
-            for (JsonNode transaction : payload.path("data")) {
-                entries.add(new OpenFinanceSnapshot.Entry(
-                        requiredText(transaction, "transactionId"),
-                        requiredText(transaction, "creditDebitType"),
-                        requiredText(transaction, "transactionName"),
-                        transaction.path("type").asText("OUTROS"),
-                        decimal(transaction.path("transactionAmount").path("amount")),
-                        Instant.parse(requiredText(transaction, "transactionDateTime"))
-                ));
-            }
-            totalPages = Math.max(1, payload.path("meta").path("totalPages").asInt(1));
-            page++;
-        } while (page <= totalPages);
-        return List.copyOf(entries);
-    }
-
-    private JsonNode getJson(String path) {
+    /** Null when the institution does not share cards under this consent: "not read", so nothing is deleted. */
+    private List<OpenFinanceSnapshot.CreditCardAccount> cards(JsonNode resources, LocalDate today) {
         try {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + path))
+            List<OpenFinanceSnapshot.CreditCardAccount> cards = new ArrayList<>();
+            for (JsonNode account : pages("/credit-cards-accounts/v2/accounts")) {
+                String id = OfbResponses.text(account, "creditCardAccountId");
+                if (!isAvailable(resources, "CREDIT_CARD_ACCOUNT", id)) continue;
+                String base = "/credit-cards-accounts/v2/accounts/" + encode(id);
+                cards.add(OfbResponses.card(account, getJson(base + "/limits").path("data"),
+                        getJson(base + "/bills?fromDueDate=" + today.minusMonths(12) + "&toDueDate=" + today.plusMonths(2)).path("data"),
+                        pages(base + "/transactions?fromTransactionDate=" + today.minusMonths(12)
+                                + "&toTransactionDate=" + today + "&page-size=1000"),
+                        today));
+            }
+            return List.copyOf(cards);
+        } catch (OpenFinanceUnavailableException exception) {
+            return null;
+        }
+    }
+
+    /** Null when loans are not shared under this consent. Non-monthly contracts are left out, not guessed. */
+    private List<OpenFinanceSnapshot.LoanContract> loans(JsonNode resources, LocalDate today) {
+        try {
+            List<OpenFinanceSnapshot.LoanContract> loans = new ArrayList<>();
+            for (JsonNode contract : pages("/loans/v2/contracts")) {
+                String id = OfbResponses.text(contract, "contractId");
+                if (!isAvailable(resources, "LOAN", id)) continue;
+                String base = "/loans/v2/contracts/" + encode(id);
+                OpenFinanceSnapshot.LoanContract loan = OfbResponses.loan(id, getJson(base).path("data"),
+                        getJson(base + "/scheduled-instalments").path("data"), getJson(base + "/payments").path("data"), today);
+                if (loan != null) loans.add(loan);
+            }
+            return List.copyOf(loans);
+        } catch (OpenFinanceUnavailableException exception) {
+            return null;
+        }
+    }
+
+    /** Without /resources (not every sandbox has it) every listed resource is read. */
+    private static boolean isAvailable(JsonNode resources, String type, String id) {
+        if (resources == null) return true;
+        return OfbResponses.available(resources.path("data"), type).contains(id);
+    }
+
+    private JsonNode optional(String path) {
+        try {
+            return getJson(path);
+        } catch (OpenFinanceUnavailableException exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Every item of a paginated list, following links.next as the standard says (the meta of Accounts 2.4 has
+     * no page count, so a page-number loop stops after the first page). Stops at MAX_PAGES pages.
+     */
+    List<JsonNode> pages(String path) {
+        List<JsonNode> items = new ArrayList<>();
+        String next = path;
+        for (int page = 0; next != null && !next.isBlank(); page++) {
+            if (page == MAX_PAGES) throw new OpenFinanceUnavailableException("Open Finance pagination did not end");
+            JsonNode payload = getJson(next);
+            payload.path("data").forEach(items::add);
+            String link = payload.path("links").path("next").asText(null);
+            next = link == null || link.equals(payload.path("links").path("self").asText(null)) ? null : link;
+        }
+        return items;
+    }
+
+    /** A path under the API root, or an absolute links.next URL, which must point at the same host. */
+    JsonNode getJson(String pathOrUrl) {
+        URI root = URI.create(apiRoot);
+        URI uri = pathOrUrl.startsWith("http") ? URI.create(pathOrUrl) : URI.create(apiRoot + pathOrUrl);
+        if (!java.util.Objects.equals(uri.getScheme(), root.getScheme())
+                || !java.util.Objects.equals(uri.getHost(), root.getHost()) || uri.getPort() != root.getPort()) {
+            // links.next comes from the institution; following it anywhere else would be SSRF.
+            throw new OpenFinanceUnavailableException("Open Finance link points outside the institution");
+        }
+        try {
+            HttpRequest request = HttpRequest.newBuilder(uri)
                     .timeout(Duration.ofSeconds(12))
                     .header("Accept", "application/json")
                     .header("Authorization", "Bearer " + accessToken)
@@ -194,20 +239,6 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
             return builder.build();
         } catch (Exception exception) {
             throw new IllegalStateException("Could not configure the Open Finance mTLS client", exception);
-        }
-    }
-
-    private String requiredText(JsonNode node, String field) {
-        String value = node.path(field).asText();
-        if (value.isBlank()) throw new OpenFinanceUnavailableException("Open Finance response is missing " + field);
-        return value;
-    }
-
-    private BigDecimal decimal(JsonNode node) {
-        try {
-            return new BigDecimal(node.asText()).setScale(2, java.math.RoundingMode.HALF_EVEN);
-        } catch (NumberFormatException exception) {
-            throw new OpenFinanceUnavailableException("Open Finance response contains an invalid amount", exception);
         }
     }
 

@@ -59,7 +59,6 @@ class OpenFinanceImportServiceTest {
         when(wallets.findByUserIdAndSourceAndExternalAccountId(7L, WalletSource.OPEN_FINANCE, "account-1"))
                 .thenReturn(Optional.empty());
         when(wallets.save(any(Wallet.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(transactions.existsByExternalId("7:institution-1:account-1:transaction-1")).thenReturn(false);
         when(types.getReferenceById(4L)).thenReturn(deposit);
 
         var result = service.importSnapshot(7L, snapshot("CREDITO", now), now);
@@ -88,7 +87,6 @@ class OpenFinanceImportServiceTest {
         when(wallets.findByUserIdAndSourceAndExternalAccountId(7L, WalletSource.OPEN_FINANCE, "account-1"))
                 .thenReturn(Optional.empty());
         when(wallets.save(any(Wallet.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(transactions.existsByExternalId("7:institution-1:account-1:transaction-1")).thenReturn(false);
 
         assertThrows(OpenFinanceUnavailableException.class, () -> service.importSnapshot(7L, snapshot("OTHER", now), now));
         verify(transactions, never()).save(any());
@@ -195,6 +193,67 @@ class OpenFinanceImportServiceTest {
         var loan = new com.github.yildizmy.domain.entity.Loan();
         loan.setExternalId(externalId);
         return loan;
+    }
+
+    @Test
+    void scheduledEntryIsPendingUntilTheBankSettlesItAndProcessingOnesWait() {
+        User user = new User();
+        user.setId(7L);
+        Instant now = Instant.parse("2026-09-20T12:00:00Z");
+        Type withdrawal = new Type();
+        withdrawal.setId(5L);
+        Wallet wallet = new Wallet();
+        wallet.setId(30L);
+        when(types.getReferenceById(5L)).thenReturn(withdrawal);
+        when(wallets.findByUserIdAndSourceAndExternalAccountId(7L, WalletSource.OPEN_FINANCE, "account-1"))
+                .thenReturn(Optional.of(wallet));
+        var rent = new OpenFinanceSnapshot.Entry("rent", "DEBITO", "Imobiliária", "PIX", new BigDecimal("1500.00"),
+                Instant.parse("2026-10-01T12:00:00Z"), "LANCAMENTO_FUTURO");
+        var processing = new OpenFinanceSnapshot.Entry("card", "DEBITO", "Mercado", "CARTAO", new BigDecimal("80.00"),
+                now, "TRANSACAO_PROCESSANDO");
+
+        var first = service.importSnapshot(7L, accountWith(now, rent, processing), now);
+
+        var saved = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactions).save(saved.capture());
+        assertEquals(com.github.yildizmy.domain.enums.Status.PENDING, saved.getValue().getStatus());
+        assertEquals(0, first.newTransactions(), "a scheduled entry is not a new movement yet");
+
+        // Next day the bank settles it under the same id.
+        Transaction pending = saved.getValue();
+        when(transactions.findByExternalIdIn(any())).thenReturn(List.of(pending));
+        var settled = new OpenFinanceSnapshot.Entry("rent", "DEBITO", "Imobiliária", "PIX", new BigDecimal("1500.00"),
+                Instant.parse("2026-10-01T12:00:00Z"), "TRANSACAO_EFETIVADA");
+
+        var second = service.importSnapshot(7L, accountWith(now, settled), now);
+
+        assertEquals(com.github.yildizmy.domain.enums.Status.SUCCESS, pending.getStatus());
+        assertEquals(1, second.newTransactions());
+    }
+
+    @Test
+    void aScheduledEntryTheBankNoLongerListsIsRemoved() {
+        User user = new User();
+        user.setId(7L);
+        Instant now = Instant.parse("2026-09-20T12:00:00Z");
+        Wallet wallet = new Wallet();
+        wallet.setId(30L);
+        when(wallets.findByUserIdAndSourceAndExternalAccountId(7L, WalletSource.OPEN_FINANCE, "account-1"))
+                .thenReturn(Optional.of(wallet));
+        Transaction cancelled = new Transaction();
+        cancelled.setExternalId("7:institution-1:account-1:old-schedule");
+        when(transactions.findByToWalletIdAndStatus(30L, com.github.yildizmy.domain.enums.Status.PENDING))
+                .thenReturn(List.of(cancelled));
+
+        service.importSnapshot(7L, accountWith(now), now);
+
+        verify(transactions).delete(cancelled);
+    }
+
+    private OpenFinanceSnapshot accountWith(Instant now, OpenFinanceSnapshot.Entry... entries) {
+        var account = new OpenFinanceSnapshot.Account("account-1", "Banco Teste", "CONTA_DEPOSITO_A_VISTA", "0001",
+                "12345678", "9", new BigDecimal("1234.56"), List.of(entries));
+        return new OpenFinanceSnapshot("institution-1", "Banco Teste", "consent-1", now, null, List.of(account));
     }
 
     private OpenFinanceSnapshot snapshot(String direction, Instant now) {

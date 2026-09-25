@@ -16,6 +16,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     Optional<Transaction> findByReferenceNumber(UUID referenceNumber);
     Optional<Transaction> findByRequestId(UUID requestId);
     boolean existsByExternalId(String externalId);
+
+    List<Transaction> findByExternalIdIn(java.util.Collection<String> externalIds);
+
+    List<Transaction> findByToWalletIdAndStatus(Long walletId, com.github.yildizmy.domain.enums.Status status);
     boolean existsByFromWalletIdOrToWalletId(Long fromWalletId, Long toWalletId);
 
 

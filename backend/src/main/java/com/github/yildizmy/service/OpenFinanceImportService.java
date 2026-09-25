@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -76,25 +77,51 @@ public class OpenFinanceImportService {
             wallet.setLastSyncedAt(syncedAt);
             walletRepository.save(wallet);
 
-            for (OpenFinanceSnapshot.Entry entry : account.transactions()) {
-                String externalId = userId + ":" + snapshot.institutionId() + ":" + account.accountId() + ":" + entry.transactionId();
-                if (transactionRepository.existsByExternalId(externalId)) continue;
+            // Still processing at the bank: it will come back settled, and counting it now would count it twice.
+            List<OpenFinanceSnapshot.Entry> entries = account.transactions().stream()
+                    .filter(entry -> !entry.processing())
+                    .toList();
+            String prefix = userId + ":" + snapshot.institutionId() + ":" + account.accountId() + ":";
+            // One query for the whole account instead of one per entry.
+            java.util.Map<String, Transaction> known = transactionRepository
+                    .findByExternalIdIn(entries.stream().map(entry -> prefix + entry.transactionId()).toList()).stream()
+                    .collect(java.util.stream.Collectors.toMap(Transaction::getExternalId, transaction -> transaction));
+            java.util.Set<String> received = new java.util.HashSet<>();
+            for (OpenFinanceSnapshot.Entry entry : entries) {
+                String externalId = prefix + entry.transactionId();
+                if (!received.add(externalId)) continue;
                 validateEntry(entry);
-
-                Transaction transaction = new Transaction();
+                // A scheduled entry (LANCAMENTO_FUTURO) is kept as PENDING: it does not touch the balance, the
+                // projection reads it as a confirmed future event.
+                Status status = entry.scheduled() ? Status.PENDING : Status.SUCCESS;
+                Transaction transaction = known.get(externalId);
+                if (transaction != null && transaction.getStatus() != Status.PENDING) continue;
+                boolean settledNow = status == Status.SUCCESS
+                        && (transaction == null || transaction.getStatus() == Status.PENDING);
+                if (transaction == null) {
+                    transaction = new Transaction();
+                    transaction.setReferenceNumber(UUID.nameUUIDFromBytes(externalId.getBytes(StandardCharsets.UTF_8)));
+                    transaction.setSource(TransactionSource.OPEN_FINANCE);
+                    transaction.setExternalId(externalId);
+                    transaction.setFromWallet(wallet);
+                    transaction.setToWallet(wallet);
+                }
                 transaction.setAmount(entry.amount().setScale(2, java.math.RoundingMode.HALF_EVEN));
                 transaction.setDescription(truncate(entry.transactionName(), 200));
                 transaction.setCreatedAt(entry.transactionDateTime());
-                transaction.setReferenceNumber(UUID.nameUUIDFromBytes(externalId.getBytes(StandardCharsets.UTF_8)));
-                transaction.setStatus(Status.SUCCESS);
-                transaction.setSource(TransactionSource.OPEN_FINANCE);
-                transaction.setExternalId(externalId);
-                transaction.setFromWallet(wallet);
-                transaction.setToWallet(wallet);
+                transaction.setStatus(status);
                 transaction.setType(typeService.getReferenceById(
                         "CREDITO".equals(entry.creditDebitType()) ? 4L : 5L));
                 transactionRepository.save(transaction);
-                newTransactions++;
+                if (settledNow) newTransactions++;
+            }
+            // A scheduled entry the bank no longer lists was cancelled or moved: it leaves the projection.
+            // ponytail: every sync reads the full window, so "not listed" means gone. If the daily sync switches to
+            // /transactions-current (7 days), limit this to a full read.
+            if (wallet.getId() != null) {
+                transactionRepository.findByToWalletIdAndStatus(wallet.getId(), Status.PENDING).stream()
+                        .filter(pending -> !received.contains(pending.getExternalId()))
+                        .forEach(transactionRepository::delete);
             }
         }
         importCards(userId, snapshot, syncedAt);
@@ -120,6 +147,9 @@ public class OpenFinanceImportService {
             card.setCreditLimit(source.limitAmount());
             card.setClosingDay(source.closingDay());
             card.setDueDay(source.dueDay());
+            card.setNextBillDueDate(source.nextBill() == null ? null : source.nextBill().dueDate());
+            card.setNextBillTotal(source.nextBill() == null ? null : source.nextBill().totalAmount());
+            card.setNextBillMinimum(source.nextBill() == null ? null : source.nextBill().minimumAmount());
             card.setLastSyncedAt(syncedAt);
             // Update in place by externalId: clearing and re-adding would insert the new rows before
             // Hibernate deletes the orphans and trip the (card_id, external_id) unique key.
@@ -182,6 +212,7 @@ public class OpenFinanceImportService {
             loan.setAnnualRate(source.annualRate());
             loan.setDueDay(dueDay(source, loan.getDueDay()));
             loan.setAmortizationSystem(truncate(source.amortizationSystem(), 30));
+            loan.setCet(source.cet());
             loan.setLastSyncedAt(syncedAt);
             loanRepository.save(loan);
             received.add(externalId);

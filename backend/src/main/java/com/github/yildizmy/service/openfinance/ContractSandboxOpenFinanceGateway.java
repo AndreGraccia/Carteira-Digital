@@ -73,15 +73,15 @@ public class ContractSandboxOpenFinanceGateway implements OpenFinanceGateway {
             add(savings, today, month, 6, "reserve-in-" + m, "CREDITO", "Transferência para reserva",
                     "TRANSFERENCIA_MESMA_INSTITUICAO", "300.00");
             add(checking, today, month, 8, "school-" + m, "DEBITO", "Fluency Escola de Inglês", "BOLETO", "389.00");
-            add(checking, today, month, 10, "gym-" + m, "DEBITO", "Smart Fit", "DEBITO_AUTOMATICO", "119.90");
-            add(checking, today, month, 12, "internet-" + m, "DEBITO", "Vivo Fibra", "DEBITO_AUTOMATICO", "119.90");
-            add(checking, today, month, 15, "streaming-" + m, "DEBITO", "Netflix", "DEBITO_AUTOMATICO", "39.90");
+            add(checking, today, month, 10, "gym-" + m, "DEBITO", "Smart Fit", "CONVENIO_ARRECADACAO", "119.90");
+            add(checking, today, month, 12, "internet-" + m, "DEBITO", "Vivo Fibra", "CONVENIO_ARRECADACAO", "119.90");
+            add(checking, today, month, 15, "streaming-" + m, "DEBITO", "Netflix", "CONVENIO_ARRECADACAO", "39.90");
             add(checking, today, month, 18, "energy-" + m, "DEBITO", "Enel Distribuição SP", "BOLETO", energy[index % 4]);
-            add(checking, today, month, 25, "loan-" + m, "DEBITO", "Parcela empréstimo pessoal", "DEBITO_AUTOMATICO", "612.48");
+            add(checking, today, month, 25, "loan-" + m, "DEBITO", "Parcela empréstimo pessoal", "CONVENIO_ARRECADACAO", "612.48");
             int[] marketDays = {3, 11, 19, 27};
             for (int i = 0; i < marketDays.length; i++) {
                 add(checking, today, month, marketDays[i], "market-" + m + "-" + i, "DEBITO", "Mercado Bairro",
-                        "COMPRA_DEBITO", market[index % 4][i]);
+                        "CARTAO", market[index % 4][i]);
             }
             if (index == 1 || index == 2) {
                 add(checking, today, month, 21, "freela-" + m, "CREDITO", "Marina Souza", "PIX",

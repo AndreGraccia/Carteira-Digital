@@ -47,6 +47,13 @@ public class CreditCard {
     @Column(nullable = false)
     private int dueDay;
 
+    /** Next bill as the institution reports it; below the minimum the bill goes into revolving credit. */
+    private java.time.LocalDate nextBillDueDate;
+
+    private BigDecimal nextBillTotal;
+
+    private BigDecimal nextBillMinimum;
+
     @Column(nullable = false)
     private Instant lastSyncedAt;
 

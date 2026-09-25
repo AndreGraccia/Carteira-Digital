@@ -60,6 +60,9 @@ public class Loan {
     @Column(length = 30)
     private String amortizationSystem;
 
+    /** Custo Efetivo Total, fraction per year as in the Loans API (0.29 = 29% a.a.). */
+    private BigDecimal cet;
+
     @Column(nullable = false)
     private Instant lastSyncedAt;
 }

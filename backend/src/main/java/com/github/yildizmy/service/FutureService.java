@@ -72,6 +72,9 @@ public class FutureService {
     private static final Set<String> EXPENSE_CATEGORIES = Set.of("RENT", "SUBSCRIPTION", "BILL", "OTHER");
     /** Decision row that stores the everyday-spending answer; pattern keys always start with "in:" or "out:". */
     static final String DAILY_SPENDING_KEY = "daily-spending";
+    /** Category of an entry the bank itself scheduled (Open Finance LANCAMENTO_FUTURO). */
+    static final String SCHEDULED = "SCHEDULED";
+    static final int SAME_BILL_DAYS = 5;
     static final String CARD_SPENDING_KEY = "card-spending";
 
     private final WalletRepository walletRepository;
@@ -494,7 +497,8 @@ public class FutureService {
         LocalDate today = LocalDate.now(clock.withZone(ZONE));
         List<Wallet> wallets = walletRepository.findByUserId(userId);
         BigDecimal balance = wallets.stream().map(Wallet::getBalance).reduce(BigDecimal.ZERO, BigDecimal::add);
-        List<Movement> movements = movements(userId, wallets);
+        List<Transaction> transactions = transactionRepository.findAllByUserId(userId);
+        List<Movement> movements = movements(transactions, wallets);
         List<RecurrencePattern> patterns = RecurrenceDetector.detect(movements);
         Map<String, RecurrenceDecision> decisions = decisionRepository.findByUserId(userId).stream()
                 .collect(Collectors.toMap(RecurrenceDecision::getPatternKey, Function.identity()));
@@ -526,7 +530,47 @@ public class FutureService {
                 .map(Envelope::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new Context(today, wallets, balance, patterns, decisions, confirmed,
                 cards, cardPlans, loans, loans.stream().map(this::toPlan).toList(),
-                dailyEstimate, dailyAmount, cardEstimate, cardAmount, mainCard(cardPlans, today), goals, reserved);
+                dailyEstimate, dailyAmount, cardEstimate, cardAmount, mainCard(cardPlans, today), goals, reserved,
+                scheduled(transactions, wallets, today));
+    }
+
+    /**
+     * Entries the bank itself scheduled (Open Finance LANCAMENTO_FUTURO, imported as PENDING): confirmed future
+     * events with the bank's own date and value.
+     */
+    static List<CashEvent> scheduled(List<Transaction> transactions, List<Wallet> wallets, LocalDate today) {
+        Map<Long, Wallet> byId = wallets.stream().collect(Collectors.toMap(Wallet::getId, Function.identity()));
+        List<CashEvent> events = new ArrayList<>();
+        for (Transaction transaction : transactions) {
+            if (transaction.getStatus() != Status.PENDING || transaction.getSource() != TransactionSource.OPEN_FINANCE) continue;
+            LocalDate date = LocalDate.ofInstant(transaction.getCreatedAt(), ZONE);
+            Wallet account = byId.get(transaction.getToWallet().getId());
+            if (!date.isAfter(today) || account == null) continue;
+            boolean income = transaction.getType().getId() == TYPE_DEPOSIT;
+            events.add(new CashEvent(date, income ? transaction.getAmount() : transaction.getAmount().negate(),
+                    transaction.getDescription(), income ? CashEvent.Kind.INCOME : CashEvent.Kind.RECURRING_EXPENSE,
+                    SCHEDULED, CashEvent.Certainty.CONFIRMED,
+                    account.getInstitutionName() == null ? account.getName() : account.getInstitutionName(),
+                    "scheduled:" + transaction.getId()));
+        }
+        return events;
+    }
+
+    /**
+     * The bank's scheduled entry replaces the estimate for the same bill: same counterparty, same direction,
+     * within {@value #SAME_BILL_DAYS} days. Without this, a rent the bank already scheduled would count twice.
+     */
+    static List<CashEvent> withScheduled(List<CashEvent> planned, List<CashEvent> scheduled) {
+        if (scheduled.isEmpty()) return planned;
+        List<CashEvent> events = new ArrayList<>(scheduled);
+        for (CashEvent event : planned) {
+            boolean replaced = event.certainty() == CashEvent.Certainty.ESTIMATED
+                    && scheduled.stream().anyMatch(bank -> bank.isInflow() == event.isInflow()
+                    && RecurrenceDetector.counterpartyKey(bank.label()).equals(RecurrenceDetector.counterpartyKey(event.label()))
+                    && Math.abs(java.time.temporal.ChronoUnit.DAYS.between(bank.date(), event.date())) <= SAME_BILL_DAYS);
+            if (!replaced) events.add(event);
+        }
+        return events;
     }
 
     /** The user's value, or the estimate, when the answer is CONFIRMED; null otherwise. */
@@ -552,10 +596,14 @@ public class FutureService {
      * are skipped: they move money, they don't create income or expense.
      */
     List<Movement> movements(long userId, List<Wallet> wallets) {
+        return movements(transactionRepository.findAllByUserId(userId), wallets);
+    }
+
+    static List<Movement> movements(List<Transaction> transactions, List<Wallet> wallets) {
         Set<Long> own = wallets.stream().map(Wallet::getId).collect(Collectors.toSet());
         Map<Long, Wallet> byId = wallets.stream().collect(Collectors.toMap(Wallet::getId, Function.identity()));
         List<Movement> movements = new ArrayList<>();
-        for (Transaction transaction : transactionRepository.findAllByUserId(userId)) {
+        for (Transaction transaction : transactions) {
             if (transaction.getStatus() != Status.SUCCESS) continue;
             Long from = transaction.getFromWallet().getId();
             Long to = transaction.getToWallet().getId();
@@ -797,7 +845,8 @@ public class FutureService {
             BigDecimal cardAmount,
             CardPlan mainCard,
             List<CashEventPlanner.GoalPlan> goals,
-            BigDecimal reserved
+            BigDecimal reserved,
+            List<CashEvent> scheduled
     ) {
 
         /** Everything the user confirmed, everyday spending on the account and on the card included. */
@@ -822,7 +871,9 @@ public class FutureService {
 
         /** Bills, invoices, instalments and the user's goals. */
         List<CashEvent> planFixed(LocalDate end) {
-            List<CashEvent> events = new ArrayList<>(CashEventPlanner.plan(today, end, confirmed, cardPlans, loanPlans));
+            List<CashEvent> events = new ArrayList<>(withScheduled(
+                    CashEventPlanner.plan(today, end, confirmed, cardPlans, loanPlans),
+                    scheduled.stream().filter(event -> !event.date().isAfter(end)).toList()));
             events.addAll(CashEventPlanner.goals(goals, today, end));
             return events;
         }

@@ -145,7 +145,7 @@ public final class RecurrenceDetector {
         return (movement.direction() == Direction.IN ? "in:" : "out:") + counterpartyKey(movement.counterparty());
     }
 
-    static String counterpartyKey(String counterparty) {
+    public static String counterpartyKey(String counterparty) {
         String slug = normalize(counterparty).trim().replaceAll("\\s+", "-");
         return slug.length() <= 100 ? slug : slug.substring(0, 100);
     }

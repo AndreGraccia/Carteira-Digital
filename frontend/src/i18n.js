@@ -169,7 +169,8 @@ const resources = {
       insights: {
         pageTitle: 'Inteligência financeira | Wall.ia',
         heading: 'Inteligência financeira',
-        description: 'Entenda seu fluxo de caixa e transforme o extrato em decisões mais conscientes.',
+        description:
+          'Quanto entrou e saiu das suas contas, pela data em que o dinheiro se moveu. Compras no cartão entram no dia em que a fatura é paga, não no dia da compra.',
         dashboardTitle: 'Seu extrato, explicado',
         dashboardDescription: 'Veja padrões do fluxo de caixa e receba próximos passos com referências confiáveis.',
         dashboardAction: 'Abrir inteligência financeira',
@@ -1117,7 +1118,8 @@ const resources = {
       insights: {
         pageTitle: 'Financial intelligence | Wall.ia',
         heading: 'Financial intelligence',
-        description: 'Understand your cash flow and turn activity into more informed decisions.',
+        description:
+          'What came into and left your accounts, by the date the money moved. Card purchases count on the day the bill is paid, not the day you bought.',
         dashboardTitle: 'Your activity, explained',
         dashboardDescription: 'Review cash-flow patterns and get next steps with reliable references.',
         dashboardAction: 'Open financial insights',
@@ -1377,7 +1379,7 @@ const resources = {
           perMonth: '{{amount}} a month, every day {{day}}',
           next: 'next on {{date}}',
           inAYear:
-            'In 12 months: {{saved}} put aside. At 100% of the CDI ({{cdi}} a year), about {{withCdi}} before income tax; after inflation ({{ipca}}), {{real}} in today\'s money. Banco Central, {{date}}.',
+            "In 12 months: {{saved}} put aside. At 100% of the CDI ({{cdi}} a year), about {{withCdi}} before income tax; after inflation ({{ipca}}), {{real}} in today's money. Banco Central, {{date}}.",
           remove: 'Remove',
           removeLabel: 'Remove the goal {{name}}',
           saved: 'Goal created. The projection was updated.',

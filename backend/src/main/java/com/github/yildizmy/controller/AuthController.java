@@ -63,6 +63,14 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Ends every session of the user: tokens issued until now stop working. */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.github.yildizmy.security.UserDetailsImpl user) {
+        if (user != null) authService.logoutEverywhere(user.getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/email/resend")
     public ResponseEntity<SignupResponse> resendCode(@Valid @RequestBody EmailResendRequest request,
                                                      HttpServletRequest servletRequest) {

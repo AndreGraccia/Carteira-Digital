@@ -139,6 +139,17 @@ class WalliaApplicationTests {
     }
 
     @Test
+    void logoutEverywhereEndsTheTokensAlreadyIssued() throws Exception {
+        Session ana = verifiedUser("10.4.0.1");
+        mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isOk());
+        Thread.sleep(1100); // iat has second precision: the logout must fall in a later second than the login
+
+        mvc.perform(auth(ana, post("/api/v1/auth/logout"))).andExpect(status().isNoContent());
+
+        mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void ruleErrorsCarryTheirOwnStatus() throws Exception {
         Session ana = verifiedUser("10.3.0.1");
 

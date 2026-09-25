@@ -45,24 +45,40 @@ public class JwtUtils {
         }
     }
 
+    /** Only tokens this API issued, for this web client, are accepted. */
+    static final String ISSUER = "wallia-api";
+    static final String AUDIENCE = "wallia-web";
+
     public String generateJwtToken(Authentication authentication) {
         final UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
         return Jwts.builder()
                 .subject(userPrincipal.getUsername())
+                .issuer(ISSUER)
+                .audience().add(AUDIENCE).and()
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(signingKey())
                 .compact();
     }
 
+    private io.jsonwebtoken.JwtParser parser() {
+        return Jwts.parser().verifyWith(signingKey()).requireIssuer(ISSUER).requireAudience(AUDIENCE).build();
+    }
+
     public String getUsernameFromJwtToken(String token) {
-        return Jwts.parser().verifyWith(signingKey()).build().parseSignedClaims(token).getPayload().getSubject();
+        return parser().parseSignedClaims(token).getPayload().getSubject();
+    }
+
+    public java.time.Instant getIssuedAt(String token) {
+        return parser().parseSignedClaims(token).getPayload().getIssuedAt().toInstant();
     }
 
     public boolean validateJwtToken(String authToken) {
         try {
-            Jwts.parser().verifyWith(signingKey()).build().parseSignedClaims(authToken);
+            parser().parseSignedClaims(authToken);
             return true;
+        } catch (io.jsonwebtoken.IncorrectClaimException | io.jsonwebtoken.MissingClaimException e) {
+            log.warn("Token from another issuer or audience rejected");
         } catch (io.jsonwebtoken.security.SecurityException e) {
             log.warn(messageConfig.getMessage(ERROR_JWT_INVALID_SIGNATURE, "invalid signature"));
         } catch (MalformedJwtException e) {

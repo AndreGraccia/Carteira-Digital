@@ -45,6 +45,9 @@ public class User {
     /** When the owner proved the address with the sign-up code; null until then, and login is refused. */
     private java.time.Instant emailVerifiedAt;
 
+    /** Tokens issued before this instant are rejected (logout from every device). */
+    private java.time.Instant tokensValidAfter;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private Set<Wallet> wallets = new HashSet<>();
 

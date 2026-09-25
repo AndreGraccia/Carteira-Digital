@@ -145,6 +145,13 @@ public class AuthService {
         return answer;
     }
 
+    public void logoutEverywhere(long userId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            user.setTokensValidAfter(clock.instant());
+            userRepository.save(user);
+        });
+    }
+
     private Optional<User> findByLogin(String login) {
         String value = login == null ? "" : login.trim();
         return value.contains("@")

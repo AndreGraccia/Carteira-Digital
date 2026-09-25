@@ -41,6 +41,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 final String username = jwtUtils.getUsernameFromJwtToken(jwt);
 
                 final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                if (revoked((UserDetailsImpl) userDetails, jwtUtils.getIssuedAt(jwt))) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 final UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
@@ -54,6 +58,12 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             log.warn(messageConfig.getMessage(ERROR_AUTH_SETUP, "authentication rejected"));
         }
         filterChain.doFilter(request, response);
+    }
+
+    /** Issued before the user's last "logout everywhere": second precision, the same as the token's iat. */
+    static boolean revoked(UserDetailsImpl user, java.time.Instant issuedAt) {
+        java.time.Instant validAfter = user.getTokensValidAfter();
+        return validAfter != null && issuedAt.isBefore(validAfter.truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
     }
 
     private String parseJwt(HttpServletRequest request) {

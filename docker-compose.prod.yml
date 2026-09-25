@@ -5,7 +5,7 @@ services:
     build: ./frontend
     restart: always
     ports:
-      - '${frontend_port:-3000}:3000'
+      - '${frontend_port:-3001}:3000'
     depends_on:
       - backend
     networks:
@@ -33,7 +33,7 @@ services:
       SPRINGDOC_SWAGGER_UI_ENABLED: ${springdoc_enabled:-false}
     ports:
       # Only this machine; the public entry is nginx, so nobody can skip it and spoof X-Forwarded-For.
-      - '127.0.0.1:${backend_port:-8080}:8080'
+      - '127.0.0.1:${backend_port:-8082}:8080'
     depends_on:
       - db
     networks:

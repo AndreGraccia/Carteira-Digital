@@ -71,7 +71,7 @@ logging:
     org.springframework.security: error
 
 server:
-  port: ${backend_port:8080}
+  port: ${backend_port:8082}
   # Behind nginx every request comes from the proxy's IP; trust X-Forwarded-For only from private addresses
   # so per-IP limits (sign-up, login) see the real client.
   forward-headers-strategy: native
@@ -88,7 +88,7 @@ app:
   security:
     jwtSecret: ${jwt_secret}
     jwtExpirationMs: 3600000
-    allowedOrigin: ${frontend_origin:http://localhost:3000}
+    allowedOrigin: ${frontend_origin:http://localhost:3001}
   ai:
     geminiApiKey: ${gemini_api_key:}
     geminiModel: ${gemini_model:gemini-3.8-flash}

@@ -197,16 +197,16 @@ db_name=wallia
 db_username=wallia
 db_password=SUBSTITUA_PELA_SENHA_LOCAL
 jwt_secret=SUBSTITUA_POR_UM_SEGREDO_ALEATORIO
-frontend_origin=http://localhost:3000
+frontend_origin=http://localhost:3001
 gemini_api_key=
 gemini_model=gemini-3.8-flash
 gemini_search_grounding=true
 db_port=5432
-backend_port=8080
-frontend_port=3000
+backend_port=8082
+frontend_port=3001
 ```
 
-As portas só precisam mudar se 5432, 8080 ou 3000 já estiverem em uso por outro programa. Nesse caso, troque também `frontend_origin` e crie `frontend/.env.local` a partir de `frontend/.env.example`. O passo a passo está na [seção de portas do guia](docs/guia-do-desenvolvedor.md#4-portas-conferir-e-trocar).
+Os padrões 8082 e 3001 evitam as portas 8080 e 3000, que outros projetos costumam ocupar. Se alguma porta estiver em uso, troque também `frontend_origin` e crie `frontend/.env.local` a partir de `frontend/.env.example`. O passo a passo está na [seção de portas do guia](docs/guia-do-desenvolvedor.md#4-portas-conferir-e-trocar).
 
 Troque `db_password` antes de subir o banco pela primeira vez: o PostgreSQL grava a senha só na criação do volume.
 
@@ -267,20 +267,20 @@ cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-Se você já iniciou `WalliaApplication` pelo VS Code, pule esse comando. Apenas uma instância pode usar a porta `8080` (ou a `backend_port`) ao mesmo tempo.
+Se você já iniciou `WalliaApplication` pelo VS Code, pule esse comando. Apenas uma instância pode usar a porta `8082` (ou a `backend_port`) ao mesmo tempo.
 
 Aguarde a linha `Started WalliaApplication`. Se o processo parar antes disso, veja [Problemas comuns](docs/guia-do-desenvolvedor.md#problemas-comuns).
 
 O backend estará disponível em:
 
 ```text
-http://localhost:8080
+http://localhost:8082
 ```
 
 A documentação Swagger estará disponível em:
 
 ```text
-http://localhost:8080/swagger-ui/index.html
+http://localhost:8082/swagger-ui/index.html
 ```
 
 Mantenha esse terminal aberto enquanto estiver usando a aplicação.
@@ -308,7 +308,7 @@ npm.cmd start
 A interface estará disponível em:
 
 ```text
-http://localhost:3000
+http://localhost:3001
 ```
 
 Mantenha esse terminal aberto enquanto estiver usando a aplicação.
@@ -321,7 +321,7 @@ Como alternativa aos três terminais, execute na raiz do projeto:
 docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml up --build
 ```
 
-Esse comando inicia PostgreSQL, Mailpit, backend e frontend. Não mantenha as versões locais nas portas `3000` e `8080` enquanto executar a pilha completa em containers.
+Esse comando inicia PostgreSQL, Mailpit, backend e frontend. Não mantenha as versões locais nas portas `3001` e `8082` enquanto executar a pilha completa em containers.
 
 ## Encerrando a aplicação
 

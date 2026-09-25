@@ -171,6 +171,29 @@ class WalliaApplicationTests {
     }
 
     @Test
+    void deletingTheAccountAsksThePasswordErasesTheImportedDataAndEndsTheLogin() throws Exception {
+        Session ana = verifiedUser("10.5.0.1");
+        JsonNode consent = body(mvc.perform(auth(ana, post("/api/v1/open-finance/connection")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"months\":6}"))).andExpect(status().isCreated()));
+        mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"consentId\":\"" + consent.path("consentId").asText() + "\"}"))).andExpect(status().isOk());
+        String name = users.findById(ana.id()).orElseThrow().getUsername();
+
+        mvc.perform(auth(ana, post("/api/v1/account/delete").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"password\":\"errada-12345\"}"))).andExpect(status().isForbidden());
+        mvc.perform(auth(ana, post("/api/v1/account/delete").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"password\":\"Senha-forte-123\"}"))).andExpect(status().isNoContent());
+
+        assertEquals("0", String.valueOf(jdbc.queryForObject(
+                "SELECT count(*) FROM wallet WHERE user_id = ?", Long.class, ana.id())));
+        assertEquals("0", String.valueOf(jdbc.queryForObject(
+                "SELECT count(*) FROM open_finance_connection WHERE user_id = ?", Long.class, ana.id())));
+        assertEquals("excluido-" + ana.id(), users.findById(ana.id()).orElseThrow().getUsername());
+        mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isUnauthorized());
+        mvc.perform(from("10.5.0.1", login(name))).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void ruleErrorsCarryTheirOwnStatus() throws Exception {
         Session ana = verifiedUser("10.3.0.1");
 

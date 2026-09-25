@@ -121,7 +121,7 @@ CI=true npm test -- --watchAll=false
 npm run build
 ```
 
-No Windows, o `--end-of-line auto` evita os falsos alarmes de CRLF (ERR-TOOL-023 no Jarbas).
+Desde o `.gitattributes` (LF em todo arquivo de texto, CRLF só em `.cmd`, `.bat` e `.ps1`), o `--end-of-line auto` é opcional: os arquivos no Windows já ficam em LF, como no CI (ERR-TOOL-023 no Jarbas).
 
 ## 4. Sprints
 

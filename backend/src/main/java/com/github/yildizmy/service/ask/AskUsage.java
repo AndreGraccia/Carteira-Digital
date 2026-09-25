@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Guards and measures "Pergunte ao Wall.ia": a per-user request limit (each purchase question reads the
+ * Guards and measures "Pergunte à Wall.ia": a per-user request limit (each purchase question reads the
  * whole history and runs three projections) and a daily count per intent, with no text and no user.
  */
 @Component

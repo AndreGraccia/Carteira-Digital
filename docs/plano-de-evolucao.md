@@ -10,21 +10,23 @@ Auditoria de 24/09/2026 sobre a branch `feat/wallia` (`2228112`). Fontes, com ev
 | [`backend.md`](auditoria-2026-09-24/backend.md) | Motor Futuro, insights, Open Finance, integrações, rotas, banco |
 | [`openfinance.md`](auditoria-2026-09-24/openfinance.md) | Padrão Open Finance Brasil, BCB, Pix, regras de crédito, LGPD, contabilidade |
 
-## Andamento (25/09/2026)
+## Andamento (revisado em 25/09/2026)
+
+Revisão item a item contra o código em [`analise-2026-09-25.md`](analise-2026-09-25.md), que também traz os próximos passos (Sprint 9) e o que depende de rede.
 
 | Sprint | Estado |
 | --- | --- |
-| 0 Higiene | Feita. Falta só o push forçado da história sem coautoria, que depende do dono. |
+| 0 Higiene | Feita. O push forçado sem coautoria foi feito em 25/09. **O CI no GitHub nunca foi conferido.** |
 | 1 Predição e análise | Feita. |
 | 2 Segurança | Feita. |
-| 3 E-mail no cadastro | Feita (ADR 0008). |
-| 4 Tradução e layout | Feita, com verificação pelo DOM (Playwright) em 375 e 1280 px, PT e EN, em 9 telas. |
-| 5 Aderência OFB | Feita (ADR 0009). |
-| 6 API e banco | Feita. O E2E com Playwright no CI ainda não existe; hoje a verificação é o script local. |
-| 7 BCB | Custo do negativo, rotativo, CET, comparação com o mercado e CDI/IPCA/Selic feitos (ADR 0010). **Pix Automático simulado não foi feito.** |
-| 8 Entrega | README, CHANGELOG e `.env.example` atualizados. **Checklist LGPD (tela de privacidade, exclusão de conta, criptografia em repouso) não foi feito.** O PR para a `main` espera o push. |
+| 3 E-mail no cadastro | Feita (V24, ADR 0008). |
+| 4 Tradução e layout | Parcial. Verificação pelo DOM (Playwright headless, sem navegador real) em 375 e 1280 px, PT e EN, em 9 telas. Nomenclatura padronizada em 25/09. **A tela Futuro no celular continua com cerca de 4.700 px.** |
+| 5 Aderência OFB | Parcial (V25, V26, ADR 0009). **Faltam `GET /consents/{id}` e o sync por `/transactions-current`.** |
+| 6 API e banco | Parcial. Existe teste de integração ponta a ponta. **Faltam `@WebMvcTest` por controller e o E2E no CI.** |
+| 7 BCB | Custo do negativo, rotativo, CET, comparação com o mercado e CDI/IPCA/Selic feitos (V29, ADR 0010). **Faltam o Pix Automático simulado, Metas com CDI/IPCA e a explicação de caixa e competência na tela.** |
+| 8 Entrega | README, CHANGELOG e `.env.example` atualizados. **Faltam LGPD, guia do desenvolvedor, porta padrão, imagens Docker e o PR para a `main`.** |
 
-Detalhe de cada entrega em [`CHANGELOG.md`](../CHANGELOG.md).
+Detalhe de cada entrega em [`CHANGELOG.md`](../CHANGELOG.md). Numeração real dos ADRs: 0007 dia útil, 0008 e-mail no cadastro e consentimento, 0009 aderência OFB, 0010 dados do BCB. Onde o texto abaixo cita outro número, vale esta lista.
 
 ## Estado medido em 24/09
 
@@ -45,10 +47,10 @@ Detalhe de cada entrega em [`CHANGELOG.md`](../CHANGELOG.md).
 | # | Tarefa | Estado |
 | --- | --- | --- |
 | 0.1 | Desligar coautoria automática do Claude nos commits (`attribution` em `~/.claude/settings.json` + hook `commit-msg` local) | Feito |
-| 0.2 | Branch `feat/wallia-sem-coautor`: mesmos 18 commits, mesmo código (árvore idêntica), sem o trailer | Feito, **falta push forçado** (aprovação do dono) |
-| 0.3 | Decidir a alteração não commitada em `i18n.js` (chave `openFinance.MuiTypography`, EN = `'.'`, ninguém lê) → descartar; a correção real é o item I-1 da Sprint 4 | Pendente |
+| 0.2 | Branch `feat/wallia-sem-coautor`: mesmos 18 commits, mesmo código (árvore idêntica), sem o trailer | Feito; push forçado em 25/09 com `--force-with-lease` |
+| 0.3 | Decidir a alteração não commitada em `i18n.js` (chave `openFinance.MuiTypography`, EN = `'.'`, ninguém lê) → descartar; a correção real é o item I-1 da Sprint 4 | Feito (descartada; I-1 em `15fc192`) |
 | 0.4 | Conferir o CI no GitHub (nunca foi visto verde por nós) | Pendente |
-| 0.5 | Conferir se ninguém mais tem `feat/wallia` baixada antes do push forçado (repositório é do André) | Pendente |
+| 0.5 | Conferir se ninguém mais tem `feat/wallia` baixada antes do push forçado (repositório é do André) | Feito (remoto conferido em `2228112` antes do push) |
 
 ## Sprint 1 — Predição e análise mostram número errado
 

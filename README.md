@@ -28,7 +28,7 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 - **Limite diário:** quanto dá para gastar por dia até a próxima renda sem nenhum dia negativo, ou quanto falta quando só as contas já não cabem. Com o ritmo do dia a dia confirmado, diz quanto sobra ou quanto cortar por dia.
 - **Gastos do dia a dia como pergunta:** a média de mercado, transporte e farmácia dos últimos 90 dias, com a evidência. Só entra na projeção se o usuário confirmar (ou informar o próprio valor). O mesmo vale para as compras à vista no cartão, que entram na fatura em que cada dia cai.
-- **Plano de saída do buraco:** até três ações calculadas pelo motor (combinar outra data para uma conta, gastar menos por dia, ou quanto falta). Fatura e empréstimo nunca são sugeridos para adiar. Quando a saída é combinar outra data, "Preparar Pix" monta o Pix agendado com destinatário, valor e data, em modo simulação: nada é enviado.
+- **Como evitar o negativo:** até três ações calculadas pelo motor (combinar outra data para uma conta, gastar menos por dia, ou quanto falta). Fatura e empréstimo nunca são sugeridos para adiar. Quando a saída é combinar outra data, "Preparar Pix" monta o Pix agendado com destinatário, valor e data, em modo simulação: nada é enviado.
 - **Quanto a Wall.ia acertou:** a cada sincronização a previsão fica guardada e, de 7 a 30 dias depois, é comparada com o saldo real. A tela mostra o erro médio, para que lado a previsão tem errado, os negativos evitados e os negativos que ela não viu.
 - **Metas:** um valor por mês que entra na projeção como compromisso; o limite diário já desconta. Antes de criar, "Ver se cabe" diz se a meta cria dias negativos em 90 dias.
 - **Como cancelar assinaturas:** passos, mensagem pronta e o canal oficial de reclamação, sem comissão.
@@ -44,7 +44,7 @@ Os números, as fontes e as projeções de negócio (três cenários de 36 meses
 
 - Separe parte do saldo para o que a projeção não conhece (viagem, IPVA, reserva). O dinheiro não se move; o limite diário passa a ser o que dá para gastar sem mexer nos envelopes. Substitui a antiga tela Movimentar.
 
-**Pergunte ao Wall.ia**
+**Pergunte à Wall.ia**
 
 - "Posso comprar um notebook de R$ 4.000 em 10x?", "Quanto posso gastar por dia?", "Por que meu saldo fica negativo?". A resposta vem do motor, com os números e a origem. Nenhum modelo de linguagem define valores, e pergunta fora do que o motor sabe responder recebe "ainda não sei".
 

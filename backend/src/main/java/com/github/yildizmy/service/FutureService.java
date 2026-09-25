@@ -420,11 +420,11 @@ public class FutureService {
         return new CashEventPlanner.GoalPlan(goal.getId(), goal.getName(), goal.getMonthlyAmount(), goal.getDayOfMonth());
     }
 
-    /** How far "Pergunte ao Wall.ia" looks for risks and the next income. */
+    /** How far "Pergunte à Wall.ia" looks for risks and the next income. */
     static final int ASK_HORIZON_DAYS = 60;
 
     /**
-     * "Pergunte ao Wall.ia": picks the calculation that answers the question and returns its numbers.
+     * "Pergunte à Wall.ia": picks the calculation that answers the question and returns its numbers.
      * Nothing is written and nothing is invented: an unknown question returns UNKNOWN.
      */
     @Transactional(readOnly = true)

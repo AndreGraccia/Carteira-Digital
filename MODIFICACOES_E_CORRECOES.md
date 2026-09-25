@@ -173,7 +173,7 @@ Escopo: alterações realizadas desde a base `main` (`9e83117`) até a branch at
 | Limite diário até a próxima renda, com quanto falta quando só as contas já não cabem. | A tela não respondia "quanto posso gastar?". |
 | Custo máximo do cheque especial em cada janela negativa. | O alerta não tinha preço. |
 | Plano de saída calculado (combinar outra data, gastar menos por dia, quanto falta). | O alerta não dizia o que fazer. |
-| Pergunte ao Wall.ia, respondido pelo motor, com limite de 30 perguntas a cada 10 minutos e contagem por intenção sem texto. | Tirar uma dúvida exigia navegar por três telas; não havia medição nem proteção contra excesso de chamadas. |
+| Pergunte à Wall.ia, respondido pelo motor, com limite de 30 perguntas a cada 10 minutos e contagem por intenção sem texto. | Tirar uma dúvida exigia navegar por três telas; não havia medição nem proteção contra excesso de chamadas. |
 | Metas mensais na projeção (V16). | Guardar dinheiro só existia no simulador. |
 | Alertas por e-mail opcionais, um por janela nova (V17). | Era preciso abrir o app para descobrir o buraco. |
 

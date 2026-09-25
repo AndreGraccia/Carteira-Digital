@@ -32,7 +32,7 @@ Três outros problemas apareceram na mesma análise:
 
 - `overdraftCostCap`: soma, dia a dia, do saldo negativo vezes a taxa diária equivalente a 8% ao mês ((1,08)^(1/30) - 1 = 0,25687% ao dia), o teto do cheque especial pela Resolução CMN 4.765/2019. É um limite superior e a tela diz isso.
 
-**Pergunte ao Wall.ia responde com o motor, não com um modelo de linguagem.**
+**Pergunte à Wall.ia responde com o motor, não com um modelo de linguagem.**
 
 - `QuestionParser` reconhece cinco intenções (compra, limite por dia, por que negativo, o que já tem destino, próxima renda), tira valor e parcelas do texto e escolhe o cálculo. Pergunta fora disso volta `UNKNOWN`, com a lista do que dá para perguntar.
 - A resposta (`POST /api/v1/future/ask`) traz só números; a frase é montada na interface com o i18n. Compra usa o mesmo simulador do Modo Futuro e ganha um veredito: `RISK` (cria dias negativos ou aprofunda um buraco que já existe), `TIGHT` (sobra menos de uma semana de gasto do dia a dia no ponto mais baixo) ou `SAFE`.

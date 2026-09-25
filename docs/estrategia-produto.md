@@ -34,10 +34,10 @@ Critérios: **dor** (quanto resolve de um problema com número por trás), **pro
 | Gastos do dia a dia como pergunta | D1: projeção otimista | Pergunta em vez de supor | Mobills e Organizze só têm saldo de fim de mês | M | **Feito** |
 | Limite diário até a próxima renda | D2 | Número calculado e explicado | Nenhum player pesquisado | P | **Feito** |
 | Custo de não agir (cheque especial) | D3; 29,9% das famílias com conta atrasada | Explica com número | Nenhum player pesquisado | P | **Feito** |
-| Pergunte ao Wall.ia, respondido pelo motor | D4 | IA não calcula | Assistentes de WhatsApp registram gasto, não projetam | M | **Feito** |
+| Pergunte à Wall.ia, respondido pelo motor | D4 | IA não calcula | Assistentes de WhatsApp registram gasto, não projetam | M | **Feito** |
 | Restrição de saldo local no banco | D5 | Dinheiro protegido em duas camadas | Interno | P | **Feito** (V13) |
 | Gasto variável no cartão (fatura futura estimada) | Faturas futuras só conhecem compras passadas | Pergunta em vez de supor | Nenhum | M | **Feito** (ADR 0003) |
-| Plano de saída do buraco | Alerta ainda não diz o que fazer além de cortar | Explica e sugere, não executa | Nenhum | M | **Feito** (ADR 0003) |
+| Como evitar o negativo | Alerta ainda não diz o que fazer além de cortar | Explica e sugere, não executa | Nenhum | M | **Feito** (ADR 0003) |
 | Alertas proativos por e-mail | A pessoa precisa abrir o app para descobrir | Número calculado chega antes do problema | Nubank avisa cheque especial em outro banco | M | **Feito** (ADR 0003); push fica para depois |
 | Metas como compromisso na projeção | README, item 4 | Pergunta em vez de supor | Comum, mas não ligado à projeção diária | M | **Feito** (ADR 0003) |
 | Medição e limite do Pergunte | Sem saber o que as pessoas perguntam, não dá para decidir o próximo passo | Mede sem guardar texto | Interno | P | **Feito** (ADR 0003) |
@@ -71,7 +71,7 @@ A primeira coisa na tela Futuro:
 
 Cada janela negativa diz quanto o cheque especial pode cobrar, no teto legal. No sandbox, com o dia a dia confirmado: até R$ 3,20 de juros em dois dias. O valor é pequeno de propósito: mostra que o problema é o hábito recorrente, não um dia.
 
-### Pergunte ao Wall.ia
+### Pergunte à Wall.ia
 
 Tela nova (`/ask`) com cinco perguntas sugeridas e campo livre. Exemplos reais do sandbox, com as 8 perguntas confirmadas e o dia a dia informado em R$ 20 por dia:
 

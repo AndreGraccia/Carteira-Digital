@@ -31,7 +31,7 @@ Fatura de cartão e parcela de empréstimo nunca são sugeridas para adiar: atra
 
 **Alertas por e-mail, só para quem ativar.** `FutureAlertService` roda todo dia às 8h (horário de Brasília; `future_alert_cron=-` desliga), recalcula a projeção de 30 dias de quem ativou e escreve uma vez por janela negativa nova (`future_alert.last_window_start`, V17). O e-mail leva datas, valores, custo máximo e o link, nada de dado bancário. A falha de um usuário não interrompe os outros.
 
-**Pergunte ao Wall.ia medido e limitado.** `AskUsage` limita 30 perguntas a cada 10 minutos por pessoa (429 `ASK_RATE_LIMIT`) e conta, por dia, só a intenção detectada (`ask_metric`, V15): sem texto e sem usuário. `GET /api/v1/future/ask/metrics` é só para administradores.
+**Pergunte à Wall.ia medido e limitado.** `AskUsage` limita 30 perguntas a cada 10 minutos por pessoa (429 `ASK_RATE_LIMIT`) e conta, por dia, só a intenção detectada (`ask_metric`, V15): sem texto e sem usuário. `GET /api/v1/future/ask/metrics` é só para administradores.
 
 ## Alternativas consideradas
 

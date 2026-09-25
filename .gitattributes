@@ -1,0 +1,14 @@
+# Mesmas quebras de linha no Windows e no CI (Linux). Sem isto, core.autocrlf=true deixa os arquivos em CRLF
+# no Windows e o prettier --check acusa dezenas de arquivos que o CI aceita (ERR-TOOL-023).
+* text=auto eol=lf
+
+# Scripts do Windows precisam de CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binários: nunca converter.
+*.png binary
+*.jpg binary
+*.ico binary
+*.dump binary

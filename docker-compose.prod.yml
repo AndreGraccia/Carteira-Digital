@@ -7,7 +7,8 @@ services:
     ports:
       - '${frontend_port:-3001}:3000'
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - wallia_network
     logging:
@@ -22,7 +23,8 @@ services:
     env_file: ./.env.properties
     restart: always
     environment:
-      SPRING_MAIL_HOST: ${mail_host:-mailpit}
+      # Declared, never assumed: homologation sets mail_host=mailpit, production the transactional provider.
+      SPRING_MAIL_HOST: ${mail_host:?defina mail_host no .env.properties (mailpit so na homologacao)}
       # Production never stores descriptions in clear text (ADR 0014).
       APP_SECURITY_DATAENCRYPTIONKEY: ${data_encryption_key:?defina data_encryption_key no .env.properties}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${db_name}
@@ -37,7 +39,15 @@ services:
       # Only this machine; the public entry is nginx, so nobody can skip it and spoof X-Forwarded-For.
       - '127.0.0.1:${backend_port:-8082}:8080'
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      # The JRE image has no curl; bash /dev/tcp is enough to read the readiness probe.
+      test: ['CMD', 'bash', '-c', 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3 && grep -q UP <&3']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     networks:
       - wallia_network
     logging:

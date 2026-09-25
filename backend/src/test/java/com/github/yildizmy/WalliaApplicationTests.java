@@ -67,6 +67,14 @@ class WalliaApplicationTests {
     }
 
     @Test
+    void healthProbesAnswerWithoutATokenAndOnlyHealthIsExposed() throws Exception {
+        mvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+        mvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+        mvc.perform(get("/actuator/health")).andExpect(jsonPath("$.components").doesNotExist());
+        mvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void marketDataReadsTheStoredBancoCentralRatesAndTheRiskWindowSaysWhereItsRateCameFrom() throws Exception {
         mvc.perform(get("/api/v1/market/overview")).andExpect(status().isUnauthorized());
         jdbc.update("INSERT INTO market_rate (modality, period_start, period_end, cnpj8, institution, monthly_rate, annual_rate)"

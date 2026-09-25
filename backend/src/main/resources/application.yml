@@ -81,6 +81,23 @@ server:
     include-stacktrace: never
     include-exception: false
 
+# Only health, for the container healthcheck and the load balancer: liveness says the JVM is up, readiness that
+# the database answers. No details, so nothing about the infrastructure leaks.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      # Readiness also checks the database; liveness does not, so a database outage does not restart the API.
+      group:
+        readiness:
+          include: readinessState,db
+
 exception:
   trace: false
 

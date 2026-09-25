@@ -23,6 +23,8 @@ services:
     restart: always
     environment:
       SPRING_MAIL_HOST: ${mail_host:-mailpit}
+      # Production never stores descriptions in clear text (ADR 0014).
+      APP_SECURITY_DATAENCRYPTIONKEY: ${data_encryption_key:?defina data_encryption_key no .env.properties}
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${db_name}
       SPRING_DATASOURCE_USERNAME: ${db_username}
       SPRING_DATASOURCE_PASSWORD: ${db_password}

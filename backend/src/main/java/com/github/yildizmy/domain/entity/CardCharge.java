@@ -27,7 +27,8 @@ public class CardCharge {
     @Column(length = 160, nullable = false)
     private String externalId;
 
-    @Column(length = 120, nullable = false)
+    @Convert(converter = com.github.yildizmy.domain.EncryptedText.class)
+    @Column(columnDefinition = "text", nullable = false)
     private String description;
 
     @Column(nullable = false)

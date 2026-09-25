@@ -839,7 +839,7 @@ const resources = {
             'Cadastro: nome, usuário e e-mail, para você entrar e receber o código e os alertas. A senha fica só como hash BCrypt.',
           wallets: 'Carteiras e movimentações que você criou, para mostrar saldo e extrato.',
           openFinance:
-            'Dados do Open Finance (contas, cartões, empréstimos e lançamentos), só com o seu consentimento e só para projetar o saldo.',
+            'Dados do Open Finance (contas, cartões, empréstimos e lançamentos), só com o seu consentimento e só para projetar o saldo. Em produção, a descrição de cada lançamento fica criptografada no banco.',
           answers: 'Suas respostas às perguntas, metas e envelopes, para o Futuro calcular com o que você confirmou.',
           alerts: 'Preferência de alertas e inscrição de avisos no navegador, só se você ligar.',
         },
@@ -1838,7 +1838,7 @@ const resources = {
             'Account: name, username and email, so you can sign in and get the code and alerts. The password is kept only as a BCrypt hash.',
           wallets: 'Wallets and transactions you created, to show balance and statement.',
           openFinance:
-            'Open Finance data (accounts, cards, loans and entries), only with your consent and only to project your balance.',
+            'Open Finance data (accounts, cards, loans and entries), only with your consent and only to project your balance. In production, each entry description is encrypted in the database.',
           answers: 'Your answers to the questions, goals and envelopes, so Future calculates with what you confirmed.',
           alerts: 'Alert preference and browser notification subscription, only if you turn them on.',
         },

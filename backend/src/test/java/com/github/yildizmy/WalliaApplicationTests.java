@@ -49,6 +49,7 @@ class WalliaApplicationTests {
         registry.add("spring.datasource.username", () -> System.getenv().getOrDefault("WALLIA_IT_DB_USER", "postgres"));
         registry.add("spring.datasource.password", () -> System.getenv().getOrDefault("WALLIA_IT_DB_PASSWORD", "postgres"));
         registry.add("app.security.jwtSecret", () -> Base64.getEncoder().encodeToString(new byte[48]));
+        registry.add("app.security.dataEncryptionKey", () -> Base64.getEncoder().encodeToString(new byte[32]));
         registry.add("app.ai.geminiApiKey", () -> "");
         registry.add("app.open-finance.mode", () -> "contract-sandbox");
         registry.add("app.open-finance.daily-sync-cron", () -> "-");
@@ -116,6 +117,11 @@ class WalliaApplicationTests {
         JsonNode page = body(mvc.perform(auth(ana, get("/api/v1/transactions/users/" + ana.id() + "?page=0&size=5")))
                 .andExpect(status().isOk()));
         assertEquals(5, page.path("content").size());
+        // What the API shows in clear is stored encrypted (ADR 0014).
+        String stored = jdbc.queryForObject("SELECT t.description FROM transaction t JOIN wallet w ON w.id = t.to_wallet_id "
+                + "WHERE w.user_id = ? AND t.description IS NOT NULL LIMIT 1", String.class, ana.id());
+        assertTrue(stored.startsWith("enc:v1:"), stored);
+        assertTrue(page.path("content").get(0).path("description").asText().length() < stored.length());
         assertTrue(page.path("page").path("totalElements").asInt() > 5, "the sandbox imports months of history");
 
         mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isOk())

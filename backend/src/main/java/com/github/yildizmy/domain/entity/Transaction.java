@@ -32,7 +32,9 @@ public class Transaction {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(length = 200)
+    // Names people and companies: encrypted at rest (ADR 0014, V30 widened the column).
+    @Convert(converter = com.github.yildizmy.domain.EncryptedText.class)
+    @Column(columnDefinition = "text")
     private String description;
 
     @Column(nullable = false)

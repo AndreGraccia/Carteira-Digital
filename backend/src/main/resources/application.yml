@@ -87,6 +87,8 @@ exception:
 app:
   security:
     jwtSecret: ${jwt_secret}
+    # AES-256 key (Base64, 32 bytes) for descriptions at rest (ADR 0014). Blank = stored as is, with a warning.
+    dataEncryptionKey: ${data_encryption_key:}
     jwtExpirationMs: 3600000
     allowedOrigin: ${frontend_origin:http://localhost:3001}
   ai:

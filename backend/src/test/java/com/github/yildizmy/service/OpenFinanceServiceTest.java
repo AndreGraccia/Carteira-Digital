@@ -223,4 +223,18 @@ class OpenFinanceServiceTest {
             return now;
         }
     }
+
+    @Test
+    void aRevocationDoneInTheBanksAppEndsTheConnectionAndDeletesTheData() {
+        service.authorise(7L, service.createConsent(7L, null).consentId());
+        when(gateway.fetch(7L)).thenThrow(new com.github.yildizmy.exception.OpenFinanceConsentEndedException(
+                "USER", "CUSTOMER_MANUALLY_REVOKED"));
+
+        var error = assertThrows(CodedException.class, () -> service.sync(7L));
+
+        assertEquals("OPEN_FINANCE_CONSENT_REQUIRED", error.getCode());
+        assertEquals(OpenFinanceConnectionStatus.REJECTED, stored.getStatus(), "recorded despite the 428");
+        assertEquals("CUSTOMER_MANUALLY_REVOKED", stored.getRejectionReason());
+        assertEquals(1, committedPurges[0]);
+    }
 }

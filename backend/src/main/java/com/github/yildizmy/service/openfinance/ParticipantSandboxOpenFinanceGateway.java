@@ -89,6 +89,8 @@ public class ParticipantSandboxOpenFinanceGateway implements OpenFinanceGateway 
         if (userId != ownerUserId) {
             throw new OpenFinanceUnavailableException("This sandbox consent belongs to another user");
         }
+        // The person can revoke in the bank's app: ask the institution before reading anything under the consent.
+        OfbResponses.requireAuthorised(getJson("/consents/v3/consents/" + encode(consentId)).path("data"));
         LocalDate today = LocalDate.now(clock.withZone(OfbResponses.ZONE));
         JsonNode resources = optional("/resources/v3/resources");
         String institutionName = "Open Finance Sandbox";

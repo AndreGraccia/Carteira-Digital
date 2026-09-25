@@ -187,6 +187,28 @@ final class OfbResponses {
         return StreamSupport.stream(array.spliterator(), false);
     }
 
+    /**
+     * Consents API v3, {@code GET /consents/{consentId}}: nothing to do when AUTHORISED; REJECTED ends the connection
+     * with who rejected it and why (e.g. USER / CUSTOMER_MANUALLY_REVOKED done in the bank's app); anything else
+     * means the institution does not consider it usable now.
+     */
+    static void requireAuthorised(JsonNode consentData) {
+        String status = text(consentData, "status");
+        if ("AUTHORISED".equals(status)) return;
+        if ("REJECTED".equals(status)) {
+            JsonNode rejection = consentData.path("rejection");
+            throw new com.github.yildizmy.exception.OpenFinanceConsentEndedException(
+                    // Columns are 10 and 40 wide (V25): unexpected institution data must not break the write.
+                    cut(rejection.path("rejectedBy").asText("ASPSP"), 10),
+                    cut(rejection.path("reason").path("code").asText("CONSENT_EXPIRED"), 40));
+        }
+        throw new OpenFinanceUnavailableException("Consent is " + status + " at the institution");
+    }
+
+    private static String cut(String value, int max) {
+        return value.length() > max ? value.substring(0, max) : value;
+    }
+
     static String text(JsonNode node, String field) {
         String value = node.path(field).asText();
         if (value.isBlank()) throw new OpenFinanceUnavailableException("Open Finance response is missing " + field);

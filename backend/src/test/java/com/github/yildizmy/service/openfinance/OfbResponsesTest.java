@@ -126,6 +126,24 @@ class OfbResponsesTest {
         return transaction;
     }
 
+    @Test
+    void theConsentReadFromTheOfficialSchemaSaysWhetherTheBankStillAuthorisesIt() throws IOException {
+        ObjectNode consent = (ObjectNode) data("200ConsentsConsentIdRead");
+
+        // The official example is AWAITING_AUTHORISATION: not usable, but not ended either.
+        assertThrows(com.github.yildizmy.exception.OpenFinanceUnavailableException.class,
+                () -> OfbResponses.requireAuthorised(consent));
+
+        consent.put("status", "REJECTED");
+        var ended = assertThrows(com.github.yildizmy.exception.OpenFinanceConsentEndedException.class,
+                () -> OfbResponses.requireAuthorised(consent));
+        assertEquals("USER", ended.getRejectedBy());
+        assertEquals("CONSENT_EXPIRED", ended.getReason());
+
+        consent.put("status", "AUTHORISED");
+        assertDoesNotThrow(() -> OfbResponses.requireAuthorised(consent));
+    }
+
     private static JsonNode data(String fixture) throws IOException {
         try (InputStream input = OfbResponsesTest.class.getResourceAsStream("/ofb/" + fixture + ".json")) {
             return JSON.readTree(input).path("data");

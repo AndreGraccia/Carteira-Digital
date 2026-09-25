@@ -158,7 +158,14 @@ public class OpenFinanceService {
     public OpenFinanceSyncResponse sync(long userId) {
         transactions.executeWithoutResult(status -> expireIfDue(userId));
         transactions.executeWithoutResult(status -> activeConnection(userId));
-        OpenFinanceSnapshot snapshot = gateway.fetch(userId);
+        OpenFinanceSnapshot snapshot;
+        try {
+            snapshot = gateway.fetch(userId);
+        } catch (com.github.yildizmy.exception.OpenFinanceConsentEndedException ended) {
+            // Recorded and purged in a transaction that commits; the 428 comes after it (ERR-JAVA-016).
+            transactions.executeWithoutResult(status -> endedAtTheInstitution(userId, ended));
+            throw consentRequired();
+        }
         return transactions.execute(status -> {
             userRepository.findByIdForUpdate(userId);
             // Revoked or expired while the bank was being read: drop what came back.
@@ -248,6 +255,17 @@ public class OpenFinanceService {
             connectionRepository.save(connection);
             importService.purge(userId);
         });
+    }
+
+    /** The institution reported the consent as REJECTED (revoked in its app, for example): same effect as ours. */
+    private void endedAtTheInstitution(long userId, com.github.yildizmy.exception.OpenFinanceConsentEndedException ended) {
+        connectionRepository.findFirstByUserIdOrderByIdDesc(userId)
+                .filter(connection -> connection.getStatus() == OpenFinanceConnectionStatus.AUTHORISED)
+                .ifPresent(connection -> {
+                    connection.reject(ended.getRejectedBy(), ended.getReason(), clock.instant());
+                    connectionRepository.save(connection);
+                });
+        importService.purge(userId);
     }
 
     /** The authorised connection, or 428 asking to connect again. Only reads; {@link #expireIfDue} writes. */

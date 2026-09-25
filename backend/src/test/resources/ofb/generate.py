@@ -59,6 +59,7 @@ TARGETS = {
                   'OKResponseCreditCardAccountsLimits', 'OKResponseCreditCardAccountsTransactions'],
     'loans.yml': ['OKResponseLoansContractList', 'OKResponseLoansContract', 'OKResponseLoansInstalments', 'OKResponseLoansPayments'],
     'resources.yml': ['OKResponseResourceList'],
+    'consents.yml': ['200ConsentsConsentIdRead'],
 
 }
 

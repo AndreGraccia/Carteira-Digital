@@ -46,7 +46,24 @@ public final class FutureResponses {
             boolean untilHorizon,
             List<Event> causes,
             Event relief,
-            BigDecimal overdraftCostCap
+            BigDecimal overdraftCostCap,
+            OverdraftEstimate overdraftEstimate
+    ) {
+    }
+
+    /**
+     * Estimated overdraft cost of a window: interest at the bank's rate (source BANK), the market median (MARKET)
+     * or the legal cap (LEGAL_CAP), plus IOF. {@code monthlyRate} in percent; {@code referenceDate} is the start of
+     * the Banco Central week the rate comes from.
+     */
+    public record OverdraftEstimate(
+            BigDecimal interest,
+            BigDecimal iof,
+            BigDecimal total,
+            BigDecimal monthlyRate,
+            String source,
+            String institution,
+            LocalDate referenceDate
     ) {
     }
 

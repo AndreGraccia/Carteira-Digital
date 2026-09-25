@@ -28,6 +28,7 @@ import com.github.yildizmy.service.future.DailySpending;
 import com.github.yildizmy.service.future.ExitPlan;
 import com.github.yildizmy.service.future.LoanCost;
 import com.github.yildizmy.service.future.LoanPlan;
+import com.github.yildizmy.service.future.OverdraftCost;
 import com.github.yildizmy.service.future.ProjectionEngine;
 import com.github.yildizmy.service.future.QuestionParser;
 import com.github.yildizmy.service.future.RecurrenceDetector;
@@ -37,6 +38,7 @@ import com.github.yildizmy.service.future.RecurrenceDetector.Movement;
 import com.github.yildizmy.service.future.RecurrenceDetector.RecurrencePattern;
 import com.github.yildizmy.service.future.ScenarioSimulator;
 import com.github.yildizmy.service.future.SpendingLimit;
+import com.github.yildizmy.service.market.MarketRatesService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,6 +89,7 @@ public class FutureService {
     private final GoalRepository goalRepository;
     private final EnvelopeRepository envelopeRepository;
     private final UserService userService;
+    private final MarketRatesService marketRates;
     private final Clock clock;
 
     public FutureService(
@@ -98,6 +101,7 @@ public class FutureService {
             GoalRepository goalRepository,
             EnvelopeRepository envelopeRepository,
             UserService userService,
+            MarketRatesService marketRates,
             Clock clock) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
@@ -107,6 +111,7 @@ public class FutureService {
         this.goalRepository = goalRepository;
         this.envelopeRepository = envelopeRepository;
         this.userService = userService;
+        this.marketRates = marketRates;
         this.clock = clock;
     }
 
@@ -136,7 +141,7 @@ public class FutureService {
                 context.balance(),
                 context.balance().subtract(committed.total()).subtract(context.reserved()),
                 committed,
-                toResponse(projection, horizonDays),
+                toResponse(projection, horizonDays, marketRates.overdraftRate(userId)),
                 new FutureResponses.Sources(
                         context.wallets().size(),
                         context.cards().size(),
@@ -329,6 +334,7 @@ public class FutureService {
                 request.label()
         );
         ScenarioSimulator.Outcome outcome = ScenarioSimulator.apply(scenario, context.today(), end, baseline, context.cardPlans());
+        OverdraftCost.Rate overdraftRate = marketRates.overdraftRate(userId);
         ProjectionEngine.Projection before = ProjectionEngine.project(context.today(), context.balance(), baseline, SCENARIO_HORIZON_DAYS);
         ProjectionEngine.Projection after = ProjectionEngine.project(context.today(), context.balance(), outcome.events(), SCENARIO_HORIZON_DAYS);
         return new FutureResponses.ScenarioResult(
@@ -337,8 +343,8 @@ public class FutureService {
                 outcome.newMonthlyCommitment(),
                 outcome.installments(),
                 outcome.cardName(),
-                toResponse(before, SCENARIO_HORIZON_DAYS),
-                toResponse(after, SCENARIO_HORIZON_DAYS)
+                toResponse(before, SCENARIO_HORIZON_DAYS, overdraftRate),
+                toResponse(after, SCENARIO_HORIZON_DAYS, overdraftRate)
         );
     }
 
@@ -752,7 +758,8 @@ public class FutureService {
         );
     }
 
-    private FutureResponses.Projection toResponse(ProjectionEngine.Projection projection, int horizonDays) {
+    private FutureResponses.Projection toResponse(ProjectionEngine.Projection projection, int horizonDays,
+                                                  OverdraftCost.Rate overdraftRate) {
         return new FutureResponses.Projection(
                 horizonDays,
                 projection.openingBalance(),
@@ -772,10 +779,17 @@ public class FutureService {
                                 window.untilHorizon(),
                                 toEvents(window.causes()),
                                 window.relief() == null ? null : toResponse(window.relief()),
-                                window.overdraftCostCap()))
+                                window.overdraftCostCap(),
+                                overdraft(OverdraftCost.estimate(window.overdraftCostCap(), window.lowestBalance(), overdraftRate))))
                         .toList(),
                 toEvents(projection.events())
         );
+    }
+
+    private static FutureResponses.OverdraftEstimate overdraft(OverdraftCost.Estimate estimate) {
+        OverdraftCost.Rate rate = estimate.rate();
+        return new FutureResponses.OverdraftEstimate(estimate.interest(), estimate.iof(), estimate.total(),
+                rate.monthlyPercent(), rate.source().name(), rate.institution(), rate.referenceDate());
     }
 
     /**

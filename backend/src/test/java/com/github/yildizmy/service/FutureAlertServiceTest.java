@@ -68,6 +68,22 @@ class FutureAlertServiceTest {
     }
 
     @Test
+    void theEmailUsesTheBanksRateWhenBancoCentralHasItAndKeepsTheCapAsTheCeiling() {
+        FutureResponses.RiskWindow capped = window();
+        FutureResponses.RiskWindow estimated = new FutureResponses.RiskWindow(capped.start(), capped.end(),
+                capped.lowestBalance(), capped.lowestDate(), false, List.of(), capped.relief(), capped.overdraftCostCap(),
+                new FutureResponses.OverdraftEstimate(new BigDecimal("1.29"), new BigDecimal("1.29"), new BigDecimal("2.58"),
+                        new BigDecimal("6.12"), "BANK", "BANCO AURORA S.A.", LocalDate.of(2026, 9, 4)));
+
+        String body = FutureAlertService.body("Ana", estimated, limit(), "http://localhost:3000");
+
+        assertTrue(body.contains("cerca de R$"));
+        assertTrue(body.contains("2,58"));
+        assertTrue(body.contains("6,12% ao mês, a taxa do seu banco"));
+        assertTrue(body.contains("No teto legal, os juros chegariam a R$"));
+    }
+
+    @Test
     void oneUsersFailureDoesNotStopTheOthers() {
         FutureAlert broken = alert(1L);
         FutureAlert ok = alert(2L);
@@ -183,7 +199,7 @@ class FutureAlertServiceTest {
         FutureResponses.Event salary = new FutureResponses.Event(LocalDate.of(2026, 10, 5), new BigDecimal("4200.00"),
                 "Concentrix S.A.", "INCOME", "SALARY", "ESTIMATED", "Banco Aurora", "in:concentrix", null, null, null);
         return new FutureResponses.RiskWindow(START, START.plusDays(1), new BigDecimal("-324.87"), START, false,
-                List.of(), salary, new BigDecimal("1.67"));
+                List.of(), salary, new BigDecimal("1.67"), null);
     }
 
     private static FutureResponses.SpendingLimit limit() {

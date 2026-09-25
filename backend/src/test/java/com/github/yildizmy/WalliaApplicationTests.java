@@ -38,6 +38,9 @@ class WalliaApplicationTests {
     private MockMvc mvc;
     @Autowired
     private UserRepository users;
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
     private final ObjectMapper json = new ObjectMapper();
 
     @DynamicPropertySource
@@ -50,6 +53,8 @@ class WalliaApplicationTests {
         registry.add("app.open-finance.mode", () -> "contract-sandbox");
         registry.add("app.open-finance.daily-sync-cron", () -> "-");
         registry.add("app.future.alert-cron", () -> "-");
+        registry.add("app.market.refresh-cron", () -> "-");
+        registry.add("app.market.refresh-on-startup", () -> "false");
         registry.add("spring.mail.port", () -> "1");
         registry.add("app.push.public-key", () -> "");
         registry.add("app.push.private-key", () -> "");
@@ -58,6 +63,22 @@ class WalliaApplicationTests {
     @Test
     void protectedRoutesNeedAToken() throws Exception {
         mvc.perform(get("/api/v1/future/overview")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void marketDataReadsTheStoredBancoCentralRatesAndTheRiskWindowSaysWhereItsRateCameFrom() throws Exception {
+        mvc.perform(get("/api/v1/market/overview")).andExpect(status().isUnauthorized());
+        jdbc.update("INSERT INTO market_rate (modality, period_start, period_end, cnpj8, institution, monthly_rate, annual_rate)"
+                + " VALUES ('OVERDRAFT', DATE '2099-01-05', DATE '2099-01-12', '00000001', 'BANCO TESTE', 2.5, 34.49)"
+                + " ON CONFLICT DO NOTHING");
+        Session ana = verifiedUser("10.5.0.1");
+
+        mvc.perform(auth(ana, get("/api/v1/market/overview")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rates[0].modality").value("OVERDRAFT"))
+                .andExpect(jsonPath("$.rates[0].periodStart").value("2099-01-05"))
+                .andExpect(jsonPath("$.rates[0].median").value(2.5));
+        mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isOk());
     }
 
     @Test

@@ -103,6 +103,11 @@ app:
     public-key: ${vapid_public_key:}
     private-key: ${vapid_private_key:}
     subject: ${vapid_subject:mailto:no-reply@wallia.local}
+  market:
+    # Banco Central rates and indicators (ADR 0010), fetched daily before the sync and the alerts. "-" disables.
+    refresh-cron: ${market_refresh_cron:0 0 6 * * *}
+    # Fetch once at startup when the table is empty.
+    refresh-on-startup: ${market_refresh_on_startup:true}
   open-finance:
     # Daily sync of every authorised connection, before the 8h alerts, so alerts and the accuracy score
     # read today's balance. "-" disables the job.

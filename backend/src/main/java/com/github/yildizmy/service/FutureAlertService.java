@@ -169,10 +169,17 @@ public class FutureAlertService {
 
     static String body(String firstName, FutureResponses.RiskWindow window, FutureResponses.SpendingLimit limit, String url) {
         NumberFormat currency = NumberFormat.getCurrencyInstance(PT_BR);
-        String cost = window.overdraftCostCap() != null && window.overdraftCostCap().signum() > 0
-                ? "\nSe o banco cobrir com cheque especial, os juros podem chegar a %s (teto legal de 8%% ao mês)."
+        String cost = window.overdraftCostCap() == null || window.overdraftCostCap().signum() <= 0 ? ""
+                : window.overdraftEstimate() == null || "LEGAL_CAP".equals(window.overdraftEstimate().source())
+                ? "\nSe o banco cobrir com cheque especial, os juros podem chegar a %s (teto legal de 8%% ao mês), mais IOF."
                         .formatted(currency.format(window.overdraftCostCap()))
-                : "";
+                : ("\nSe o banco cobrir com cheque especial, deve custar cerca de %s (juros de %s%% ao mês, %s, mais IOF)."
+                        + " No teto legal, os juros chegariam a %s.")
+                        .formatted(currency.format(window.overdraftEstimate().total()),
+                                NumberFormat.getNumberInstance(PT_BR).format(window.overdraftEstimate().monthlyRate()),
+                                "BANK".equals(window.overdraftEstimate().source())
+                                        ? "a taxa do seu banco no Banco Central" : "a mediana dos bancos no Banco Central",
+                                currency.format(window.overdraftCostCap()));
         String relief = window.relief() == null ? ""
                 : "\nA próxima entrada prevista é %s, em %s.".formatted(window.relief().label(), window.relief().date().format(DAY));
         // The limit keeps the envelopes out; the e-mail talks about the bank balance, so envelopes come back in.

@@ -14,6 +14,12 @@ public final class FutureResponses {
     private FutureResponses() {
     }
 
+    /**
+     * @param labelKey  set when the label is text the system wrote (not a counterparty or a name the user typed), so
+     *                  the UI translates it: DAILY_SPENDING, CARD_SPENDING, SCENARIO_PURCHASE, SCENARIO_SAVING,
+     *                  TRANSFER_SENT, TRANSFER_RECEIVED, DEPOSIT, WITHDRAWAL
+     * @param originKey same for the origin: GOAL, USER_VALUE, AVERAGE_DAYS (with {@code originDays})
+     */
     public record Event(
             LocalDate date,
             BigDecimal amount,
@@ -22,7 +28,10 @@ public final class FutureResponses {
             String category,
             String certainty,
             String origin,
-            String reference
+            String reference,
+            String labelKey,
+            String originKey,
+            Integer originDays
     ) {
     }
 
@@ -232,9 +241,11 @@ public final class FutureResponses {
     /**
      * @param status PENDING (question not answered), CONFIRMED or REJECTED
      */
+    /** @param counterpartyKey as {@link Event#labelKey()}, when the counterparty is system text (TRANSFER_SENT...) */
     public record Recurrence(
             String key,
             String counterparty,
+            String counterpartyKey,
             String direction,
             String accountName,
             String institution,
@@ -268,7 +279,10 @@ public final class FutureResponses {
             BigDecimal committedLimit,
             int closingDay,
             int dueDay,
-            List<Invoice> invoices
+            List<Invoice> invoices,
+            LocalDate nextBillDueDate,
+            BigDecimal nextBillTotal,
+            BigDecimal nextBillMinimum
     ) {
     }
 
@@ -287,7 +301,8 @@ public final class FutureResponses {
             BigDecimal annualRate,
             Instant lastSyncedAt,
             BigDecimal interestRemaining,
-            BigDecimal nextInstallmentInterest
+            BigDecimal nextInstallmentInterest,
+            BigDecimal cet
     ) {
     }
 

@@ -181,7 +181,7 @@ class FutureAlertServiceTest {
 
     private static FutureResponses.RiskWindow window() {
         FutureResponses.Event salary = new FutureResponses.Event(LocalDate.of(2026, 10, 5), new BigDecimal("4200.00"),
-                "Concentrix S.A.", "INCOME", "SALARY", "ESTIMATED", "Banco Aurora", "in:concentrix");
+                "Concentrix S.A.", "INCOME", "SALARY", "ESTIMATED", "Banco Aurora", "in:concentrix", null, null, null);
         return new FutureResponses.RiskWindow(START, START.plusDays(1), new BigDecimal("-324.87"), START, false,
                 List.of(), salary, new BigDecimal("1.67"));
     }

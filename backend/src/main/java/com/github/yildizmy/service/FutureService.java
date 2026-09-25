@@ -225,6 +225,7 @@ public class FutureService {
             return new FutureResponses.Recurrence(
                     pattern.key(),
                     pattern.counterparty(),
+                    LabelKeys.label(pattern.counterparty()),
                     pattern.direction().name(),
                     pattern.accountName(),
                     pattern.institution(),
@@ -295,7 +296,8 @@ public class FutureService {
                             LoanCost.interestRemaining(loan.getAmortizationSystem(), loan.getInstallmentAmount(),
                                     plan.remainingInstallments(), loan.getOutstandingBalance(), loan.getAnnualRate()),
                             LoanCost.nextInstallmentInterest(loan.getOutstandingBalance(), loan.getAnnualRate(),
-                                    loan.getInstallmentAmount())
+                                    loan.getInstallmentAmount()),
+                            loan.getCet()
                     );
                 })
                 .toList();
@@ -743,7 +745,10 @@ public class FutureService {
                 committedLimit,
                 card.getClosingDay(),
                 card.getDueDay(),
-                invoices
+                invoices,
+                card.getNextBillDueDate(),
+                card.getNextBillTotal(),
+                card.getNextBillMinimum()
         );
     }
 
@@ -793,7 +798,10 @@ public class FutureService {
                     last.category(),
                     last.certainty().name(),
                     last.origin(),
-                    DAILY_SPENDING_KEY + ":" + daily.size()));
+                    DAILY_SPENDING_KEY + ":" + daily.size(),
+                    LabelKeys.label(last.label()),
+                    LabelKeys.origin(last.origin()),
+                    LabelKeys.originDays(last.origin())));
             mapped.sort(Comparator.comparing(FutureResponses.Event::date));
         }
         return mapped;
@@ -808,8 +816,49 @@ public class FutureService {
                 event.category(),
                 event.certainty().name(),
                 event.origin(),
-                event.reference()
+                event.reference(),
+                LabelKeys.label(event.label()),
+                LabelKeys.origin(event.origin()),
+                LabelKeys.originDays(event.origin())
         );
+    }
+
+    /**
+     * Codes for the texts the engine writes itself, so the UI shows them in the viewer's language (the Portuguese
+     * text stays in {@code label}/{@code origin} for the e-mail and for older clients). Counterparties and names the
+     * user typed have no code: they are data, not interface text.
+     */
+    static final class LabelKeys {
+        private static final Map<String, String> LABELS = Map.of(
+                "Gastos do dia a dia", "DAILY_SPENDING",
+                "Compras do dia a dia no cartão", "CARD_SPENDING",
+                "Compra simulada", "SCENARIO_PURCHASE",
+                "Guardar todo mês", "SCENARIO_SAVING",
+                "Transferência enviada", "TRANSFER_SENT",
+                "Transferência recebida", "TRANSFER_RECEIVED",
+                "Depósito", "DEPOSIT",
+                "Retirada", "WITHDRAWAL");
+        private static final java.util.regex.Pattern AVERAGE = java.util.regex.Pattern.compile("Média dos últimos (\\d+) dias");
+
+        private LabelKeys() {
+        }
+
+        static String label(String text) {
+            return text == null ? null : LABELS.get(text);
+        }
+
+        static String origin(String text) {
+            if (text == null) return null;
+            if (text.equals("Meta")) return "GOAL";
+            if (text.equals("Valor informado")) return "USER_VALUE";
+            return AVERAGE.matcher(text).matches() ? "AVERAGE_DAYS" : null;
+        }
+
+        static Integer originDays(String text) {
+            if (text == null) return null;
+            var matcher = AVERAGE.matcher(text);
+            return matcher.matches() ? Integer.valueOf(matcher.group(1)) : null;
+        }
     }
 
     private FutureResponses.ScenarioSummary summary(ProjectionEngine.Projection projection) {

@@ -39,4 +39,15 @@ class FutureScheduledTest {
     private static CashEvent event(LocalDate date, String amount, String label, Certainty certainty) {
         return new CashEvent(date, new BigDecimal(amount), label, Kind.RECURRING_EXPENSE, "BILL", certainty, "Banco", label);
     }
+
+    @Test
+    void systemTextGetsACodeAndDataDoesNot() {
+        assertEquals("DAILY_SPENDING", FutureService.LabelKeys.label("Gastos do dia a dia"));
+        assertEquals("TRANSFER_SENT", FutureService.LabelKeys.label("Transferência enviada"));
+        assertEquals(null, FutureService.LabelKeys.label("Concentrix S.A."), "a counterparty is data");
+        assertEquals("AVERAGE_DAYS", FutureService.LabelKeys.origin("Média dos últimos 90 dias"));
+        assertEquals(90, FutureService.LabelKeys.originDays("Média dos últimos 90 dias"));
+        assertEquals("GOAL", FutureService.LabelKeys.origin("Meta"));
+        assertEquals(null, FutureService.LabelKeys.origin("Banco Aurora Sandbox"));
+    }
 }

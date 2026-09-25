@@ -139,13 +139,14 @@ export default function DashboardLayout() {
           >
             <Container maxWidth="lg">
               <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ minHeight: 76 }}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Box sx={{ display: { lg: 'none' } }}>
+                {/* At 375 px logo + chip + language + avatar do not fit: the chip gives way (ellipsis). */}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                  <Box sx={{ display: { lg: 'none' }, flexShrink: 0 }}>
                     <WalliaLogo size={28} />
                   </Box>
-                  <Chip size="small" label={t('app.demo')} sx={{ bgcolor: 'background.neutral' }} />
+                  <Chip size="small" label={t('app.demo')} sx={{ bgcolor: 'background.neutral', minWidth: 0 }} />
                 </Stack>
-                <Stack direction="row" spacing={1.5} alignItems="center">
+                <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} alignItems="center" sx={{ flexShrink: 0 }}>
                   <LanguageSelector />
                   <Tooltip title={t('common.account')}>
                     <IconButton

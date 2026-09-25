@@ -27,5 +27,5 @@ Continuam abertos, de propósito:
 
 - Um dump do banco não revela mais com quem a pessoa troca dinheiro.
 - Perder a chave torna as descrições ilegíveis, sem conserto. A chave deve ficar no cofre de segredos do deploy, fora do `.env` versionado.
-- Não há rotação de chave. Quando for necessária, o prefixo ganha um identificador (`enc:v2:<id>:`) e a leitura aceita as duas chaves durante a troca.
+- Não há rotação de chave. Quando for necessária, o prefixo ganha um identificador (`enc:v2:<id>:`) e a leitura aceita as duas chaves durante a troca. **Feito no ADR 0016.**
 - O `WalliaApplicationTests` confere, contra o PostgreSQL, que o banco guarda `enc:v1:` e que a API devolve o texto.

@@ -71,6 +71,60 @@ class FieldCipherTest {
     }
 
     @Test
+    void newValuesCarryTheIdOfTheKeyThatWroteThem() {
+        FieldCipher.use(KEY);
+        String stored = FieldCipher.encrypt("Aluguel");
+
+        assertTrue(stored.startsWith("enc:v2:"), stored);
+        assertTrue(FieldCipher.isCurrent(stored));
+        assertFalse(FieldCipher.isCurrent("Aluguel"), "clear text still needs encrypting");
+    }
+
+    @Test
+    void afterARotationOldValuesStillReadAndAreFlaggedForRewriting() {
+        FieldCipher.use(KEY);
+        String underOldKey = FieldCipher.encrypt("Pix recebido Marina Souza");
+
+        FieldCipher.use(OTHER_KEY, KEY);
+
+        assertEquals("Pix recebido Marina Souza", FieldCipher.decrypt(underOldKey));
+        assertFalse(FieldCipher.isCurrent(underOldKey));
+        String rewritten = FieldCipher.encrypt(FieldCipher.decrypt(underOldKey));
+        assertTrue(FieldCipher.isCurrent(rewritten));
+        FieldCipher.use(OTHER_KEY);
+        assertEquals("Pix recebido Marina Souza", FieldCipher.decrypt(rewritten), "the old key can now be retired");
+    }
+
+    @Test
+    void v1ValuesFromBeforeKeyIdsAreReadWithAnyConfiguredKey() {
+        String v1 = FieldCipher.PREFIX_V1 + "AAAAAAAAAAAAAAAA";
+        FieldCipher.use(KEY);
+        // Same payload as v2 (iv | ciphertext | tag), only without the key id: what V30 wrote.
+        String v2 = FieldCipher.encrypt("Netflix");
+        String realV1 = FieldCipher.PREFIX_V1 + v2.substring(v2.lastIndexOf(':') + 1);
+
+        FieldCipher.use(OTHER_KEY, KEY);
+
+        assertEquals("Netflix", FieldCipher.decrypt(realV1));
+        assertFalse(FieldCipher.isCurrent(realV1));
+        assertThrows(IllegalStateException.class, () -> FieldCipher.decrypt(v1), "no key opens it: error, not garbage");
+    }
+
+    @Test
+    void aValueFromAnUnknownKeyIsAnError() {
+        FieldCipher.use(KEY);
+        String stored = FieldCipher.encrypt("Escola");
+        FieldCipher.use(OTHER_KEY);
+
+        assertThrows(IllegalStateException.class, () -> FieldCipher.decrypt(stored));
+    }
+
+    @Test
+    void aMalformedPreviousKeyStopsTheStartup() {
+        assertThrows(IllegalStateException.class, () -> FieldCipher.use(KEY, "não é base64"));
+    }
+
+    @Test
     void aMalformedKeyStopsTheStartup() {
         assertThrows(IllegalStateException.class, () -> FieldCipher.use("não é base64"));
         assertThrows(IllegalStateException.class, () -> FieldCipher.use(Base64.getEncoder().encodeToString(new byte[16])));

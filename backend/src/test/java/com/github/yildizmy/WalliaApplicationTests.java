@@ -56,6 +56,7 @@ class WalliaApplicationTests {
         registry.add("app.future.alert-cron", () -> "-");
         registry.add("app.market.refresh-cron", () -> "-");
         registry.add("app.retention.cron", () -> "-");
+        registry.add("app.security.rotation-cron", () -> "-");
         registry.add("app.market.refresh-on-startup", () -> "false");
         registry.add("spring.mail.port", () -> "1");
         registry.add("app.push.public-key", () -> "");
@@ -129,7 +130,7 @@ class WalliaApplicationTests {
         // What the API shows in clear is stored encrypted (ADR 0014).
         String stored = jdbc.queryForObject("SELECT t.description FROM transaction t JOIN wallet w ON w.id = t.to_wallet_id "
                 + "WHERE w.user_id = ? AND t.description IS NOT NULL LIMIT 1", String.class, ana.id());
-        assertTrue(stored.startsWith("enc:v1:"), stored);
+        assertTrue(stored.startsWith("enc:v2:"), stored);
         assertTrue(page.path("content").get(0).path("description").asText().length() < stored.length());
         assertTrue(page.path("page").path("totalElements").asInt() > 5, "the sandbox imports months of history");
 
@@ -237,10 +238,41 @@ class WalliaApplicationTests {
         assertTrue(export.path("transactions").get(0).path("created_at").asText().matches("\\d{4}-\\d{2}-\\d{2}T.*"),
                 "dates as ISO text, not epoch numbers");
         // Descriptions are stored encrypted but the person gets them in clear; secrets never leave.
-        assertTrue(!text.contains("enc:v1:"), "descriptions decrypted");
+        assertTrue(!text.contains("enc:"), "descriptions decrypted");
         for (String secret : java.util.List.of("\"password\"", "code_hash", "p256dh", "\"auth\"", "tokens_valid_after")) {
             assertTrue(!text.contains(secret), secret);
         }
+    }
+
+    @Autowired
+    private com.github.yildizmy.service.EncryptionRotationService rotation;
+
+    @Test
+    void rotationRewritesClearTextAndOlderFormatsUnderTheCurrentKey() throws Exception {
+        Session ana = verifiedUser("10.8.0.1");
+        JsonNode consent = body(mvc.perform(auth(ana, post("/api/v1/open-finance/connection")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"months\":6}"))).andExpect(status().isCreated()));
+        mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"consentId\":\"" + consent.path("consentId").asText() + "\"}"))).andExpect(status().isOk());
+        java.util.List<Long> ids = jdbc.queryForList("SELECT t.id FROM transaction t JOIN wallet w ON w.id = t.to_wallet_id "
+                + "WHERE w.user_id = ? ORDER BY t.id LIMIT 2", Long.class, ana.id());
+        // One row from before encryption existed, one in the V30 format without a key id.
+        jdbc.update("UPDATE transaction SET description = 'Texto antigo' WHERE id = ?", ids.get(0));
+        String current = com.github.yildizmy.security.FieldCipher.encrypt("Formato v1");
+        jdbc.update("UPDATE transaction SET description = ? WHERE id = ?",
+                "enc:v1:" + current.substring(current.lastIndexOf(':') + 1), ids.get(1));
+
+        var result = rotation.rewrite();
+
+        assertTrue(result.rewritten() >= 2, result.toString());
+        assertEquals(0, result.failed());
+        for (long id : ids) {
+            String stored = jdbc.queryForObject("SELECT description FROM transaction WHERE id = ?", String.class, id);
+            assertTrue(com.github.yildizmy.security.FieldCipher.isCurrent(stored), stored);
+        }
+        assertEquals(java.util.List.of("Texto antigo", "Formato v1"), ids.stream().map(id -> com.github.yildizmy.security.FieldCipher
+                .decrypt(jdbc.queryForObject("SELECT description FROM transaction WHERE id = ?", String.class, id))).toList());
+        assertEquals(0, rotation.rewrite().rewritten(), "a second run has nothing left to do");
     }
 
     @Autowired

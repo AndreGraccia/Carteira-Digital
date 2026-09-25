@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import HttpService from '../../services/HttpService';
 import { StatBlock } from '../../components/future-ui';
 import { EmptyState, PageHeading, PageSkeleton, SectionCard } from '../../components/wallet-ui';
-import { dayLabel, errorKey, money, monthLabel, subtractMoney } from '../../utils/wallet';
+import { dayLabel, errorKey, money, monthLabel, percent, subtractMoney } from '../../utils/wallet';
 
 const FULL_DATE = { day: '2-digit', month: 'short', year: 'numeric' };
 
@@ -103,7 +103,10 @@ function Invoice({ invoice }) {
 }
 Invoice.propTypes = { invoice: PropTypes.object.isRequired };
 
-function CardSection({ card }) {
+/** Yearly rate in percent (26.8) to its compound monthly equivalent in percent (1.99). */
+export const monthlyFromAnnual = (annual) => ((1 + Number(annual) / 100) ** (1 / 12) - 1) * 100;
+
+function CardSection({ card, revolving }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const used = Number(card.committedLimit);
@@ -123,6 +126,23 @@ function CardSection({ card }) {
               amount: money(next.total, lang),
               month: monthLabel(next.month, lang),
             })}
+          </Alert>
+        )}
+        {card.nextBillMinimum != null && Number(card.nextBillTotal) > 0 && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            {t('commitments.minimum', {
+              total: money(card.nextBillTotal, lang),
+              date: dayLabel(card.nextBillDueDate, lang, FULL_DATE),
+              minimum: money(card.nextBillMinimum, lang),
+            })}
+            {revolving &&
+              ` ${t('commitments.revolvingRate', {
+                source: revolving.bankRate
+                  ? t('commitments.revolvingBank', { institution: revolving.bankName })
+                  : t('commitments.revolvingMarket'),
+                rate: percent(revolving.bankRate ?? revolving.median, lang),
+                date: dayLabel(revolving.periodStart, lang),
+              })}`}
           </Alert>
         )}
         {/* A zero limit (allowed by V11) would print "250000%"; show only what is used. */}
@@ -156,9 +176,9 @@ function CardSection({ card }) {
     </SectionCard>
   );
 }
-CardSection.propTypes = { card: PropTypes.object.isRequired };
+CardSection.propTypes = { card: PropTypes.object.isRequired, revolving: PropTypes.object };
 
-function LoanSection({ loan }) {
+function LoanSection({ loan, market }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const paidShare = (loan.installmentsPaid / (loan.installmentsTotal || 1)) * 100;
@@ -219,6 +239,20 @@ function LoanSection({ loan }) {
             })}`}
         </Typography>
       </Stack>
+      {loan.cet != null && (
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5 }}>
+          {t('commitments.cet', { rate: Number(loan.cet).toLocaleString(lang, { maximumFractionDigits: 2 }) })}
+        </Typography>
+      )}
+      {market && loan.annualRate != null && (
+        <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 0.5 }}>
+          {t('commitments.marketLoan', {
+            rate: percent(monthlyFromAnnual(loan.annualRate), lang),
+            median: percent(market.median, lang),
+            date: dayLabel(market.periodStart, lang),
+          })}
+        </Typography>
+      )}
       {/* What the money costs: the fee transparency investment apps show, turned toward the one who owes. */}
       {(loan.nextInstallmentInterest != null || Number(loan.interestRemaining) > 0) && (
         <Box sx={{ mt: 2.5, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
@@ -250,11 +284,14 @@ function LoanSection({ loan }) {
     </Card>
   );
 }
-LoanSection.propTypes = { loan: PropTypes.object.isRequired };
+LoanSection.propTypes = { loan: PropTypes.object.isRequired, market: PropTypes.object };
 
 export default function Commitments() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const [state, setState] = useState({ loading: true, error: null, data: null });
+  // Banco Central references are extra context: without them the page is still whole.
+  const [market, setMarket] = useState(null);
 
   const load = useCallback(async () => {
     // "Try again" must visibly start over, not look dead until the answer arrives.
@@ -269,9 +306,13 @@ export default function Commitments() {
 
   useEffect(() => {
     load();
+    HttpService.getWithAuth('/market/overview')
+      .then(setMarket)
+      .catch(() => setMarket(null));
   }, [load]);
 
   const { data } = state;
+  const rate = (modality) => market?.rates?.find((quote) => quote.modality === modality) || null;
   const empty = data && !data.cards.length && !data.loans.length;
   return (
     <>
@@ -316,7 +357,7 @@ export default function Commitments() {
                 </Typography>
                 <Stack spacing={3}>
                   {data.cards.map((card) => (
-                    <CardSection key={card.id} card={card} />
+                    <CardSection key={card.id} card={card} revolving={rate('CARD_REVOLVING')} />
                   ))}
                 </Stack>
               </Box>
@@ -328,10 +369,30 @@ export default function Commitments() {
                 </Typography>
                 <Stack spacing={3}>
                   {data.loans.map((loan) => (
-                    <LoanSection key={loan.id} loan={loan} />
+                    <LoanSection key={loan.id} loan={loan} market={rate('PERSONAL_LOAN')} />
                   ))}
                 </Stack>
               </Box>
+            )}
+            {market?.indicators?.length > 0 && (
+              <Card component="section" aria-labelledby="bcb-indicators" sx={{ p: 3 }}>
+                <Typography id="bcb-indicators" variant="h6" component="h2">
+                  {t('commitments.indicatorsTitle')}
+                </Typography>
+                <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                  {market.indicators.map((indicator) => (
+                    <Grid item xs={12} sm={4} key={indicator.code}>
+                      <StatBlock
+                        label={t(`commitments.indicators.${indicator.code}`, { defaultValue: indicator.code })}
+                        value={percent(indicator.value, lang)}
+                        help={t('commitments.indicatorDate', {
+                          date: dayLabel(indicator.referenceDate, lang, FULL_DATE),
+                        })}
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
+              </Card>
             )}
           </Stack>
         )}

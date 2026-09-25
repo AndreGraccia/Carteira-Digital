@@ -784,6 +784,21 @@ const resources = {
         contracted: 'Valor contratado',
         rate: 'Taxa informada',
         rateValue: '{{rate}}% ao ano',
+        cet: 'CET (custo total): {{rate}}% ao ano',
+        marketLoan:
+          'Referência: seu contrato equivale a {{rate}} ao mês; a mediana do crédito pessoal não consignado no Banco Central é {{median}} ao mês (semana de {{date}}).',
+        minimum:
+          'A fatura de {{total}} vence em {{date}}. O mínimo é {{minimum}}: pagar só ele leva o resto para o rotativo, e os encargos do rotativo não podem passar de 100% da dívida (Lei 14.690/2023).',
+        revolvingRate: 'No Banco Central, o rotativo {{source}} está em {{rate}} ao mês (semana de {{date}}).',
+        revolvingBank: 'do {{institution}}',
+        revolvingMarket: 'dos bancos (mediana)',
+        indicatorsTitle: 'Referências do Banco Central',
+        indicators: {
+          CDI: 'CDI ao ano',
+          SELIC: 'Selic meta',
+          IPCA_12M: 'Inflação (IPCA 12 meses)',
+        },
+        indicatorDate: 'dado de {{date}}',
         progressLabel: 'Parcelas pagas',
       },
       navigation: {
@@ -1710,6 +1725,21 @@ const resources = {
         contracted: 'Contracted amount',
         rate: 'Reported rate',
         rateValue: '{{rate}}% per year',
+        cet: 'Total effective cost (CET): {{rate}}% per year',
+        marketLoan:
+          'Reference: your contract is {{rate}} a month; the median unsecured personal loan at Banco Central is {{median}} a month (week of {{date}}).',
+        minimum:
+          'The {{total}} bill is due on {{date}}. The minimum is {{minimum}}: paying only that moves the rest to revolving credit, whose charges cannot exceed 100% of the debt (Law 14.690/2023).',
+        revolvingRate: 'At Banco Central, revolving credit {{source}} is {{rate}} a month (week of {{date}}).',
+        revolvingBank: 'at {{institution}}',
+        revolvingMarket: 'across banks (median)',
+        indicatorsTitle: 'Banco Central references',
+        indicators: {
+          CDI: 'CDI per year',
+          SELIC: 'Selic target',
+          IPCA_12M: 'Inflation (IPCA, 12 months)',
+        },
+        indicatorDate: 'as of {{date}}',
         progressLabel: 'Instalments paid',
       },
       navigation: {

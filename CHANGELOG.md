@@ -2,6 +2,33 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 25/09/2026 (tarde): Sprint 9, sem rede externa
+
+### Novo
+- Tela "Privacidade e dados": o que a Wall.ia guarda e para quê, o que vai para a IA (só totais por mês, e só com chave do Gemini) e o botão de excluir a conta.
+- Excluir a conta (`POST /api/v1/account/delete`, com a senha). Apaga o que é só da pessoa e anonimiza o cadastro. As transferências continuam no extrato de quem recebeu, sem o nome de quem saiu (ADR 0012).
+- Metas mostram quanto 12 meses viram a 100% do CDI, antes do IR, e quanto isso vale descontada a inflação, com a data do Banco Central.
+- No celular, a tela Futuro recolhe as perguntas já respondidas, o Simulador e as Metas em uma linha cada. A resposta principal continua aberta.
+- Análises diz na própria tela que conta pela data em que o dinheiro se moveu: a compra no cartão entra no dia em que a fatura é paga (ADR 0011).
+
+### Corrigido
+- Apagar uma carteira ou um tipo não leva mais junto as transações da contraparte (tirado o `CascadeType.ALL`).
+- Páginas da API no formato estável do Spring (`page.totalPages`). O aviso "Serializing PageImpl instances as-is" sumiu.
+- Portas padrão 8082 (API) e 3001 (tela), sem disputar 8080 e 3000 com outros projetos.
+
+### Testes
+- Um teste varre todos os controllers e falha se um endpoint com id na URL não conferir quem pede.
+- `@WebMvcTest` do extrato com a cadeia de segurança real: 401 sem token, 403 para outro usuário, dono com teto de página.
+- Exclusão de conta: senha errada não apaga nada; nenhuma instrução apaga `transaction` nem a linha do usuário.
+
+### Documentação
+- Guia do desenvolvedor e roteiro de teste com o cadastro por código, o consentimento Open Finance, o Banco Central e o teste de integração.
+- Trilha de estudos: laboratórios cadastram e confirmam o e-mail pelo Mailpit.
+
+### Verificado
+- Backend: 290 testes, 0 falhas, 14 pulados (precisam de PostgreSQL; o Docker não estava disponível).
+- Frontend: 61 testes, lint, paridade PT/EN (765 chaves) e build.
+
 ## 25/09/2026: dados do Banco Central e fechamento das sprints 4 a 7
 
 ### Novo

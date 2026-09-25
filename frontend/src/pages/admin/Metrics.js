@@ -26,7 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { useSnackbar } from 'notistack';
 import HttpService from '../../services/HttpService';
 import { StatBlock } from '../../components/future-ui';
-import { PageHeading, SectionCard } from '../../components/wallet-ui';
+import { PageHeading, PageSkeleton, SectionCard } from '../../components/wallet-ui';
 import { errorKey, money } from '../../utils/wallet';
 
 const PIX = ['PIX_PREPARE', 'PIX_CONFIRM'];
@@ -105,11 +105,7 @@ export default function Metrics() {
             </ToggleButtonGroup>
           }
         />
-        {state.loading && !data && (
-          <Typography role="status" color="text.secondary">
-            {t('common.loading')}
-          </Typography>
-        )}
+        {state.loading && !data && <PageSkeleton rows={0} />}
         {state.error && (
           <Alert
             severity="error"
@@ -135,26 +131,29 @@ export default function Metrics() {
                 help={t('metrics.northStarHelp')}
                 emphasis
               />
-              <Grid container spacing={3} sx={{ mt: 1 }}>
-                {[
-                  ['activeUsers', star.activeUsers],
-                  ['gradedUsers', star.gradedUsers],
-                  ['avoided', star.avoided],
-                  ['missed', star.missed],
-                  [
-                    'meanError',
-                    star.meanAbsoluteError == null ? t('common.noData') : money(star.meanAbsoluteError, lang),
-                  ],
-                ].map(([key, value]) => (
-                  <Grid item xs={6} md={2.4} key={key}>
-                    <StatBlock
-                      label={t(`metrics.${key}`)}
-                      value={String(value)}
-                      negative={key === 'missed' && value > 0}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
+              {/* The gap lives on a Box: an mt on the Grid would replace its negative spacing margin. */}
+              <Box sx={{ mt: 1 }}>
+                <Grid container spacing={3}>
+                  {[
+                    ['activeUsers', star.activeUsers],
+                    ['gradedUsers', star.gradedUsers],
+                    ['avoided', star.avoided],
+                    ['missed', star.missed],
+                    [
+                      'meanError',
+                      star.meanAbsoluteError == null ? t('common.noData') : money(star.meanAbsoluteError, lang),
+                    ],
+                  ].map(([key, value]) => (
+                    <Grid item xs={6} md={2.4} key={key}>
+                      <StatBlock
+                        label={t(`metrics.${key}`)}
+                        value={String(value)}
+                        negative={key === 'missed' && value > 0}
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
             </Card>
 
             {/* Box keeps Stack's margin reset off the Grid's negative margins. */}
@@ -166,14 +165,16 @@ export default function Metrics() {
                       <Typography variant="body2" color="text.secondary">
                         {t('metrics.pixHelp')}
                       </Typography>
-                      <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={6}>
-                          <StatBlock label={t('metrics.pixPrepare')} value={String(pix('PIX_PREPARE'))} />
+                      <Box sx={{ mt: 1 }}>
+                        <Grid container spacing={2}>
+                          <Grid item xs={6}>
+                            <StatBlock label={t('metrics.pixPrepare')} value={String(pix('PIX_PREPARE'))} />
+                          </Grid>
+                          <Grid item xs={6}>
+                            <StatBlock label={t('metrics.pixConfirm')} value={String(pix('PIX_CONFIRM'))} />
+                          </Grid>
                         </Grid>
-                        <Grid item xs={6}>
-                          <StatBlock label={t('metrics.pixConfirm')} value={String(pix('PIX_CONFIRM'))} />
-                        </Grid>
-                      </Grid>
+                      </Box>
                     </Box>
                   </SectionCard>
                 </Grid>

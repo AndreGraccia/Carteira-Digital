@@ -44,8 +44,9 @@ public class SecurityConfig {
 
     private static final String[] AUTH_WHITELIST = {
             "/api/v1/auth/**",
-            // Health only; nginx does not proxy /actuator, so it is reachable only inside the network.
+            // Health and metrics only; nginx does not proxy /actuator, so they are reachable only inside the network.
             "/actuator/health/**",
+            "/actuator/prometheus",
             "/v3/api-docs/**",
             "/v3/api-docs.yaml",
             "/swagger-ui/**",

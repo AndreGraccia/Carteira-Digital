@@ -81,13 +81,14 @@ server:
     include-stacktrace: never
     include-exception: false
 
-# Only health, for the container healthcheck and the load balancer: liveness says the JVM is up, readiness that
-# the database answers. No details, so nothing about the infrastructure leaks.
+# Health for the container healthcheck and the load balancer: liveness says the JVM is up, readiness that the
+# database answers, no details. Prometheus for the metrics scraper (jobs, HTTP, JVM, pool). Both are reachable only
+# inside the network: nginx does not proxy /actuator and the API port listens on 127.0.0.1.
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
   endpoint:
     health:
       probes:

@@ -31,6 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+// Metrics exporters are off in tests by default; on here so /actuator/prometheus is checked like in production.
+@org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability(tracing = false)
 @EnabledIfEnvironmentVariable(named = "WALLIA_IT_DB_URL", matches = ".+")
 class WalliaApplicationTests {
 
@@ -74,6 +76,17 @@ class WalliaApplicationTests {
         mvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
         mvc.perform(get("/actuator/health")).andExpect(jsonPath("$.components").doesNotExist());
         mvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void prometheusShowsTheJobMetricsForAlerts() throws Exception {
+        jobLock.runExclusive("it-metrics", () -> 1);
+
+        String metrics = mvc.perform(get("/actuator/prometheus")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertTrue(metrics.contains("wallia_job_seconds_count{name=\"it-metrics\",outcome=\"success\"}"), "job timer");
+        assertTrue(metrics.contains("wallia_job_last_success{name=\"it-metrics\"}"), "last success gauge");
+        assertTrue(metrics.contains("hikaricp_connections_active"), "connection pool");
     }
 
     @Test

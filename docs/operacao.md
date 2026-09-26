@@ -68,7 +68,22 @@ Incidente é qualquer suspeita de acesso indevido a dados pessoais: chave ou sen
 
 **Depois:** registrar causa, correção e prevenção no CHANGELOG e no Jarbas, com um teste que trave a repetição.
 
-## 5. Checagens de rotina
+## 5. Métricas, logs e alertas
+
+- **Métricas:** `http://127.0.0.1:8082/actuator/prometheus`, só no servidor. O nginx não repassa `/actuator`. Um Prometheus (ou Grafana Agent) no mesmo servidor coleta a cada 30 s.
+- **Logs:** em produção, uma linha JSON por evento no padrão ECS (`LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs`), pronta para Loki, Elastic ou CloudWatch. Em desenvolvimento, texto normal.
+
+Alertas que valem a pena desde o primeiro dia:
+
+1. **Job parado.** `time() - wallia_job_last_success{name="open-finance-daily-sync"} > 26*3600`. O sync não roda com sucesso há mais de um dia. Vale o mesmo para `data-retention` e `market-rates-refresh`.
+2. **Job falhando.** `increase(wallia_job_seconds_count{outcome="failure"}[1d]) > 0`.
+3. **API fora do ar.** `up == 0` no alvo da API, ou readiness `DOWN` por mais de 2 minutos.
+4. **Erros 5xx.** `sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) > 0.1`.
+5. **Pool de conexões no limite.** `hikaricp_connections_pending > 0` por mais de 5 minutos.
+
+Os nomes dos jobs (label `name`) são os de `JobLock.runExclusive`: `open-finance-daily-sync`, `future-alerts`, `market-rates-refresh`, `data-retention` e `encryption-rotation`.
+
+## 6. Checagens de rotina
 
 - **Saúde:** `docker compose ... ps` mostra `healthy` no banco e no backend. A readiness fica `DOWN` se o banco cair.
 - **Jobs da madrugada**, no log do backend: retenção (3h30), rotação (3h45), taxas do BCB (6h), sync do Open Finance (7h30) e alertas (8h). Todos rodam numa instância só (`JobLock`).

@@ -96,7 +96,14 @@ public final class FutureResponses {
     ) {
     }
 
-    public record Sources(int accounts, int cards, int loans, int confirmedRecurrences, int pendingQuestions) {
+    /**
+     * @param bankDataAsOf  oldest sync among the Open Finance accounts (null without them): the projection is only as
+     *                      fresh as its oldest input
+     * @param bankDataStale older than {@link com.github.yildizmy.service.FutureService#BANK_DATA_STALE_AFTER}: at least
+     *                      one daily sync failed, so the screen warns before anyone trusts the projection
+     */
+    public record Sources(int accounts, int cards, int loans, int confirmedRecurrences, int pendingQuestions,
+                          java.time.Instant bankDataAsOf, boolean bankDataStale) {
     }
 
     /**

@@ -147,7 +147,9 @@ public class FutureService {
                         context.cards().size(),
                         context.loans().size(),
                         context.confirmed().size(),
-                        (int) pending
+                        (int) pending,
+                        bankDataAsOf(context.wallets()),
+                        bankDataStale(bankDataAsOf(context.wallets()), clock.instant())
                 ),
                 spendingQuestion(context, DAILY_SPENDING_KEY, context.dailyEstimate(), context.dailyAmount()),
                 context.cardPlans().isEmpty() ? null
@@ -579,6 +581,22 @@ public class FutureService {
      * Entries the bank itself scheduled (Open Finance LANCAMENTO_FUTURO, imported as PENDING): confirmed future
      * events with the bank's own date and value.
      */
+    /** The daily sync runs at 7h30; 36 hours without one means at least one run failed for this person (B50). */
+    public static final java.time.Duration BANK_DATA_STALE_AFTER = java.time.Duration.ofHours(36);
+
+    static java.time.Instant bankDataAsOf(List<Wallet> wallets) {
+        return wallets.stream()
+                .filter(wallet -> wallet.getSource() == com.github.yildizmy.domain.enums.WalletSource.OPEN_FINANCE)
+                .map(Wallet::getLastSyncedAt)
+                .filter(java.util.Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
+    }
+
+    static boolean bankDataStale(java.time.Instant asOf, java.time.Instant now) {
+        return asOf != null && asOf.plus(BANK_DATA_STALE_AFTER).isBefore(now);
+    }
+
     static List<CashEvent> scheduled(List<Transaction> transactions, List<Wallet> wallets, LocalDate today) {
         Map<Long, Wallet> byId = wallets.stream().collect(Collectors.toMap(Wallet::getId, Function.identity()));
         List<CashEvent> events = new ArrayList<>();

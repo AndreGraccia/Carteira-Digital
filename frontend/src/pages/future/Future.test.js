@@ -169,3 +169,20 @@ test('on a phone the tools fold behind one row each and the answer stays open', 
     window.matchMedia = original;
   }
 });
+
+test('bank data older than a daily sync warns before the numbers and points to Open Finance', async () => {
+  answer(() => Promise.resolve(overview({ sources: { bankDataAsOf: '2026-09-20T10:30:00Z', bankDataStale: true } })));
+  await renderPage();
+
+  expect(text()).toContain('future.bankDataStaleTitle');
+  expect(text().indexOf('future.bankDataStaleTitle')).toBeLessThan(text().indexOf('future.balanceNow'));
+  expect(container.querySelector('a[href="/open-finance"]')).not.toBeNull();
+});
+
+test('fresh bank data only says when it is from', async () => {
+  answer(() => Promise.resolve(overview({ sources: { bankDataAsOf: '2026-09-25T10:30:00Z', bankDataStale: false } })));
+  await renderPage();
+
+  expect(text()).toContain('future.bankDataAsOf');
+  expect(text()).not.toContain('future.bankDataStaleTitle');
+});

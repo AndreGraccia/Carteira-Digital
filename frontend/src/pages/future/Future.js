@@ -34,7 +34,7 @@ import {
   WalletIcon,
   visuallyHidden,
 } from '../../components/wallet-ui';
-import { dayLabel, errorKey, money, overdraftCostText } from '../../utils/wallet';
+import { dateTime, dayLabel, errorKey, money, overdraftCostText } from '../../utils/wallet';
 import { forecastReady } from '../../utils/forecast';
 import Questions from './Questions';
 import Simulator from './Simulator';
@@ -268,6 +268,25 @@ export default function Future() {
             aria-busy={state.loading}
             sx={{ opacity: state.loading ? 0.6 : 1, transition: 'opacity 150ms' }}
           >
+            {/* The projection is only as fresh as the bank data under it (B50): say so before any number. */}
+            {overview.sources.bankDataStale && (
+              <Alert
+                severity="warning"
+                action={
+                  <Button component={RouterLink} to="/open-finance" color="inherit" size="small">
+                    {t('future.bankDataStaleAction')}
+                  </Button>
+                }
+              >
+                <AlertTitle>{t('future.bankDataStaleTitle')}</AlertTitle>
+                {t('future.bankDataStale', { date: dateTime(overview.sources.bankDataAsOf, lang) })}
+              </Alert>
+            )}
+            {overview.sources.bankDataAsOf && !overview.sources.bankDataStale && (
+              <Typography variant="caption" color="text.secondary">
+                {t('future.bankDataAsOf', { date: dateTime(overview.sources.bankDataAsOf, lang) })}
+              </Typography>
+            )}
             {/* The one answer people open this page for; the numbers below explain it. */}
             {showCard && (
               <DailyLimitCard

@@ -19,6 +19,9 @@
       "react-app/jest"
     ]
   },
+  "jest": {
+    "globalSetup": "<rootDir>/src/testTimezone.js"
+  },
   "babel": {
     "presets": [
       "@babel/preset-react"

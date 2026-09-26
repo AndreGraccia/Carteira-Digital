@@ -1,7 +1,5 @@
 // Brasil é UTC-3: meia-noite UTC do dia 1 ainda é o último dia do mês anterior aqui.
-process.env.TZ = 'America/Sao_Paulo';
-
-// eslint-disable-next-line import/first
+// O fuso vem de src/testTimezone.js (globalSetup); aqui dentro não teria efeito.
 import { monthLabel } from './wallet';
 
 test('the timezone of this suite really is behind UTC', () => {

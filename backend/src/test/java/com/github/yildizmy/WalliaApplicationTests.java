@@ -36,6 +36,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @EnabledIfEnvironmentVariable(named = "WALLIA_IT_DB_URL", matches = ".+")
 class WalliaApplicationTests {
 
+    /** What the consent screen sends when the person authorises: the id and the text they read. */
+    private static String authorisation(JsonNode consent) {
+        return "{\"consentId\":\"" + consent.path("consentId").asText() + "\",\"termsVersion\":\"2026-09-26\",\"language\":\"pt\"}";
+    }
+
     @Autowired
     private MockMvc mvc;
     @Autowired
@@ -132,8 +137,13 @@ class WalliaApplicationTests {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"months\":6}")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("AWAITING_AUTHORISATION")));
+        // Without the text the person read there is no proof of what they agreed to: nothing is authorised.
         mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"consentId\":\"" + consent.path("consentId").asText() + "\"}")))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("OPEN_FINANCE_TERMS_UNKNOWN"));
+        mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
+                        .content(authorisation(consent))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("AUTHORISED"));
 
@@ -161,6 +171,10 @@ class WalliaApplicationTests {
                 .andExpect(jsonPath("$.accountCount").value(0));
         assertEquals(0, body(mvc.perform(auth(ana, get("/api/v1/transactions/users/" + ana.id()))))
                 .path("page").path("totalElements").asInt(), "revoking deletes what was imported");
+        // The consent itself is never overwritten: its whole history stays as proof.
+        assertEquals(java.util.List.of("CREATED", "AUTHORISED", "REJECTED:CUSTOMER_MANUALLY_REVOKED"), jdbc.queryForList(
+                "SELECT event || COALESCE(':' || reason, '') FROM open_finance_consent_event WHERE consent_id = ? ORDER BY id",
+                String.class, consent.path("consentId").asText()));
     }
 
     @Autowired
@@ -205,7 +219,7 @@ class WalliaApplicationTests {
         JsonNode consent = body(mvc.perform(auth(ana, post("/api/v1/open-finance/connection")
                 .contentType(MediaType.APPLICATION_JSON).content("{\"months\":6}"))).andExpect(status().isCreated()));
         mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"consentId\":\"" + consent.path("consentId").asText() + "\"}"))).andExpect(status().isOk());
+                .content(authorisation(consent)))).andExpect(status().isOk());
         String name = users.findById(ana.id()).orElseThrow().getUsername();
 
         mvc.perform(auth(ana, post("/api/v1/account/delete").contentType(MediaType.APPLICATION_JSON)
@@ -217,6 +231,8 @@ class WalliaApplicationTests {
                 "SELECT count(*) FROM wallet WHERE user_id = ?", Long.class, ana.id())));
         assertEquals("0", String.valueOf(jdbc.queryForObject(
                 "SELECT count(*) FROM open_finance_connection WHERE user_id = ?", Long.class, ana.id())));
+        assertEquals("0", String.valueOf(jdbc.queryForObject(
+                "SELECT count(*) FROM open_finance_consent WHERE user_id = ?", Long.class, ana.id())));
         assertEquals("excluido#" + ana.id(), users.findById(ana.id()).orElseThrow().getUsername());
         mvc.perform(auth(ana, get("/api/v1/future/overview"))).andExpect(status().isUnauthorized());
         mvc.perform(from("10.5.0.1", login(name))).andExpect(status().isUnauthorized());
@@ -229,7 +245,7 @@ class WalliaApplicationTests {
         JsonNode consent = body(mvc.perform(auth(ana, post("/api/v1/open-finance/connection")
                 .contentType(MediaType.APPLICATION_JSON).content("{\"months\":6}"))).andExpect(status().isCreated()));
         mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"consentId\":\"" + consent.path("consentId").asText() + "\"}"))).andExpect(status().isOk());
+                .content(authorisation(consent)))).andExpect(status().isOk());
         mvc.perform(auth(ana, post("/api/v1/future/goals").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Viagem\",\"monthlyAmount\":200,\"dayOfMonth\":10}"))).andExpect(status().isCreated());
 
@@ -247,6 +263,8 @@ class WalliaApplicationTests {
         assertTrue(export.path("transactions").size() > 5, "the imported history");
         assertTrue(export.path("creditCards").size() >= 1 && export.path("cardCharges").size() >= 1);
         assertEquals(1, export.path("openFinanceConsents").size());
+        assertEquals("2026-09-26", export.path("openFinanceConsents").get(0).path("terms_version").asText());
+        assertEquals(2, export.path("openFinanceConsentEvents").size(), "created and authorised");
         assertEquals("Viagem", export.path("goals").get(0).path("name").asText());
         assertTrue(export.path("transactions").get(0).path("created_at").asText().matches("\\d{4}-\\d{2}-\\d{2}T.*"),
                 "dates as ISO text, not epoch numbers");
@@ -266,7 +284,7 @@ class WalliaApplicationTests {
         JsonNode consent = body(mvc.perform(auth(ana, post("/api/v1/open-finance/connection")
                 .contentType(MediaType.APPLICATION_JSON).content("{\"months\":6}"))).andExpect(status().isCreated()));
         mvc.perform(auth(ana, post("/api/v1/open-finance/connection/authorise").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"consentId\":\"" + consent.path("consentId").asText() + "\"}"))).andExpect(status().isOk());
+                .content(authorisation(consent)))).andExpect(status().isOk());
         java.util.List<Long> ids = jdbc.queryForList("SELECT t.id FROM transaction t JOIN wallet w ON w.id = t.to_wallet_id "
                 + "WHERE w.user_id = ? ORDER BY t.id LIMIT 2", Long.class, ana.id());
         // One row from before encryption existed, one in the V30 format without a key id.

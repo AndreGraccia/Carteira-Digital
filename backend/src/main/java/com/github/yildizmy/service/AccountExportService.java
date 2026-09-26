@@ -47,9 +47,16 @@ public class AccountExportService {
             new Section("loans", "SELECT id, institution, product, contracted_amount, outstanding_balance, "
                     + "installment_amount, installments_total, installments_paid, next_due_date, due_day, annual_rate, "
                     + "cet, amortization_system, last_synced_at FROM loan WHERE user_id = ? ORDER BY id", 1),
-            new Section("openFinanceConsents", "SELECT institution_id, institution_name, consent_id, status, permissions, "
+            new Section("openFinanceConnections", "SELECT institution_id, institution_name, consent_id, status, "
                     + "created_at, authorised_at, expires_at, last_synced_at, rejected_by, rejection_reason, rejected_at "
                     + "FROM open_finance_connection WHERE user_id = ? ORDER BY id", 1),
+            new Section("openFinanceConsents", "SELECT c.consent_id, c.institution_id, c.purpose, c.created_at, "
+                    + "c.expires_at, c.terms_version, c.terms_language, (SELECT string_agg(p.permission, ',' ORDER BY "
+                    + "p.permission) FROM open_finance_consent_permission p WHERE p.consent_id = c.consent_id) AS permissions "
+                    + "FROM open_finance_consent c WHERE c.user_id = ? ORDER BY c.created_at, c.consent_id", 1),
+            new Section("openFinanceConsentEvents", "SELECT e.consent_id, e.event, e.actor, e.reason, e.occurred_at "
+                    + "FROM open_finance_consent_event e JOIN open_finance_consent c ON c.consent_id = e.consent_id "
+                    + "WHERE c.user_id = ? ORDER BY e.id", 1),
             new Section("goals", "SELECT id, name, monthly_amount, day_of_month, created_at FROM goal "
                     + "WHERE user_id = ? ORDER BY id", 1),
             new Section("envelopes", "SELECT id, name, amount, created_at FROM envelope WHERE user_id = ? ORDER BY id", 1),

@@ -41,6 +41,7 @@ public class AccountDeletionService {
             "DELETE FROM push_subscription WHERE user_id = ?",
             "DELETE FROM email_verification_challenge WHERE user_id = ?",
             "DELETE FROM open_finance_connection WHERE user_id = ?",
+            "DELETE FROM open_finance_consent WHERE user_id = ?", // permissions and events go with it (ON DELETE CASCADE)
             "DELETE FROM user_role WHERE user_id = ?",
             "DELETE FROM wallet w WHERE w.user_id = ? AND NOT EXISTS "
                     + "(SELECT 1 FROM transaction t WHERE t.from_wallet_id = w.id OR t.to_wallet_id = w.id)");

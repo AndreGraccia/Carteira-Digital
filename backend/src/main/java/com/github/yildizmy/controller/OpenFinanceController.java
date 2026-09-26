@@ -51,7 +51,8 @@ public class OpenFinanceController {
     public ResponseEntity<OpenFinanceSyncResponse> authorise(
             @AuthenticationPrincipal UserDetailsImpl user,
             @Valid @RequestBody OpenFinanceConsentDecision request) {
-        OpenFinanceSyncResponse response = openFinanceService.authorise(user.getId(), request.consentId());
+        OpenFinanceSyncResponse response = openFinanceService.authorise(user.getId(), request.consentId(),
+                request.termsVersion(), request.language());
         recordForecast(user.getId());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(response);
     }

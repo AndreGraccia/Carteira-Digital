@@ -27,10 +27,34 @@ class FlywayMigrationsTest {
     private static final String PASSWORD = System.getenv().getOrDefault("WALLIA_IT_DB_PASSWORD", "postgres");
 
     @BeforeAll
-    static void migrate() {
-        Flyway flyway = Flyway.configure().dataSource(URL, USER, PASSWORD).cleanDisabled(false).load();
-        flyway.clean();
-        flyway.migrate();
+    static void migrate() throws SQLException {
+        Flyway.configure().dataSource(URL, USER, PASSWORD).cleanDisabled(false).load().clean();
+        // A consent as it existed before V32 (one row per connection, comma-separated permissions), revoked.
+        Flyway.configure().dataSource(URL, USER, PASSWORD).target("31").load().migrate();
+        execute("""
+                INSERT INTO "user" (id, first_name, last_name, username, email, password, email_verified_at)
+                VALUES (9100, 'Ana', 'Legado', 'ana_legado', 'ana@legado.test', 'x', now())""");
+        execute("""
+                INSERT INTO open_finance_connection (id, user_id, institution_id, institution_name, consent_id, status,
+                  created_at, authorised_at, expires_at, last_synced_at, permissions, rejected_by, rejection_reason, rejected_at)
+                VALUES (nextval('open_finance_connection_seq'), 9100, 'bank-1', 'Banco', 'urn:old:1', 'REJECTED',
+                  '2026-09-01T10:00:00Z', '2026-09-01T10:05:00Z', '2027-09-01T10:00:00Z', '2026-09-02T10:00:00Z',
+                  'ACCOUNTS_READ,RESOURCES_READ', 'USER', 'CUSTOMER_MANUALLY_REVOKED', '2026-09-10T10:00:00Z')""");
+        Flyway.configure().dataSource(URL, USER, PASSWORD).load().migrate();
+    }
+
+    @Test
+    void consentsFromBeforeV32KeepTheirPermissionsAndHistory() throws SQLException {
+        assertEquals("FUTURE_PROJECTION", scalar("SELECT purpose FROM open_finance_consent WHERE consent_id = 'urn:old:1'"));
+        assertEquals("ACCOUNTS_READ,RESOURCES_READ", scalar("""
+                SELECT string_agg(permission, ',' ORDER BY permission) FROM open_finance_consent_permission
+                WHERE consent_id = 'urn:old:1'"""));
+        assertEquals("CREATED,AUTHORISED,REJECTED:CUSTOMER_MANUALLY_REVOKED", scalar("""
+                SELECT string_agg(event || COALESCE(':' || reason, ''), ',' ORDER BY occurred_at)
+                FROM open_finance_consent_event WHERE consent_id = 'urn:old:1'"""));
+        assertThrows(SQLException.class, () -> execute("""
+                INSERT INTO open_finance_consent_event (consent_id, event, occurred_at)
+                VALUES ('urn:old:1', 'REJECTED', now())"""), "a rejection always says why");
     }
 
     @Test

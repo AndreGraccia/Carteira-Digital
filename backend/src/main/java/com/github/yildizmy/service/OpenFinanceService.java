@@ -10,6 +10,7 @@ import com.github.yildizmy.exception.CodedException;
 import com.github.yildizmy.repository.OpenFinanceConnectionRepository;
 import com.github.yildizmy.repository.UserRepository;
 import com.github.yildizmy.repository.WalletRepository;
+import com.github.yildizmy.service.openfinance.OpenFinanceConsentRecord;
 import com.github.yildizmy.service.openfinance.OpenFinanceGateway;
 import com.github.yildizmy.service.openfinance.OpenFinanceSnapshot;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +25,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -71,6 +71,7 @@ public class OpenFinanceService {
     private final UserRepository userRepository;
     private final Clock clock;
     private final TransactionOperations transactions;
+    private final OpenFinanceConsentRecord consents;
 
     @Autowired
     public OpenFinanceService(
@@ -80,9 +81,10 @@ public class OpenFinanceService {
             WalletRepository walletRepository,
             UserRepository userRepository,
             Clock clock,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            OpenFinanceConsentRecord consents) {
         this(gateway, importService, connectionRepository, walletRepository, userRepository, clock,
-                new TransactionTemplate(transactionManager));
+                new TransactionTemplate(transactionManager), consents);
     }
 
     OpenFinanceService(
@@ -92,7 +94,8 @@ public class OpenFinanceService {
             WalletRepository walletRepository,
             UserRepository userRepository,
             Clock clock,
-            TransactionOperations transactions) {
+            TransactionOperations transactions,
+            OpenFinanceConsentRecord consents) {
         this.gateway = gateway;
         this.importService = importService;
         this.connectionRepository = connectionRepository;
@@ -100,6 +103,7 @@ public class OpenFinanceService {
         this.userRepository = userRepository;
         this.clock = clock;
         this.transactions = transactions;
+        this.consents = consents;
     }
 
     @Transactional
@@ -124,24 +128,31 @@ public class OpenFinanceService {
         connection.setCreatedAt(now);
         connection.setAuthorisedAt(null);
         connection.setExpiresAt(now.atZone(ZoneOffset.UTC).plusMonths(duration).toInstant());
-        connection.setPermissions(String.join(",", PERMISSIONS));
         connection.setRejectedBy(null);
         connection.setRejectionReason(null);
         connection.setRejectedAt(null);
         connectionRepository.save(connection);
+        consents.created(userId, connection.getConsentId(), connection.getInstitutionId(), PERMISSIONS, now,
+                connection.getExpiresAt());
         return new OpenFinanceConsentResponse(connection.getConsentId(), connection.getStatus().name(),
                 connection.getInstitutionName(), PERMISSIONS, now, connection.getExpiresAt(),
                 now.plus(AUTHORISATION_WINDOW));
     }
 
-    /** The person said yes on the institution's screen: authorise, then import for the first time. */
-    public OpenFinanceSyncResponse authorise(long userId, String consentId) {
+    /**
+     * The person said yes on the institution's screen: authorise, then import for the first time. The version and
+     * language of the text they read are recorded with the consent.
+     */
+    public OpenFinanceSyncResponse authorise(long userId, String consentId, String termsVersion, String language) {
+        OpenFinanceConsentRecord.requireKnownTerms(termsVersion, language);
         transactions.executeWithoutResult(status -> expireIfDue(userId));
         transactions.executeWithoutResult(status -> {
             OpenFinanceConnection connection = awaiting(userId, consentId);
+            Instant now = clock.instant();
             connection.setStatus(OpenFinanceConnectionStatus.AUTHORISED);
-            connection.setAuthorisedAt(clock.instant());
+            connection.setAuthorisedAt(now);
             connectionRepository.save(connection);
+            consents.authorised(consentId, termsVersion, language, now);
         });
         return sync(userId);
     }
@@ -150,8 +161,7 @@ public class OpenFinanceService {
     public void reject(long userId, String consentId) {
         expireIfDue(userId);
         OpenFinanceConnection connection = awaiting(userId, consentId);
-        connection.reject("USER", "CUSTOMER_MANUALLY_REJECTED", clock.instant());
-        connectionRepository.save(connection);
+        end(connection, "USER", "CUSTOMER_MANUALLY_REJECTED", clock.instant());
     }
 
     /** Reads the institution outside any transaction, then imports in a short one. */
@@ -207,7 +217,7 @@ public class OpenFinanceService {
                             rejection != null ? rejection[0] : connection.getRejectedBy(),
                             rejection != null ? rejection[1] : connection.getRejectionReason(),
                             accounts,
-                            Arrays.asList(connection.getPermissions().split(",")),
+                            consents.permissions(connection.getConsentId()),
                             notice());
                 })
                 .orElseGet(() -> new OpenFinanceStatusResponse(gateway.mode(), gateway.simulated(), "DISCONNECTED",
@@ -221,8 +231,7 @@ public class OpenFinanceService {
         connectionRepository.findFirstByUserIdOrderByIdDesc(userId)
                 .filter(connection -> connection.getStatus() != OpenFinanceConnectionStatus.REJECTED)
                 .ifPresent(connection -> {
-                    connection.reject("USER", "CUSTOMER_MANUALLY_REVOKED", clock.instant());
-                    connectionRepository.save(connection);
+                    end(connection, "USER", "CUSTOMER_MANUALLY_REVOKED", clock.instant());
                 });
         importService.purge(userId);
     }
@@ -251,8 +260,7 @@ public class OpenFinanceService {
         connectionRepository.findFirstByUserIdOrderByIdDesc(userId).ifPresent(connection -> {
             String[] rejection = pendingRejection(connection, now);
             if (rejection == null) return;
-            connection.reject(rejection[0], rejection[1], now);
-            connectionRepository.save(connection);
+            end(connection, rejection[0], rejection[1], now);
             importService.purge(userId);
         });
     }
@@ -262,10 +270,16 @@ public class OpenFinanceService {
         connectionRepository.findFirstByUserIdOrderByIdDesc(userId)
                 .filter(connection -> connection.getStatus() == OpenFinanceConnectionStatus.AUTHORISED)
                 .ifPresent(connection -> {
-                    connection.reject(ended.getRejectedBy(), ended.getReason(), clock.instant());
-                    connectionRepository.save(connection);
+                    end(connection, ended.getRejectedBy(), ended.getReason(), clock.instant());
                 });
         importService.purge(userId);
+    }
+
+    /** Every way a consent ends goes through here, so none of them skips the event. */
+    private void end(OpenFinanceConnection connection, String by, String reason, Instant at) {
+        connection.reject(by, reason, at);
+        connectionRepository.save(connection);
+        consents.rejected(connection.getConsentId(), by, reason, at);
     }
 
     /** The authorised connection, or 428 asking to connect again. Only reads; {@link #expireIfDue} writes. */

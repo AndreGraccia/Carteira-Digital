@@ -51,10 +51,6 @@ public class OpenFinanceConnection {
 
     private Instant lastSyncedAt;
 
-    /** Comma-separated permissions: the purpose is stored with the data (LGPD art. 8). */
-    @Column(length = 600, nullable = false)
-    private String permissions;
-
     /** USER, ASPSP or TPP, when REJECTED. */
     @Column(length = 10)
     private String rejectedBy;

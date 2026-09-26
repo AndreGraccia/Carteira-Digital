@@ -2,6 +2,19 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 26/09/2026: consentimento como registro (Sprint 16, B42)
+
+### Novo
+- **Cada consentimento do Open Finance tem registro próprio (ADR 0018, V32).** Antes, conectar de novo sobrescrevia o consentimento anterior e não sobrava prova dele. Agora cada um guarda finalidade, validade, permissões (em tabela) e a versão e o idioma do texto que a pessoa leu ao autorizar; cada mudança de estado vira um evento que só é acrescentado. A exportação traz tudo isso.
+- **Autorizar exige a versão do texto.** Sem ela, 422 `OPEN_FINANCE_TERMS_UNKNOWN` e nada é autorizado. O texto do consentimento tem um hash conferido no `test:i18n`: mudar o texto sem versão nova reprova o CI.
+
+### Corrigido durante o trabalho
+- Um pedido sem a versão dava 500 em vez de 422: `Set.of(...).contains(null)` lança exceção em Java. O teste de integração pegou; a checagem de nulo vem antes.
+
+### Verificado
+- Backend: 361 testes, 0 falhas, 0 pulados, com JaCoCo. A migração foi testada com um consentimento revogado de antes da V32: permissões e histórico saem certos.
+- Frontend: 67 testes, lint, Prettier, i18n e build. A trava do texto foi provada: mudar uma palavra reprova o `test:i18n`.
+
 ## 26/09/2026: CI conferido e dependências
 
 ### Corrigido

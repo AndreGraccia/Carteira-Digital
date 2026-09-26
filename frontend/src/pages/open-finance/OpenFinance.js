@@ -28,6 +28,7 @@ import { useWallets } from '../../context/WalletContext';
 import HttpService from '../../services/HttpService';
 import { dateTime, errorKey } from '../../utils/wallet';
 import ConsentDialog, { PermissionGroups } from './ConsentDialog';
+import consentTerms from '../../consentTerms.json';
 
 const DURATIONS = [3, 6, 12];
 // Open Finance Brasil: a consent not authorised within 60 minutes is rejected with CONSENT_EXPIRED.
@@ -111,8 +112,11 @@ export default function OpenFinance() {
   const authorise = () =>
     run(
       async () => {
+        // The backend records which text the person read when saying yes (B42).
         const result = await HttpService.postWithAuth('/open-finance/connection/authorise', {
           consentId: consent.consentId,
+          termsVersion: consentTerms.version,
+          language: i18n.resolvedLanguage,
         });
         setConsent(null);
         await Promise.all([load(), refresh()]);

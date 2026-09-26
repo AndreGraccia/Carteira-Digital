@@ -13,7 +13,9 @@ jest.mock('../../services/HttpService', () => ({
 }));
 jest.mock('../../context/WalletContext', () => ({ useWallets: jest.fn() }));
 jest.mock('notistack', () => ({ enqueueSnackbar: jest.fn() }));
-jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key) => key, i18n: { language: 'pt' } }) }));
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key) => key, i18n: { language: 'pt-BR', resolvedLanguage: 'pt' } }),
+}));
 
 const PERMISSIONS = [
   'ACCOUNTS_READ',
@@ -109,6 +111,8 @@ test('connect creates a consent for the chosen period and the bank screen author
 
   expect(HttpService.postWithAuth).toHaveBeenLastCalledWith('/open-finance/connection/authorise', {
     consentId: consent.consentId,
+    termsVersion: '2026-09-26',
+    language: 'pt',
   });
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(await dialogClosed()).toBeNull();

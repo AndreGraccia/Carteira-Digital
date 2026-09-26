@@ -90,7 +90,7 @@ Nada aqui liga dados reais antes de E3 e E4 fechadas.
 
 - **B40 (P1) ADR: provedor.** Participante próprio não (decisão fechada). Comparar agregador habilitado (Pluggy e outros): custo, cobertura, contrato, saída.
 - **B41 (P1) Várias instituições por usuário.** Hoje há um gateway por instalação. Com várias, `revoke`, `expireIfDue` e `endedAtTheInstitution` precisam agir por conexão, e `purge(userId)` precisa virar limpeza por instituição (hoje apaga tudo do usuário).
-- **B42 (P1) Consentimento como registro próprio.** Finalidade, versão do texto mostrado, escopos concedidos e eventos em tabela, não em texto separado por vírgula.
+- **B42 (P1) Consentimento como registro próprio.** Feito em 26/09 (ADR 0018, V32): um registro por consentimento, nunca sobrescrito, com finalidade, versão e idioma do texto lido, permissões em tabela e histórico de eventos. Falta: apagar a coluna `permissions` antiga da conexão (precisa de aprovação) e a resposta do jurídico sobre guardar a prova depois da exclusão da conta.
 - **B43 (P1) Contrato do gateway.** Criar consentimento, retorno do banco, troca de código, consultar, revogar. Hoje o gateway só busca dados.
 - **B44 (P2) Sync incremental.** Carga inicial limitada e depois só o novo (`/transactions-current`), com cursor salvo depois da gravação.
 - **B45 (P2) Fila e concorrência limitada.** `OpenFinanceDailySync` é sequencial. Respeitar `Retry-After` e 429.
@@ -133,7 +133,7 @@ Uma sprint por sessão, com commit verde ao fim.
 - **Sprint 13: produção segura.** Feita em 25/09: B23 (ADR 0016), B25, B32 e B33, com o manual em [`operacao.md`](operacao.md). B34 estava errado no backlog: pom, Dockerfile e CI já usavam Java 17; o risco real era o JDK 21 local aceitar API nova, resolvido com `<release>`. Achado e corrigido: o IP do cliente atrás do proxy TLS.
 - **Sprint 14: testes de ponta a ponta.** Feita em 25/09: B05 (E2E no navegador e workflow próprio), B04 para o `AccountController`, B51 medido (5.816 px em 375 px). Ficaram: B04 para os outros 8 controllers e B50 (estado de dado atrasado), que vão para a Sprint 15.
 - **Sprint 15: plataforma nova.** Feita em 25/09: B35 (Boot 4.1.1 e Java 25, ADR 0017), B36, B50 e B04 para as rotas de admin. B04 para Auth, Wallet, Future, Insights, Market e OpenFinance fechado em 26/09.
-- **Sprint 16: Open Finance preparado.** B40, B41, B42, B43.
+- **Sprint 16: Open Finance preparado.** B42 feito em 26/09 (ADR 0018). B40 e B43 esperam a proposta do agregador (passo 8 das pendências); B41 pode andar antes.
 - **Sprint 17: Open Finance em escala.** B44, B45, B46, B12.
 - **Sprint 18: diferenciais.** B13, B14, B52, e o que o placar de precisão indicar.
 

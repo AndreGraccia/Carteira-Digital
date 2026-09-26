@@ -7,6 +7,7 @@ import com.github.yildizmy.exception.CodedException;
 import com.github.yildizmy.repository.OpenFinanceConnectionRepository;
 import com.github.yildizmy.repository.UserRepository;
 import com.github.yildizmy.repository.WalletRepository;
+import com.github.yildizmy.service.openfinance.OpenFinanceConsentRecord;
 import com.github.yildizmy.service.openfinance.OpenFinanceGateway;
 import com.github.yildizmy.service.openfinance.OpenFinanceSnapshot;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,12 +31,14 @@ import static org.mockito.Mockito.*;
 
 class OpenFinanceServiceTest {
 
+    private static final String TERMS = "2026-09-26";
     private static final Instant NOW = Instant.parse("2026-09-21T12:00:00Z");
 
     private final MutableClock clock = new MutableClock(NOW);
     private final OpenFinanceGateway gateway = mock(OpenFinanceGateway.class);
     private final OpenFinanceImportService importService = mock(OpenFinanceImportService.class);
     private final OpenFinanceConnectionRepository connections = mock(OpenFinanceConnectionRepository.class);
+    private final OpenFinanceConsentRecord consents = mock(OpenFinanceConsentRecord.class);
     private final boolean[] inTransaction = {false};
     private OpenFinanceConnection stored;
     private OpenFinanceService service;
@@ -74,7 +77,7 @@ class OpenFinanceServiceTest {
                             inTransaction[0] = false;
                         }
                     }
-                });
+                }, consents);
         doAnswer(invocation -> ++committedPurges[0]).when(importService).purge(7L);
     }
 
@@ -114,7 +117,7 @@ class OpenFinanceServiceTest {
     void authorisingImportsAndASyncNeverMovesTheExpiry() {
         var consent = service.createConsent(7L, 3);
 
-        var result = service.authorise(7L, consent.consentId());
+        var result = service.authorise(7L, consent.consentId(), TERMS, "pt");
 
         assertEquals("AUTHORISED", result.status());
         assertEquals(OpenFinanceConnectionStatus.AUTHORISED, stored.getStatus());
@@ -134,7 +137,7 @@ class OpenFinanceServiceTest {
         var consent = service.createConsent(7L, null);
         clock.advance(Duration.ofMinutes(61));
 
-        var error = assertThrows(CodedException.class, () -> service.authorise(7L, consent.consentId()));
+        var error = assertThrows(CodedException.class, () -> service.authorise(7L, consent.consentId(), TERMS, "pt"));
 
         assertEquals("OPEN_FINANCE_CONSENT_EXPIRED", error.getCode());
         assertEquals(OpenFinanceConnectionStatus.REJECTED, stored.getStatus());
@@ -156,7 +159,7 @@ class OpenFinanceServiceTest {
     @Test
     void revokingRejectsTheConsentAndDeletesTheImportedData() {
         var consent = service.createConsent(7L, null);
-        service.authorise(7L, consent.consentId());
+        service.authorise(7L, consent.consentId(), TERMS, "pt");
 
         service.revoke(7L);
 
@@ -169,7 +172,7 @@ class OpenFinanceServiceTest {
     @Test
     void anExpiredConsentStopsSyncingAndIsRecordedAsSuch() {
         var consent = service.createConsent(7L, 3);
-        service.authorise(7L, consent.consentId());
+        service.authorise(7L, consent.consentId(), TERMS, "pt");
         clock.advance(Duration.ofDays(93));
 
         assertEquals("CONSENT_MAX_DATE_REACHED", service.status(7L).rejectionReason());
@@ -180,11 +183,38 @@ class OpenFinanceServiceTest {
         assertEquals("CONSENT_MAX_DATE_REACHED", stored.getRejectionReason());
         assertEquals(1, committedPurges[0], "data imported under an ended consent stops being used (LGPD, OFB)");
         verify(gateway, times(1)).fetch(7L);
+        verify(consents).rejected(consent.consentId(), "ASPSP", "CONSENT_MAX_DATE_REACHED", clock.instant());
+    }
+
+    @Test
+    void everyStepOfTheConsentIsRecordedWithTheTextThePersonRead() {
+        var consent = service.createConsent(7L, 6);
+        verify(consents).created(7L, consent.consentId(), "bank-1", OpenFinanceService.PERMISSIONS, NOW, consent.expiresAt());
+
+        service.authorise(7L, consent.consentId(), TERMS, "en");
+        verify(consents).authorised(consent.consentId(), TERMS, "en", NOW);
+
+        service.revoke(7L);
+        verify(consents).rejected(consent.consentId(), "USER", "CUSTOMER_MANUALLY_REVOKED", NOW);
+    }
+
+    @Test
+    void anUnknownConsentTextAuthorisesNothing() {
+        var consent = service.createConsent(7L, null);
+
+        var error = assertThrows(CodedException.class, () -> service.authorise(7L, consent.consentId(), "1999-01-01", "pt"));
+        assertEquals("OPEN_FINANCE_TERMS_UNKNOWN", error.getCode());
+        assertThrows(CodedException.class, () -> service.authorise(7L, consent.consentId(), TERMS, "fr"));
+        assertThrows(CodedException.class, () -> service.authorise(7L, consent.consentId(), null, null));
+
+        assertEquals(OpenFinanceConnectionStatus.AWAITING_AUTHORISATION, stored.getStatus());
+        verify(consents, never()).authorised(any(), any(), any(), any());
+        verify(gateway, never()).fetch(anyLong());
     }
 
     @Test
     void aSecondConsentWhileConnectedIsAConflict() {
-        service.authorise(7L, service.createConsent(7L, null).consentId());
+        service.authorise(7L, service.createConsent(7L, null).consentId(), TERMS, "pt");
 
         var error = assertThrows(CodedException.class, () -> service.createConsent(7L, null));
 
@@ -226,7 +256,7 @@ class OpenFinanceServiceTest {
 
     @Test
     void aRevocationDoneInTheBanksAppEndsTheConnectionAndDeletesTheData() {
-        service.authorise(7L, service.createConsent(7L, null).consentId());
+        service.authorise(7L, service.createConsent(7L, null).consentId(), TERMS, "pt");
         when(gateway.fetch(7L)).thenThrow(new com.github.yildizmy.exception.OpenFinanceConsentEndedException(
                 "USER", "CUSTOMER_MANUALLY_REVOKED"));
 

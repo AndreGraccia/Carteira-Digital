@@ -1,6 +1,6 @@
 package com.github.yildizmy.service.openfinance;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.github.yildizmy.exception.OpenFinanceUnavailableException;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +32,7 @@ class ParticipantSandboxOpenFinanceGatewayTest {
         var gateway = new ParticipantSandboxOpenFinanceGateway(new ObjectMapper(), Clock.systemUTC(),
                 "https://sandbox.invalid/open-banking/accounts/v2", "token", "consent", "institution", "", "", 7L) {
             @Override
-            com.fasterxml.jackson.databind.JsonNode getJson(String pathOrUrl) {
+            tools.jackson.databind.JsonNode getJson(String pathOrUrl) {
                 try {
                     return new ObjectMapper().readTree(pages.get(pathOrUrl));
                 } catch (Exception exception) {

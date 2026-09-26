@@ -1,12 +1,12 @@
 package com.github.yildizmy;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.github.yildizmy.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 // Metrics exporters are off in tests by default; on here so /actuator/prometheus is checked like in production.
-@org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability(tracing = false)
+@org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics
 @EnabledIfEnvironmentVariable(named = "WALLIA_IT_DB_URL", matches = ".+")
 class WalliaApplicationTests {
 

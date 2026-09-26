@@ -1,6 +1,6 @@
 package com.github.yildizmy.service.market;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

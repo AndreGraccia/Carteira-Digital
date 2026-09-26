@@ -2,6 +2,22 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 25/09/2026 (noite): Sprint 15, plataforma nova
+
+### Mudou
+- **Spring Boot 4.1.1 e Java 25 (B35, ADR 0017).** A linha 3.5 estava sem suporte gratuito desde 30/06/2026. Trouxe junto Jackson 3, Spring Security 7, starters modulares (Flyway, testes), springdoc 3.1.1 e JaCoCo 0.8.15. Feito numa branch separada, em dois passos, com a suíte verde em cada um. **Quem desenvolve precisa do JDK 25** ([`pendencias-do-dono.md`](docs/pendencias-do-dono.md), passo 1.1).
+
+### Novo
+- **Observabilidade (B36).** Todo job agendado é medido no `JobLock`: duração por resultado (sucesso, falha, pulado) e horário do último sucesso. Métricas no formato Prometheus só na rede interna; logs em JSON (ECS) na produção. Alertas recomendados em [`operacao.md`](docs/operacao.md), seção 5.
+- **Aviso de dado atrasado no Futuro (B50).** A tela diz de quando são os dados do banco e mostra um alerta, antes de qualquer número, quando a última sincronização passou de 36 horas.
+- **Testes das rotas de admin (B04).** Sem token dá 401, usuário comum dá 403 e o serviço nem roda; admin lê métricas e auditoria e dispara o sync.
+
+### Verificado
+- Backend: 334 testes, 0 falhas, 0 pulados, no Boot 4 com Java 17 e de novo num container com JDK 25 (classes em major version 69).
+- Imagem Java 25 na pilha local: `healthy`, E2E no navegador passou inteiro, OpenAPI 3.1 com 47 rotas quando ligado.
+- Frontend: 67 testes, lint, Prettier, i18n e build.
+- Não verificado: CI e E2E no GitHub (sem `gh`).
+
 ## 25/09/2026 (noite): Sprint 14, ponta a ponta
 
 ### Novo

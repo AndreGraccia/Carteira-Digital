@@ -59,7 +59,7 @@ Duas regras seguram o desenho inteiro:
 | Ferramenta | Versão | Como conferir | Observação |
 | --- | --- | --- | --- |
 | Git | qualquer recente | `git --version` | |
-| Java (JDK) | 17 ou maior | `java -version` | O projeto compila para 17; JDK 21 funciona. |
+| Java (JDK) | 25 | `java -version` | O projeto compila para Java 25 (`<release>25`); um JDK mais antigo não compila. Sem JDK 25, compile pelo Docker (seção 14). |
 | Maven | não precisa instalar | - | O `backend/mvnw.cmd` baixa a versão certa na primeira execução. |
 | Node.js | LTS (18 ou 20) | `node --version` | |
 | npm | vem com o Node | `npm.cmd --version` | No PowerShell use `npm.cmd`; `npm` pode ser bloqueado pela política de scripts. |
@@ -470,6 +470,7 @@ Roteiro mínimo de validação a cada versão:
 | Ver logs do banco | `docker compose --env-file .env.properties logs -f db` |
 | Abrir o banco no terminal | `docker compose --env-file .env.properties exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'` |
 | Subir a API | `cd backend; .\mvnw.cmd spring-boot:run` |
+| Testar o backend sem JDK 25 instalado (Docker) | `docker run --rm -v "${PWD}\backend:/app" -v "$env:USERPROFILE\.m2:/root/.m2" -w /app maven:3.9-eclipse-temurin-25 mvn -B test` |
 | Subir a interface | `cd frontend; npm.cmd start` |
 | Tudo em containers | `docker compose --env-file .env.properties -f docker-compose.yml -f docker-compose.prod.yml up --build` |
 | Swagger | http://localhost:8082/swagger-ui/index.html |

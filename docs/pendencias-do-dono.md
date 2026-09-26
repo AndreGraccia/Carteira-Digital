@@ -28,6 +28,39 @@ git check-ignore -v .env.properties
 
 ---
 
+## 1.1 Instalar o JDK 25 ⏱ 10 min
+
+**Por quê.** Desde a Sprint 15 o backend é Java 25 (ADR 0017). O seu JDK 21 não compila mais o projeto: `mvnw` vai dizer `release version 25 not supported`.
+
+1. Instale:
+
+```powershell
+winget install --id EclipseAdoptium.Temurin.25.JDK -e
+```
+
+2. Feche e abra o terminal. Confira. Deve aparecer `openjdk version "25...`:
+
+```powershell
+java -version
+```
+
+3. Se ainda aparecer 21: em *Configurações do Windows → Sistema → Sobre → Configurações avançadas do sistema → Variáveis de Ambiente*, ajuste `JAVA_HOME` para `C:\Program Files\Eclipse Adoptium\jdk-25...` e ponha `%JAVA_HOME%\bin` no topo do `Path`.
+4. No IntelliJ ou no VS Code, escolha o JDK 25 como SDK do projeto `backend`.
+5. Teste:
+
+```powershell
+cd C:\Users\Nitro\Downloads\Wall_ia\Carteira-Digital\backend
+.\mvnw.cmd -q compile
+```
+
+Sem erro, está pronto.
+
+**Cuidado com os outros projetos.** Não desinstale o JDK 21. Projetos com Lombok anterior à 1.18.40 não compilam no JDK 25. Se uma das suas APIs Java quebrar depois disso, suba o Lombok dela ou use o JDK 21 só nela: no IntelliJ, *Project Structure → SDK*; no terminal, `$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21..."` antes do `mvnw`.
+
+**Me mande:** a primeira linha do `java -version`.
+
+---
+
 ## 2. Instalar e logar o GitHub CLI ⏱ 10 min
 
 **Por quê.** O repositório é privado e eu não consigo ler o resultado do CI nem do E2E sem o `gh`. Desde a Sprint 9 o CI nunca foi conferido por mim diretamente, e é isso que falta para abrir o PR.

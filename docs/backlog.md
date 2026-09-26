@@ -131,7 +131,7 @@ Uma sprint por sessão, com commit verde ao fim.
 - **Sprint 12: dados do titular.** Feita em 25/09: B20, B21, B22 (ADR 0015) e B26. Achado: o Marco Civil (art. 15) pode exigir registro de acesso por 6 meses; decidir com o jurídico antes da produção.
 - **Sprint 13: produção segura.** Feita em 25/09: B23 (ADR 0016), B25, B32 e B33, com o manual em [`operacao.md`](operacao.md). B34 estava errado no backlog: pom, Dockerfile e CI já usavam Java 17; o risco real era o JDK 21 local aceitar API nova, resolvido com `<release>`. Achado e corrigido: o IP do cliente atrás do proxy TLS.
 - **Sprint 14: testes de ponta a ponta.** Feita em 25/09: B05 (E2E no navegador e workflow próprio), B04 para o `AccountController`, B51 medido (5.816 px em 375 px). Ficaram: B04 para os outros 8 controllers e B50 (estado de dado atrasado), que vão para a Sprint 15.
-- **Sprint 15: plataforma nova.** B35 (Boot 4.1 e Java 25), B36.
+- **Sprint 15: plataforma nova.** Feita em 25/09: B35 (Boot 4.1.1 e Java 25, ADR 0017), B36, B50 e B04 para as rotas de admin. Falta B04 para Auth, Wallet, Future, Insights, Market e OpenFinance.
 - **Sprint 16: Open Finance preparado.** B40, B41, B42, B43.
 - **Sprint 17: Open Finance em escala.** B44, B45, B46, B12.
 - **Sprint 18: diferenciais.** B13, B14, B52, e o que o placar de precisão indicar.

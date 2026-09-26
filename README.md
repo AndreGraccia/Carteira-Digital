@@ -79,8 +79,8 @@ Em aberto, para o dono do produto decidir: credenciar a iniciação de pagamento
 
 ### Backend
 
-- Java 17
-- Spring Boot
+- Java 25 (LTS)
+- Spring Boot 4.1
 - Spring Web
 - Spring Security
 - JWT
@@ -155,7 +155,7 @@ Carteira-Digital/
 Antes de iniciar, instale:
 
 - Git
-- Java 17 ou superior (o Maven vem pelo wrapper `mvnw`)
+- JDK 25 (o Maven vem pelo wrapper `mvnw`). No Windows: `winget install EclipseAdoptium.Temurin.25.JDK`
 - Node.js LTS com npm
 - Docker Desktop
 

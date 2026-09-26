@@ -16,7 +16,7 @@ Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Da
 - Frontend com `TZ=UTC`: 67 testes, lint, Prettier, i18n e build.
 - Backend: 358 testes, 0 falhas, 0 pulados, no JDK 25 da máquina do dono, com o gate do JaCoCo.
 - CI e E2E do GitHub verdes no `18d0858`.
-- Não verificado: a imagem do frontend refeita pelo Dockerfile com as dependências novas (fica para a homologação do dono, passo 4).
+- A imagem do frontend refeita pelo Dockerfile com as dependências novas: coberta pelo E2E do GitHub, que monta a pilha pelos Dockerfiles de produção. A pilha local ainda roda a imagem anterior.
 
 ## 25/09/2026 (noite): Sprint 15, plataforma nova
 

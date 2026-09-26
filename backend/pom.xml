@@ -14,7 +14,7 @@
 	<name>wallia</name>
 	<description>Wall.ia: carteira que projeta compromissos e explica cada número</description>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>25</java.version>
 		<projectlombok.version>1.18.48</projectlombok.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 	</properties>
@@ -146,7 +146,7 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.13.0</version>
 				<configuration>
-					<!-- release, not source/target: a newer local JDK must not accept APIs the Java 17 runtime lacks. -->
+					<!-- release, not source/target: a newer local JDK must not accept APIs the Java runtime of the image lacks. -->
 					<release>${java.version}</release>
 					<annotationProcessorPaths>
 						<path>
@@ -167,7 +167,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.12</version>
+				<version>0.8.15</version>
 				<executions>
 					<execution>
 						<goals>

@@ -1,5 +1,5 @@
 # stage-1 : complete build environment
-FROM maven:3.9-eclipse-temurin-17 AS builder
+FROM maven:3.9-eclipse-temurin-25 AS builder
 WORKDIR /app
 
 COPY pom.xml ./
@@ -9,7 +9,7 @@ RUN mvn clean package -DskipTests
 
 
 # stage-2 : minimal runtime environment
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 WORKDIR /app
 
 RUN groupadd --system wallia && useradd --system --gid wallia --home-dir /app wallia

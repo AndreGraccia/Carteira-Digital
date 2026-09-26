@@ -261,9 +261,10 @@ O passo a passo técnico está em [`operacao.md`](operacao.md). Aqui fica o que 
 
 ## Resumo do que me mandar
 
-- [ ] 1: "chave guardada"
-- [ ] 2: saída do `gh run list`
-- [ ] 3: "rodei o audit"
+- [x] 1: "chave guardada" (26/09, pela sua palavra; eu não leio o arquivo)
+- [x] 1.1: JDK 25 instalado e no `JAVA_HOME` (conferido em 26/09)
+- [x] 2: `gh` logado (conferido em 26/09; o CI estava vermelho por um teste de fuso, já corrigido)
+- [x] 3: audit rodado (26/09; de 68 para 25 alertas, sem crítico)
 - [ ] 4: "E2E ok" e suas impressões no celular
 - [ ] 5: respostas 5.1 a 5.4
 - [ ] 6 a 8: quando tiver respostas do jurídico e dos fornecedores

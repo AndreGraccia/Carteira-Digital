@@ -46,10 +46,11 @@ Prioridade: **P0** bloqueia a homologação, **P1** bloqueia produção, **P2** 
 
 ### E1. Pipeline e qualidade
 
-- **B01 (P0) CI verde conferido.** Push do `168a6cb` e leitura do CI com `gh`. Instalar: `winget install GitHub.cli` e `gh auth login`.
-- **B02 (P0) Triagem do npm audit.** 68 alertas no CI (3 críticos, 33 altos). Rodar `npm audit --omit=dev`, corrigir o que vai para o navegador, registrar por que o resto não se aplica. Remover `web-vitals` do `package.json`. Precisa do registry npm.
+- **B01 (P0) CI verde conferido.** Feito em 26/09 com `gh`. O E2E do GitHub estava verde; o CI caía desde a Sprint 12 num teste de fuso que só passava em máquina UTC-3. Corrigido com o fuso fixado no `globalSetup` do Jest.
+- **B02 (P0) Triagem do npm audit.** Feito em 26/09: de 68 alertas (3 críticos, 33 altos) para 25 (nenhum crítico, 9 altos) com `npm audit fix` sem `--force`; `axios` 1.20 e `react-router-dom` 6.30, que são o que vai para o navegador; `web-vitals` removido. Os 9 altos restantes (svgo, postcss, serialize-javascript, workbox) vêm do `react-scripts` e só rodam no build, na máquina de quem compila; o `--force` trocaria o `react-scripts` por `0.0.0`. Saem com B07.
+- **B07 (P2) Sair do Create React App.** O `react-scripts` está sem manutenção e prende as dependências de build com alerta. Migrar para Vite, com os mesmos testes, lint e build.
 - **B03 (P1) Actions atualizadas.** `checkout@v4` e `setup-node@v4` avisam runtime Node 20 depreciado.
-- **B04 (P1) `@WebMvcTest` por controller.** Hoje existe 1 para 10 controllers. Cobrir status HTTP, validação e acesso de outro usuário (403/404).
+- **B04 (P1) `@WebMvcTest` por controller.** Feito em 26/09: os 10 controllers têm teste com a cadeia de segurança real (sem token 401, dono de outro recurso 403, entrada inválida 422 antes do serviço, id do usuário sempre vindo do token).
 - **B05 (P1) E2E com Playwright no CI.** Cadastro com código do Mailpit, login, Futuro, conectar Open Finance sandbox, revogar, excluir conta.
 - **B06 (P2) Placar de precisão.** Primeira leitura real em 01/10/2026.
 
@@ -131,7 +132,7 @@ Uma sprint por sessão, com commit verde ao fim.
 - **Sprint 12: dados do titular.** Feita em 25/09: B20, B21, B22 (ADR 0015) e B26. Achado: o Marco Civil (art. 15) pode exigir registro de acesso por 6 meses; decidir com o jurídico antes da produção.
 - **Sprint 13: produção segura.** Feita em 25/09: B23 (ADR 0016), B25, B32 e B33, com o manual em [`operacao.md`](operacao.md). B34 estava errado no backlog: pom, Dockerfile e CI já usavam Java 17; o risco real era o JDK 21 local aceitar API nova, resolvido com `<release>`. Achado e corrigido: o IP do cliente atrás do proxy TLS.
 - **Sprint 14: testes de ponta a ponta.** Feita em 25/09: B05 (E2E no navegador e workflow próprio), B04 para o `AccountController`, B51 medido (5.816 px em 375 px). Ficaram: B04 para os outros 8 controllers e B50 (estado de dado atrasado), que vão para a Sprint 15.
-- **Sprint 15: plataforma nova.** Feita em 25/09: B35 (Boot 4.1.1 e Java 25, ADR 0017), B36, B50 e B04 para as rotas de admin. Falta B04 para Auth, Wallet, Future, Insights, Market e OpenFinance.
+- **Sprint 15: plataforma nova.** Feita em 25/09: B35 (Boot 4.1.1 e Java 25, ADR 0017), B36, B50 e B04 para as rotas de admin. B04 para Auth, Wallet, Future, Insights, Market e OpenFinance fechado em 26/09.
 - **Sprint 16: Open Finance preparado.** B40, B41, B42, B43.
 - **Sprint 17: Open Finance em escala.** B44, B45, B46, B12.
 - **Sprint 18: diferenciais.** B13, B14, B52, e o que o placar de precisão indicar.

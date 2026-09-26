@@ -2,6 +2,22 @@
 
 Mudanças da branch `feat/wallia` em relação à `main`, agrupadas por tema. Datas no fuso de Brasília.
 
+## 26/09/2026: CI conferido e dependências
+
+### Corrigido
+- **O CI do frontend falhava desde a Sprint 12 (B01).** O teste de fuso trocava o `TZ` dentro do arquivo, o que não vale num worker do Jest já iniciado. Em máquina brasileira passava por coincidência; no runner em UTC, não. O fuso de São Paulo agora é fixado no `globalSetup`. Reproduzido com `TZ=UTC` antes e depois.
+- **npm audit (B02).** De 68 alertas para 25, sem crítico. `axios` 1.20 e `react-router-dom` 6.30 (o que vai para o navegador); `web-vitals` removido. Os 9 altos restantes são do `react-scripts`, só no build (B07).
+
+### Novo
+- **Testes de controller para as rotas que faltavam (B04).** Carteiras: a de outro usuário dá 403, dinheiro só sai de IBAN do próprio usuário e a carteira não pode ser passada para outra pessoa. Login: limite gasto dá 429 sem conferir a senha, senha errada não devolve a tentativa, confirmação de e-mail conta como tentativa. Futuro, Análises, Mercado e Open Finance: sem token nada roda, horizonte fora de 30/60/90 dá 400, pergunta com limite gasto dá 429, rotas de admin dão 403 e uma falha ao gravar a previsão não derruba a sincronização.
+
+### Verificado
+- Com `gh`: o E2E do GitHub já estava verde; o backend do CI também.
+- Frontend com `TZ=UTC`: 67 testes, lint, Prettier, i18n e build.
+- Backend: 358 testes, 0 falhas, 0 pulados, no JDK 25 da máquina do dono, com o gate do JaCoCo.
+- CI e E2E do GitHub verdes no `18d0858`.
+- Não verificado: a imagem do frontend refeita pelo Dockerfile com as dependências novas (fica para a homologação do dono, passo 4).
+
 ## 25/09/2026 (noite): Sprint 15, plataforma nova
 
 ### Mudou

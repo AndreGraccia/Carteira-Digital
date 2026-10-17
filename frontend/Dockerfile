@@ -1,23 +1,17 @@
-# Base image
-FROM node:18-alpine
+FROM node:22-alpine AS builder
 
-# Make folder to put our files in
-RUN mkdir -p /usr/src/app
-RUN mkdir -p /usr/src/app/frontend
-
-# Set working directory so that all
-# subsequent command runs in this folder
-WORKDIR /usr/src/app/frontend
-
-# Copy package json and install dependencies
-COPY package*.json ./
-RUN npm install
-
-# Copy our app
+WORKDIR /app
+COPY package*.json .npmrc ./
+RUN npm ci
 COPY . .
 
-# Expose port to access server
-EXPOSE 3000
+ARG REACT_APP_API_URL=/api/v1
+ENV REACT_APP_API_URL=${REACT_APP_API_URL}
+RUN npm run build
 
-# Command to run our app
-CMD [ "npm", "start" ]
+FROM nginxinc/nginx-unprivileged:1.27-alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/build /usr/share/nginx/html
+
+EXPOSE 3000
+CMD ["nginx", "-g", "daemon off;"]

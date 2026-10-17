@@ -110,33 +110,20 @@ class TransactionServiceTest {
     }
 
     @Test
-    void findAllByUserId_shouldReturnListOfTransactionResponses() {
+    void findAllByUserId_readsOnePageFromTheDatabase() {
         var userId = 1L;
-        var transactions = List.of(testTransaction, testTransaction);
-
-        when(transactionRepository.findAllByUserId(userId)).thenReturn(transactions);
+        var pageable = org.springframework.data.domain.PageRequest.of(0, 2);
+        var from = java.time.Instant.parse("2026-01-01T03:00:00Z");
+        when(transactionRepository.findPageByUserId(userId, from, pageable))
+                .thenReturn(new PageImpl<>(List.of(testTransaction, testTransaction), pageable, 5));
         when(transactionResponseMapper.toTransactionResponse(any(Transaction.class))).thenReturn(testTransactionResponse);
 
-        var result = transactionService.findAllByUserId(userId);
+        var result = transactionService.findAllByUserId(userId, from, pageable);
 
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        assertEquals(testTransactionResponse, result.get(0));
-        assertEquals(testTransactionResponse, result.get(1));
-
-        verify(transactionRepository).findAllByUserId(userId);
-        verify(transactionResponseMapper, times(2)).toTransactionResponse(any(Transaction.class));
-    }
-
-    @Test
-    void findAllByUserId_shouldThrowExceptionWhenNoTransactionsFound() {
-        var userId = 1L;
-
-        when(transactionRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
-
-        assertThrows(NoSuchElementFoundException.class, () -> transactionService.findAllByUserId(userId));
-
-        verify(transactionRepository).findAllByUserId(userId);
+        assertEquals(2, result.getNumberOfElements());
+        assertEquals(5, result.getTotalElements());
+        assertEquals(3, result.getTotalPages());
+        verify(transactionRepository).findPageByUserId(userId, from, pageable);
     }
 
     @Test
@@ -193,4 +180,22 @@ class TransactionServiceTest {
         verify(transactionRequestMapper).toTransaction(request);
         verify(transactionRepository).save(testTransaction);
     }
+    @Test
+    void repeatedRequestReturnsOriginalResultAndRejectsChangedAmount() {
+        var request = new TransactionRequest();
+        var key = java.util.UUID.randomUUID();
+        request.setRequestId(key); request.setFromWalletIban("FROM"); request.setToWalletIban("TO");
+        request.setTypeId(1L); request.setAmount(new BigDecimal("10.00"));
+        var transaction = new Transaction(); transaction.setId(42L); transaction.setAmount(new BigDecimal("10.00"));
+        var from = new Wallet(); from.setIban("FROM");
+        var to = new Wallet(); to.setIban("TO");
+        var type = new com.github.yildizmy.domain.entity.Type(); type.setId(1L);
+        transaction.setFromWallet(from); transaction.setToWallet(to); transaction.setType(type);
+        when(transactionRepository.findByRequestId(key)).thenReturn(java.util.Optional.of(transaction));
+        assertEquals(42L, transactionService.replay(request).id());
+        request.setAmount(new BigDecimal("20.00"));
+        assertThrows(com.github.yildizmy.exception.WalletRuleException.class, () -> transactionService.replay(request));
+        verify(transactionRepository, never()).save(any());
+    }
+
 }

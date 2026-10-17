@@ -29,6 +29,11 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -174,15 +179,25 @@ class WalletServiceTest {
 
     @Test
     void create_shouldCreateNewWallet() {
-        var request = createTestWalletRequest(1L, "TEST123", "Test Wallet", BigDecimal.valueOf(1000));
-        var wallet = createTestWallet(1L, "TEST123", "Test Wallet", BigDecimal.valueOf(1000));
+        var request = createTestWalletRequest(
+        1L,
+        "TEST123",
+        "Test Wallet",
+        BigDecimal.ZERO
+);
 
+    var wallet = createTestWallet(
+        1L,
+        "TEST123",
+        "Test Wallet",
+        BigDecimal.ZERO
+);
+
+        when(ibanValidator.isValid(anyString(), isNull())).thenReturn(true);
         when(walletRepository.existsByIbanIgnoreCase(anyString())).thenReturn(false);
         when(walletRepository.existsByUserIdAndNameIgnoreCase(anyLong(), anyString())).thenReturn(false);
         when(walletRequestMapper.toWallet(request)).thenReturn(wallet);
         when(walletRepository.save(wallet)).thenReturn(wallet);
-        when(walletTransactionRequestMapper.toTransactionRequest(request)).thenReturn(new TransactionRequest());
-        when(transactionService.create(any(TransactionRequest.class))).thenReturn(new CommandResponse(1L));
 
         var result = walletService.create(request);
 
@@ -193,13 +208,19 @@ class WalletServiceTest {
         verify(ibanValidator).isValid(request.getIban(), null);
         verify(walletRequestMapper).toWallet(request);
         verify(walletRepository).save(wallet);
-        verify(transactionService).create(any(TransactionRequest.class));
+        verify(transactionService, never()).create(any(TransactionRequest.class));
     }
 
     @Test
     void create_shouldThrowExceptionWhenIbanAlreadyExists() {
-        var request = createTestWalletRequest(1L, "TEST123", "Test Wallet", BigDecimal.valueOf(1000));
+        var request = createTestWalletRequest(
+            1L,
+            "TEST123",
+            "Test Wallet",
+            BigDecimal.ZERO
+        );
 
+        when(ibanValidator.isValid(anyString(), isNull())).thenReturn(true);
         when(walletRepository.existsByIbanIgnoreCase(anyString())).thenReturn(true);
 
         assertThrows(ElementAlreadyExistsException.class, () -> walletService.create(request));
@@ -212,8 +233,7 @@ class WalletServiceTest {
         var toWallet = createTestWallet(2L, "TO123", "To Wallet", BigDecimal.valueOf(500));
         var request = createTestTransactionRequest("FROM123", "TO123", BigDecimal.valueOf(200));
 
-        when(walletRepository.findByIban("FROM123")).thenReturn(Optional.of(fromWallet));
-        when(walletRepository.findByIban("TO123")).thenReturn(Optional.of(toWallet));
+        when(walletRepository.lockByIbans(anyList())).thenReturn(java.util.List.of(fromWallet, toWallet));
         when(transactionService.create(request)).thenReturn(new CommandResponse(1L));
 
         var result = walletService.transferFunds(request);
@@ -232,27 +252,9 @@ class WalletServiceTest {
         var toWallet = createTestWallet(2L, "TO123", "To Wallet", BigDecimal.valueOf(500));
         var request = createTestTransactionRequest("FROM123", "TO123", BigDecimal.valueOf(200));
 
-        when(walletRepository.findByIban("FROM123")).thenReturn(Optional.of(fromWallet));
-        when(walletRepository.findByIban("TO123")).thenReturn(Optional.of(toWallet));
+        when(walletRepository.lockByIbans(anyList())).thenReturn(java.util.List.of(fromWallet, toWallet));
 
         assertThrows(InsufficientFundsException.class, () -> walletService.transferFunds(request));
-    }
-
-    @Test
-    void addFunds_shouldAddFundsToWallet() {
-        var toWallet = createTestWallet(1L, "TO123", "To Wallet", BigDecimal.valueOf(500));
-        var request = createTestTransactionRequest(null, "TO123", BigDecimal.valueOf(200));
-
-        when(walletRepository.findByIban("TO123")).thenReturn(Optional.of(toWallet));
-        when(transactionService.create(request)).thenReturn(new CommandResponse(1L));
-
-        var result = walletService.addFunds(request);
-
-        assertNotNull(result);
-        assertEquals(1L, result.id());
-        assertEquals(BigDecimal.valueOf(700), toWallet.getBalance());
-        verify(walletRepository).save(toWallet);
-        verify(transactionService).create(request);
     }
 
     @Test
@@ -260,7 +262,7 @@ class WalletServiceTest {
         var fromWallet = createTestWallet(1L, "FROM123", "From Wallet", BigDecimal.valueOf(1000));
         var request = createTestTransactionRequest("FROM123", null, BigDecimal.valueOf(200));
 
-        when(walletRepository.findByIban("FROM123")).thenReturn(Optional.of(fromWallet));
+        when(walletRepository.lockByIbans(anyList())).thenReturn(java.util.List.of(fromWallet));
         when(transactionService.create(request)).thenReturn(new CommandResponse(1L));
 
         var result = walletService.withdrawFunds(request);
@@ -270,6 +272,106 @@ class WalletServiceTest {
         assertEquals(BigDecimal.valueOf(800), fromWallet.getBalance());
         verify(walletRepository).save(fromWallet);
         verify(transactionService).create(request);
+    }
+
+    @Test
+    void operations_rejectInvalidAmountsBeforeTouchingBalances() {
+        for (var amount : java.util.List.of(new BigDecimal("-1"), BigDecimal.ZERO, new BigDecimal("0.001"), new BigDecimal("10000000000"))) {
+            var request = createTestTransactionRequest("FROM", "TO", amount);
+            assertThrows(com.github.yildizmy.exception.WalletRuleException.class, () -> walletService.transferFunds(request));
+            assertThrows(com.github.yildizmy.exception.WalletRuleException.class, () -> walletService.withdrawFunds(request));
+        }
+        verifyNoInteractions(walletRepository, transactionService);
+    }
+
+    @Test
+    void transfer_rejectsSameWallet() {
+        var request = createTestTransactionRequest("SAME", "SAME", BigDecimal.ONE);
+        assertThrows(com.github.yildizmy.exception.WalletRuleException.class, () -> walletService.transferFunds(request));
+        verifyNoInteractions(walletRepository, transactionService);
+    }
+
+    @Test
+    void withdrawal_cannotOverdraw() {
+        var wallet = createTestWallet(1L, "FROM", "Wallet", BigDecimal.TEN);
+        var request = createTestTransactionRequest("FROM", "FROM", new BigDecimal("10.01"));
+        when(walletRepository.lockByIbans(anyList())).thenReturn(java.util.List.of(wallet));
+        assertThrows(InsufficientFundsException.class, () -> walletService.withdrawFunds(request));
+        assertEquals(BigDecimal.TEN, wallet.getBalance());
+        verify(transactionService, never()).create(any());
+    }
+
+    @Test
+    void create_shouldRejectNonZeroInitialBalance() {
+
+        var request = new WalletRequest();
+
+        request.setUserId(1L);
+        request.setName("Principal");
+        request.setIban("BR123456789012345678901234567");
+        request.setBalance(new BigDecimal("100.00"));
+
+            assertThrows(
+                    com.github.yildizmy.exception.WalletRuleException.class,
+                    () -> walletService.create(request)
+            );
+
+        verify(walletRepository, never()).save(any());
+        verify(transactionService, never()).create(any());
+        }
+
+        @Test
+        void create_shouldAllowWalletWithZeroBalance() {
+
+        var request = new WalletRequest();
+
+        request.setUserId(1L);
+        request.setName("Principal");
+        request.setIban("BR123456789012345678901234567");
+        request.setBalance(BigDecimal.ZERO);
+
+        var wallet = new Wallet();
+
+        wallet.setId(10L);
+        wallet.setName("Principal");
+        wallet.setIban(request.getIban());
+        wallet.setBalance(BigDecimal.ZERO);
+
+        when(ibanValidator.isValid(request.getIban(), null))
+                .thenReturn(true);
+
+        when(walletRepository.existsByIbanIgnoreCase(request.getIban()))
+                .thenReturn(false);
+
+        when(
+            walletRepository.existsByUserIdAndNameIgnoreCase(
+                1L,
+                "Principal"
+            )
+        ).thenReturn(false);
+
+        when(walletRequestMapper.toWallet(request))
+                .thenReturn(wallet);
+
+        when(walletRepository.save(wallet))
+                .thenReturn(wallet);
+
+        var result = walletService.create(request);
+
+        assertNotNull(result);
+        assertEquals(10L, result.id());
+
+        assertEquals(
+                0,
+                wallet.getBalance().compareTo(BigDecimal.ZERO)
+        );
+
+        verify(walletRepository).save(wallet);
+
+        verify(
+                transactionService,
+                never()
+        ).create(any());
     }
 
     // Helper Methods

@@ -10,7 +10,6 @@ import java.util.Arrays;
 @UtilityClass
 public class Constants {
 
-    public static final String ALLOWED_ORIGIN = "http://localhost:3000";
     public static final String TRACE = "trace";
     public static final String DATE_FORMAT = "dd.MM.yyyy";
     public static final String DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm:ss";

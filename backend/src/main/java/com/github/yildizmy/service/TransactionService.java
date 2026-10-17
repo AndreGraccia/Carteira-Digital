@@ -67,13 +67,9 @@ public class TransactionService {
      * @return List of TransactionResponse
      */
     @Transactional(readOnly = true)
-    public List<TransactionResponse> findAllByUserId(Long userId) {
-        final List<Transaction> transactions = transactionRepository.findAllByUserId(userId);
-        if (transactions.isEmpty())
-            throw new NoSuchElementFoundException(messageConfig.getMessage(ERROR_NO_RECORDS));
-
-        return transactions.stream().map(transactionResponseMapper::toTransactionResponse)
-                .toList();
+    public Page<TransactionResponse> findAllByUserId(Long userId, java.time.Instant from, Pageable pageable) {
+        return transactionRepository.findPageByUserId(userId, from, pageable)
+                .map(transactionResponseMapper::toTransactionResponse);
     }
 
     /**
@@ -97,6 +93,24 @@ public class TransactionService {
      * @param request
      * @return id of the created transaction
      */
+    public CommandResponse replay(TransactionRequest request) {
+        if (request.getRequestId() == null) return null;
+        return transactionRepository.findByRequestId(request.getRequestId()).map(existing -> {
+            if (existing.getAmount().compareTo(request.getAmount()) != 0 ||
+                !existing.getFromWallet().getIban().equals(request.getFromWalletIban()) ||
+                !existing.getToWallet().getIban().equals(request.getToWalletIban()) ||
+                !existing.getType().getId().equals(request.getTypeId()) ||
+                !java.util.Objects.equals(existing.getDescription(), request.getDescription())) {
+                throw new com.github.yildizmy.exception.WalletRuleException("IDEMPOTENCY_CONFLICT");
+            }
+            return CommandResponse.builder().id(existing.getId()).build();
+        }).orElse(null);
+    }
+
+    public boolean hasHistory(long walletId) {
+        return transactionRepository.existsByFromWalletIdOrToWalletId(walletId, walletId);
+    }
+
     public CommandResponse create(TransactionRequest request) {
         final Transaction transaction = transactionRequestMapper.toTransaction(request);
         transactionRepository.save(transaction);

@@ -1,6 +1,6 @@
 package com.github.yildizmy.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.github.yildizmy.config.MessageSourceConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,7 +32,7 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        log.error(messageConfig.getMessage(ERROR_UNAUTHORIZED_DETAILS, authException.getMessage()));
+        log.warn(messageConfig.getMessage(ERROR_UNAUTHORIZED_DETAILS, request.getServletPath()));
 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -40,7 +40,7 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
         final Map<String, Object> body = new HashMap<>();
         body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
         body.put("error", messageConfig.getMessage(ERROR_UNAUTHORIZED));
-        body.put("message", authException.getMessage());
+        body.put("message", messageConfig.getMessage(ERROR_UNAUTHORIZED));
         body.put("path", request.getServletPath());
 
         final ObjectMapper mapper = new ObjectMapper();

@@ -1,33 +1,30 @@
 spring:
   config:
-    import: optional:file:.env.properties # read environment variables from .env file
+    import: "optional:file:.env.properties,optional:file:../.env.properties"
   application:
-    name: e-wallet
+    name: wallia
   main:
     banner-mode: console
+  devtools:
+    add-properties: false
   banner:
     location: classpath:/banner.txt
   output:
     ansi:
       enabled: always
-  jackson:
-    date-format: 'dd.MM.yyyy'
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/${db_name}
+    url: jdbc:postgresql://localhost:${db_port:5432}/${db_name}
     username: ${db_username}
     password: ${db_password}
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     open-in-view: false
     properties:
-      hibernate.format_sql: true
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-      open-in-view: false
-      generate-ddl: true
   flyway:
     enabled: true
     placeholderReplacement: false
@@ -38,6 +35,22 @@ spring:
     multipart:
       max-file-size: 1MB
       max-request-size: 10MB
+  mail:
+    default-encoding: UTF-8
+    host: ${mail_host:localhost}
+    port: ${mail_port:1025}
+    username: ${mail_username:}
+    password: ${mail_password:}
+    properties:
+      mail:
+        smtp:
+          auth: ${mail_auth:false}
+          starttls:
+            enable: ${mail_starttls:false}
+            required: ${mail_starttls:false}
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 logging:
   file:
@@ -52,23 +65,93 @@ logging:
     console: '%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){blue} %clr(%-5p) %clr(${PID}){faint} %clr(---){faint} %clr([%8.15t]){faint} %clr(%-40.40logger{0}){cyan} %clr(:){faint} %clr(%m){faint}%n'
     file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
   level:
-    com.github.yildizmy: debug
+    com.github.yildizmy: info
     org.springframework: warn
     org.hibernate: error
     org.springframework.security: error
 
 server:
-  port: 8080
+  port: ${backend_port:8082}
+  # Behind nginx every request comes from the proxy's IP; trust X-Forwarded-For only from private addresses
+  # so per-IP limits (sign-up, login) see the real client.
+  forward-headers-strategy: native
   error:
-    include-message: always
-    include-binding-errors: always
-    include-stacktrace: on_param
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
     include-exception: false
 
+# Health for the container healthcheck and the load balancer: liveness says the JVM is up, readiness that the
+# database answers, no details. Prometheus for the metrics scraper (jobs, HTTP, JVM, pool). Both are reachable only
+# inside the network: nginx does not proxy /actuator and the API port listens on 127.0.0.1.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      # Readiness also checks the database; liveness does not, so a database outage does not restart the API.
+      group:
+        readiness:
+          include: readinessState,db
+
 exception:
-  trace: true
+  trace: false
 
 app:
   security:
     jwtSecret: ${jwt_secret}
+    # AES-256 key (Base64, 32 bytes) for descriptions at rest (ADR 0014). Blank = stored as is, with a warning.
+    dataEncryptionKey: ${data_encryption_key:}
+    # Old keys, comma-separated, only read during a rotation (ADR 0016). Remove one when the rotation job reports
+    # nothing left to rewrite.
+    dataEncryptionPreviousKeys: ${data_encryption_previous_keys:}
+    # Rewrites clear text and older keys under the current key. "-" disables.
+    rotation-cron: ${encryption_rotation_cron:0 45 3 * * *}
     jwtExpirationMs: 3600000
+    allowedOrigin: ${frontend_origin:http://localhost:3001}
+  ai:
+    geminiApiKey: ${gemini_api_key:}
+    geminiModel: ${gemini_model:gemini-3.8-flash}
+    searchGroundingEnabled: ${gemini_search_grounding:false}
+    endpoint: https://generativelanguage.googleapis.com/v1beta/interactions
+  future:
+    # Daily e-mail about new negative windows, only for users who turned it on. "-" disables the job.
+    alert-cron: ${future_alert_cron:0 0 8 * * *}
+  push:
+    # VAPID pair for Web Push (base64url: 65-byte public point, 32-byte private scalar). Empty = push off.
+    # Generate once per environment and keep it: browsers subscribe to this exact public key.
+    public-key: ${vapid_public_key:}
+    private-key: ${vapid_private_key:}
+    subject: ${vapid_subject:mailto:no-reply@wallia.local}
+  market:
+    # Banco Central rates and indicators (ADR 0010), fetched daily before the sync and the alerts. "-" disables.
+    refresh-cron: ${market_refresh_cron:0 0 6 * * *}
+    # Fetch once at startup when the table is empty.
+    refresh-on-startup: ${market_refresh_on_startup:true}
+  retention:
+    # Deletes expired e-mail codes, old forecast snapshots and old admin audit rows (ADR 0015). "-" disables.
+    cron: ${retention_cron:0 30 3 * * *}
+  open-finance:
+    # Daily sync of every authorised connection, before the 8h alerts, so alerts and the accuracy score
+    # read today's balance. "-" disables the job.
+    daily-sync-cron: ${open_finance_daily_sync_cron:0 30 7 * * *}
+    mode: ${open_finance_mode:contract-sandbox}
+    base-url: ${open_finance_base_url:}
+    access-token: ${open_finance_access_token:}
+    consent-id: ${open_finance_consent_id:}
+    institution-id: ${open_finance_institution_id:participant-sandbox}
+    key-store-path: ${open_finance_key_store_path:}
+    key-store-password: ${open_finance_key_store_password:}
+    # participant-sandbox only: the one Wall.ia user id the configured token and consent belong to.
+    owner-user-id: ${open_finance_owner_user_id:0}
+  # Code sent at sign-up to confirm the e-mail address (ADR 0008). The old open_finance_* names still work.
+  email-verification:
+    code-ttl-minutes: ${email_code_ttl_minutes:${open_finance_code_ttl_minutes:10}}
+    resend-cooldown-seconds: ${email_resend_cooldown_seconds:${open_finance_resend_cooldown_seconds:60}}
+    max-attempts: ${email_code_max_attempts:${open_finance_code_max_attempts:5}}
+    mail-from: ${mail_from:no-reply@wallia.local}

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { enUS, ptBR } from '@mui/material/locale';
 import PropTypes from 'prop-types';
 import { useMemo } from 'react';
 import { CssBaseline } from '@mui/material';
@@ -14,10 +16,11 @@ ThemeProvider.propTypes = {
 };
 
 export default function ThemeProvider({ children }) {
+  const { i18n } = useTranslation();
   const themeOptions = useMemo(
     () => ({
       palette,
-      shape: { borderRadius: 6 },
+      shape: { borderRadius: 12 },
       typography,
       shadows: shadows(),
       customShadows: customShadows(),
@@ -25,8 +28,21 @@ export default function ThemeProvider({ children }) {
     []
   );
 
-  const theme = createTheme(themeOptions);
-  theme.components = componentsOverride(theme);
+  const baseTheme = createTheme(themeOptions);
+  const theme = createTheme(
+    baseTheme,
+    {
+      components: {
+        ...componentsOverride(baseTheme),
+        MuiDialog: {
+          styleOverrides: { paper: { borderRadius: 20, backgroundColor: baseTheme.palette.background.raised } },
+        },
+        MuiTabs: { styleOverrides: { indicator: { height: 3, borderRadius: 3 } } },
+        MuiTab: { styleOverrides: { root: { textTransform: 'none', minHeight: 60 } } },
+      },
+    },
+    i18n.resolvedLanguage?.startsWith('en') ? enUS : ptBR
+  );
 
   return (
     <StyledEngineProvider injectFirst>

@@ -4,7 +4,7 @@ import com.github.yildizmy.dto.response.TransactionResponse;
 import com.github.yildizmy.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,7 +28,7 @@ public class TransactionController {
      * @param id
      * @return TransactionResponse wrapped by ResponseEntity<T>
      */
-    @PreAuthorize("hasRole(T(com.github.yildizmy.domain.enums.RoleType).ROLE_USER)")
+    @PreAuthorize("@walletAccess.transaction(#id)")
     @GetMapping("/{id}")
     public ResponseEntity<TransactionResponse> findById(@PathVariable long id) {
         final TransactionResponse response = transactionService.findById(id);
@@ -41,7 +41,7 @@ public class TransactionController {
      * @param referenceNumber
      * @return TransactionResponse wrapped by ResponseEntity<T>
      */
-    @PreAuthorize("hasRole(T(com.github.yildizmy.domain.enums.RoleType).ROLE_USER)")
+    @PreAuthorize("@walletAccess.reference(#referenceNumber)")
     @GetMapping("/references/{referenceNumber}")
     public ResponseEntity<TransactionResponse> findByReferenceNumber(@PathVariable UUID referenceNumber) {
         final TransactionResponse response = transactionService.findByReferenceNumber(referenceNumber);
@@ -49,17 +49,26 @@ public class TransactionController {
     }
 
     /**
-     * Fetches all transaction by the given userId.
-     *
-     * @param userId
-     * @return List of TransactionResponse wrapped by ResponseEntity<T>
+     * The user's statement, newest first, paged in the database ({@code ?page=0&size=100}, at most
+     * {@value #MAX_PAGE_SIZE} per page). {@code from} (yyyy-MM-dd, Brasília) limits how far back it goes.
      */
-    @PreAuthorize("hasRole(T(com.github.yildizmy.domain.enums.RoleType).ROLE_USER)")
+    @PreAuthorize("@walletAccess.user(#userId)")
     @GetMapping("/users/{userId}")
-    public ResponseEntity<Page<TransactionResponse>> findAllByUserId(@PathVariable long userId) {
-        final Page<TransactionResponse> response = new PageImpl<>(transactionService.findAllByUserId(userId));
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Page<TransactionResponse>> findAllByUserId(
+            @PathVariable long userId,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso =
+                    org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size) {
+        var pageable = org.springframework.data.domain.PageRequest.of(Math.max(0, page),
+                Math.min(Math.max(1, size), MAX_PAGE_SIZE),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        java.time.Instant since = from == null ? java.time.Instant.EPOCH
+                : from.atStartOfDay(java.time.ZoneId.of("America/Sao_Paulo")).toInstant();
+        return ResponseEntity.ok(transactionService.findAllByUserId(userId, since, pageable));
     }
+
+    static final int MAX_PAGE_SIZE = 500;
 
     /**
      * Fetches all transactions based on the given paging and sorting parameters.
@@ -67,7 +76,7 @@ public class TransactionController {
      * @param pageable
      * @return List of TransactionResponse wrapped by ResponseEntity<T>
      */
-    @PreAuthorize("hasRole(T(com.github.yildizmy.domain.enums.RoleType).ROLE_USER)")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<TransactionResponse>> findAll(Pageable pageable) {
         final Page<TransactionResponse> response = transactionService.findAll(pageable);

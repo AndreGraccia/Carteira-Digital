@@ -24,6 +24,7 @@ public abstract class WalletRequestMapper {
     @Mapping(target = "name", expression = "java(org.apache.commons.text.WordUtils.capitalizeFully(dto.getName()))")
     @Mapping(target = "iban", expression = "java(org.apache.commons.lang3.StringUtils.upperCase(dto.getIban()))")
     @Mapping(target = "user", ignore = true)
+    @Mapping(target = "id", ignore = true)
     public abstract Wallet toWallet(WalletRequest dto);
 
     public abstract WalletRequest toWalletRequest(Wallet entity);

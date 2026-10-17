@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class LoginRequest {
 
-    @Size(min = 3, max = 20, message = "{validation.user.username.length}")
+    // Username (3-20) or e-mail (up to 50).
+    @Size(min = 3, max = 50, message = "{validation.user.username.length}")
     @NotBlank(message = "{validation.user.username.required}")
     private String username;
 

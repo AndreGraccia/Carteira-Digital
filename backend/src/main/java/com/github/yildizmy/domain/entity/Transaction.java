@@ -1,6 +1,7 @@
 package com.github.yildizmy.domain.entity;
 
 import com.github.yildizmy.domain.enums.Status;
+import com.github.yildizmy.domain.enums.TransactionSource;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,7 +32,9 @@ public class Transaction {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(length = 50)
+    // Names people and companies: encrypted at rest (ADR 0014, V30 widened the column).
+    @Convert(converter = com.github.yildizmy.domain.EncryptedText.class)
+    @Column(columnDefinition = "text")
     private String description;
 
     @Column(nullable = false)
@@ -40,9 +43,23 @@ public class Transaction {
     @Column(nullable = false, unique = true)
     private UUID referenceNumber;
 
+    @Column(unique = true)
+    private UUID requestId;
+
     @Column(length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    @Column(length = 30, nullable = false)
+    @Enumerated(EnumType.STRING)
+    private TransactionSource source = TransactionSource.LOCAL;
+
+    @Column(length = 255, unique = true)
+    private String externalId;
+
+    /** Open Finance {@code type} of an imported entry (PIX, TED, BOLETO...); null for local ones and older imports. */
+    @Column(length = 40)
+    private String paymentType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "from_wallet_id", referencedColumnName = "id", nullable = false)

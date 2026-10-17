@@ -5,164 +5,186 @@ import com.github.yildizmy.domain.entity.User;
 import com.github.yildizmy.dto.mapper.SignupRequestMapper;
 import com.github.yildizmy.dto.request.LoginRequest;
 import com.github.yildizmy.dto.request.SignupRequest;
-import com.github.yildizmy.exception.ElementAlreadyExistsException;
+import com.github.yildizmy.dto.response.EmailChallengeResponse;
+import com.github.yildizmy.exception.CodedException;
 import com.github.yildizmy.repository.UserRepository;
 import com.github.yildizmy.security.JwtUtils;
 import com.github.yildizmy.security.UserDetailsImpl;
+import com.github.yildizmy.service.mail.VerificationMailSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @InjectMocks
-    private AuthService authService;
+    private static final Instant NOW = Instant.parse("2026-09-24T12:00:00Z");
 
-    @Mock
-    private AuthenticationManager authenticationManager;
-
-    @Mock
-    private JwtUtils jwtUtils;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private SignupRequestMapper signupRequestMapper;
-
-    @Mock
-    private MessageSourceConfig messageConfig;
+    private final AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
+    private final JwtUtils jwtUtils = mock(JwtUtils.class);
+    private final UserRepository userRepository = mock(UserRepository.class);
+    private final SignupRequestMapper signupRequestMapper = mock(SignupRequestMapper.class);
+    private final MessageSourceConfig messageConfig = mock(MessageSourceConfig.class);
+    private final EmailVerificationService verification = mock(EmailVerificationService.class);
+    private final VerificationMailSender mailSender = mock(VerificationMailSender.class);
+    private final AuthService authService = new AuthService(messageConfig, authenticationManager, jwtUtils,
+            userRepository, signupRequestMapper, verification, mailSender, Clock.fixed(NOW, ZoneOffset.UTC));
 
     private LoginRequest loginRequest;
-    private UserDetailsImpl userDetails;
     private Authentication authentication;
 
     @BeforeEach
     void setUp() {
         loginRequest = new LoginRequest("testuser", "password");
-        userDetails = new UserDetailsImpl(
-                1L,
-                "testuser",
-                "password",
-                "Test",
-                "User",
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-        );
-        authentication = new UsernamePasswordAuthenticationToken(
-                userDetails,
-                null,
-                userDetails.getAuthorities()
-        );
+        var userDetails = new UserDetailsImpl(1L, "testuser", "password", "Test", "User",
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
     }
 
     @Test
-    void login_shouldReturnJwtResponse() {
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        when(jwtUtils.generateJwtToken(authentication))
-                .thenReturn("test.jwt.token");
+    void verifiedAccountLogsIn() {
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+        when(jwtUtils.generateJwtToken(authentication)).thenReturn("test.jwt.token");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "testuser", "t@example.com", NOW)));
 
         var response = authService.login(loginRequest);
 
-        assertNotNull(response);
         assertEquals("test.jwt.token", response.getToken());
         assertEquals(1L, response.getId());
         assertEquals("testuser", response.getUsername());
-        assertEquals("Test", response.getFirstName());
-        assertEquals("User", response.getLastName());
         assertEquals(Collections.singletonList("ROLE_USER"), response.getRoles());
-
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtUtils).generateJwtToken(authentication);
     }
 
     @Test
-    void signup_shouldCreateNewUser() {
-        var signupRequest = new SignupRequest(
-                1L,
-                "New",
-                "User",
-                "newuser",
-                "new@example.com",
-                "password",
-                Set.of("ROLE_USER")
-        );
-        var newUser = new User();
-        newUser.setId(2L);
-        newUser.setUsername("newuser");
+    void unverifiedAccountGetsNoTokenEvenWithTheRightPassword() {
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "testuser", "t@example.com", null)));
 
-        when(userRepository.existsByUsernameIgnoreCase("newuser")).thenReturn(false);
-        when(userRepository.existsByEmailIgnoreCase("new@example.com")).thenReturn(false);
-        when(signupRequestMapper.toUser(signupRequest)).thenReturn(newUser);
-        when(userRepository.save(newUser)).thenReturn(newUser);
+        var error = assertThrows(CodedException.class, () -> authService.login(loginRequest));
 
-        var response = authService.signup(signupRequest);
-
-        assertNotNull(response);
-        assertEquals(2L, response.id());
-
-        verify(userRepository).existsByUsernameIgnoreCase("newuser");
-        verify(userRepository).existsByEmailIgnoreCase("new@example.com");
-        verify(signupRequestMapper).toUser(signupRequest);
-        verify(userRepository).save(newUser);
+        assertEquals("EMAIL_NOT_VERIFIED", error.getCode());
+        verify(jwtUtils, never()).generateJwtToken(any());
     }
 
     @Test
-    void signup_shouldThrowExceptionWhenUsernameExists() {
-        var signupRequest = new SignupRequest(
-                1L,
-                "Existing",
-                "User",
-                "existinguser",
-                "existing@example.com",
-                "password",
-                Set.of("ROLE_USER")
-        );
+    void loginPreservesPasswordWhitespace() {
+        loginRequest.setUsername("  testuser  ");
+        loginRequest.setPassword(" password with spaces ");
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "testuser", "t@example.com", NOW)));
 
+        authService.login(loginRequest);
+
+        ArgumentCaptor<UsernamePasswordAuthenticationToken> captor = ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
+        verify(authenticationManager).authenticate(captor.capture());
+        assertEquals("testuser", captor.getValue().getPrincipal());
+        assertEquals(" password with spaces ", captor.getValue().getCredentials());
+    }
+
+    @Test
+    void newSignupIsCreatedUnverifiedAndGetsACode() {
+        var request = signup("newuser", "new@example.com");
+        var created = user(2L, "newuser", "new@example.com", null);
+        when(signupRequestMapper.toUser(request)).thenReturn(created);
+        when(userRepository.findByEmailIgnoreCase("new@example.com")).thenReturn(Optional.empty());
+        when(verification.request(2L)).thenReturn(new EmailChallengeResponse("n***@example.com", NOW.plusSeconds(600), NOW.plusSeconds(60)));
+
+        var response = authService.signup(request);
+
+        assertEquals("n***@example.com", response.maskedEmail());
+        assertNull(created.getEmailVerifiedAt());
+        verify(userRepository).save(created);
+        verify(verification).request(2L);
+    }
+
+    @Test
+    void emailAlreadyRegisteredGetsTheSameAnswerAndItsOwnerIsTold() {
+        var request = signup("newuser", "Maria@Example.com");
+        when(userRepository.findByEmailIgnoreCase("Maria@Example.com"))
+                .thenReturn(Optional.of(user(5L, "maria", "maria@example.com", NOW)));
+
+        var response = authService.signup(request);
+
+        assertEquals("M***@Example.com", response.maskedEmail(), "same shape as a new sign-up");
+        verify(mailSender).sendAccountExists("maria@example.com", "Maria", "maria");
+        verify(userRepository, never()).save(any());
+        verifyNoInteractions(verification);
+    }
+
+    @Test
+    void usernameTakenIsAPlainConflict() {
         when(userRepository.existsByUsernameIgnoreCase("existinguser")).thenReturn(true);
 
-        assertThrows(ElementAlreadyExistsException.class, () -> authService.signup(signupRequest));
+        var error = assertThrows(CodedException.class, () -> authService.signup(signup("existinguser", "x@example.com")));
 
-        verify(userRepository).existsByUsernameIgnoreCase("existinguser");
-        verify(userRepository, never()).existsByEmailIgnoreCase(anyString());
-        verify(signupRequestMapper, never()).toUser(any());
+        assertEquals("USERNAME_TAKEN", error.getCode());
         verify(userRepository, never()).save(any());
     }
 
     @Test
-    void signup_shouldThrowExceptionWhenEmailExists() {
-        var signupRequest = new SignupRequest(
-                1L,
-                "New",
-                "User",
-                "newuser",
-                "existing@example.com",
-                "password",
-                Set.of("ROLE_USER")
-        );
+    void signupIgnoresClientAdminRoleAndUserId() {
+        var request = new SignupRequest(99L, "Test", "User", "test", "test@example.com", "password", Set.of("ROLE_ADMIN"));
+        when(signupRequestMapper.toUser(request)).thenReturn(user(7L, "test", "test@example.com", null));
+        when(userRepository.findByEmailIgnoreCase("test@example.com")).thenReturn(Optional.empty());
+        when(verification.request(7L)).thenReturn(new EmailChallengeResponse("t***@example.com", NOW, NOW));
 
-        when(userRepository.existsByUsernameIgnoreCase("newuser")).thenReturn(false);
-        when(userRepository.existsByEmailIgnoreCase("existing@example.com")).thenReturn(true);
+        authService.signup(request);
 
-        assertThrows(ElementAlreadyExistsException.class, () -> authService.signup(signupRequest));
+        assertEquals(Set.of("ROLE_USER"), request.getRoles());
+        assertNull(request.getId());
+    }
 
-        verify(userRepository).existsByUsernameIgnoreCase("newuser");
-        verify(userRepository).existsByEmailIgnoreCase("existing@example.com");
-        verify(signupRequestMapper, never()).toUser(any());
-        verify(userRepository, never()).save(any());
+    @Test
+    void unknownLoginOnVerifyLooksLikeAWrongCode() {
+        when(userRepository.findByUsernameIgnoreCase("ghost")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("ghost")).thenReturn(Optional.empty());
+
+        var error = assertThrows(CodedException.class, () -> authService.verifyEmail("ghost", "12345678"));
+
+        assertEquals("EMAIL_CODE_INVALID", error.getCode());
+    }
+
+    @Test
+    void resendNeverSaysWhetherTheLoginExists() {
+        when(userRepository.findByUsernameIgnoreCase(any())).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase(any())).thenReturn(Optional.empty());
+        var unknown = authService.resendCode("ghost");
+
+        when(userRepository.findByUsernameIgnoreCase("maria")).thenReturn(Optional.of(user(5L, "maria", "m@example.com", null)));
+        when(verification.request(5L)).thenReturn(new EmailChallengeResponse("m***@example.com", NOW, NOW.plusSeconds(60)));
+        var known = authService.resendCode("maria");
+
+        assertNull(unknown.maskedEmail());
+        assertNull(known.maskedEmail());
+        assertEquals(unknown.resendAvailableAt(), known.resendAvailableAt());
+        verify(verification).request(5L);
+    }
+
+    private SignupRequest signup(String username, String email) {
+        return new SignupRequest(null, "New", "User", username, email, "password", Set.of("ROLE_USER"));
+    }
+
+    private User user(long id, String username, String email, Instant verifiedAt) {
+        var user = new User();
+        user.setId(id);
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setFirstName("Maria");
+        user.setEmailVerifiedAt(verifiedAt);
+        return user;
     }
 }

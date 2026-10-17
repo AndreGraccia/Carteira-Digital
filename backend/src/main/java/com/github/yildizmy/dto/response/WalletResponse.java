@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import com.github.yildizmy.domain.enums.WalletSource;
 
 /**
  * Data Transfer Object for Wallet response.
@@ -19,4 +21,8 @@ public class WalletResponse {
     private String name;
     private BigDecimal balance;
     private UserResponse user;
+    private WalletSource source;
+    private String institutionName;
+    private String externalAccountId;
+    private Instant lastSyncedAt;
 }

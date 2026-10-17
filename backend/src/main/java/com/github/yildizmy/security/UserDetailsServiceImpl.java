@@ -26,7 +26,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        final User user = userRepository.findByUsername(username)
+        // Sign-up rejects names and e-mails that differ only by case, so each lookup finds at most one user.
+        // Accepting either field, in any case, stops "Gui_oliveira" or the e-mail from being rejected at login.
+        final String login = username == null ? "" : username.trim();
+        // Usernames cannot contain "@" since V19; older ones might, so an e-mail-shaped login tries the e-mail first.
+        final boolean looksLikeEmail = login.contains("@");
+        final User user = (looksLikeEmail ? userRepository.findByEmailIgnoreCase(login) : userRepository.findByUsernameIgnoreCase(login))
+                .or(() -> looksLikeEmail ? userRepository.findByUsernameIgnoreCase(login) : userRepository.findByEmailIgnoreCase(login))
                 .orElseThrow(() -> new UsernameNotFoundException(messageConfig.getMessage(ERROR_USERNAME_NOT_FOUND, username)));
         return UserDetailsImpl.build(user);
     }

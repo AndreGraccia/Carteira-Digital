@@ -1,103 +1,83 @@
+import { useRef, useState } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, Card, Container, Stack, TextField, Typography } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-import { Button, Card, Container, Grid, Stack, TextField, Typography } from '@mui/material';
-import { useSnackbar } from 'notistack';
-import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { enqueueSnackbar } from 'notistack';
+import { useWallets } from '../../context/WalletContext';
+import { IconTile, PageHeading, WalletIcon } from '../../components/wallet-ui';
 import AuthService from '../../services/AuthService';
 import HttpService from '../../services/HttpService';
+import { errorKey } from '../../utils/wallet';
 
 export default function NewWallet() {
-  const defaultValues = {
-    name: '',
-    balance: '',
-    iban: '',
-    email: '',
-    userId: AuthService.getCurrentUser()?.id,
-  };
-
+  const { t } = useTranslation();
+  const { refresh } = useWallets();
   const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
-  const [formValues, setFormValues] = useState(defaultValues);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormValues({
-      ...formValues,
-      [name]: value,
-    });
-  };
-
-  const handleSubmit = (event) => {
+  const [name, setName] = useState('');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
+  const submit = async (event) => {
     event.preventDefault();
-    HttpService.postWithAuth('/wallets', formValues)
-      .then((response) => {
-        enqueueSnackbar('Wallet created successfully', { variant: 'success' });
-        navigate('/wallets');
-      })
-      .catch((error) => {
-        if (error.response?.data?.errors) {
-          error.response?.data?.errors.map((e) => enqueueSnackbar(e.message, { variant: 'error' }));
-        } else if (error.response?.data?.message) {
-          enqueueSnackbar(error.response?.data?.message, { variant: 'error' });
-        } else {
-          enqueueSnackbar(error.message, { variant: 'error' });
-        }
+    if (sending.current) return;
+    if (name.trim().length < 3) {
+      setError('app.nameHelp');
+      return;
+    }
+    sending.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await HttpService.postWithAuth('/wallets', {
+        name: name.trim(),
+        balance: '0.00',
+        userId: AuthService.getCurrentUser()?.id,
       });
+      await refresh();
+      enqueueSnackbar(t('wallet.create.success'), { variant: 'success' });
+      navigate(`/wallets/${response.id}`);
+    } catch (failure) {
+      setError(errorKey(failure));
+    } finally {
+      setBusy(false);
+      sending.current = false;
+    }
   };
-
   return (
     <>
       <Helmet>
-        <title> New Wallet | e-Wallet </title>
+        <title>{t('wallet.create.pageTitle')}</title>
       </Helmet>
-      <Container sx={{ minWidth: '100%' }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-          <Typography variant="h4" gutterBottom>
-            New Wallet
-          </Typography>
-        </Stack>
-        <Card>
-          <Grid container alignItems="left" justify="center" direction="column" sx={{ width: 400, padding: 5 }}>
+      <Container maxWidth="sm">
+        <Button component={RouterLink} to="/wallets" startIcon={<WalletIcon name="back" />} sx={{ mb: 3 }}>
+          {t('navigation.wallets')}
+        </Button>
+        <PageHeading title={t('wallet.newWallet')} description={t('app.newWalletHelp')} />
+        <Card sx={{ p: { xs: 3, sm: 4 } }}>
+          <IconTile name="wallet" size={56} sx={{ mb: 4 }} />
+          <Box component="form" onSubmit={submit}>
             <Stack spacing={3}>
+              {error && <Alert severity="error">{t(error)}</Alert>}
               <TextField
-                id="name"
-                name="name"
-                label="Wallet Name"
-                autoComplete="given-name"
+                label={t('wallet.create.name')}
+                placeholder={t('wallet.create.namePlaceholder')}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
                 autoFocus
-                required
-                value={formValues.name}
-                onChange={handleInputChange}
+                inputProps={{ minLength: 3, maxLength: 50 }}
+                helperText={t('app.nameHelp')}
               />
-              <TextField
-                id="iban"
-                name="iban"
-                label="IBAN"
-                autoComplete="iban"
-                required
-                value={formValues.iban}
-                onChange={handleInputChange}
-              />
-              <TextField
-                id="balance"
-                name="balance"
-                label="Balance"
-                autoComplete="balance"
-                required
-                value={formValues.balance}
-                onChange={handleInputChange}
-              />
-            </Stack>
-            <Stack spacing={2} direction="row" alignItems="right" justifyContent="end" sx={{ mt: 4 }}>
-              <Button sx={{ width: 120 }} variant="outlined" onClick={() => navigate('/wallets')}>
-                Cancel
-              </Button>
-              <LoadingButton sx={{ width: 120 }} size="large" type="submit" variant="contained" onClick={handleSubmit}>
-                Save
+              <Typography variant="body2" color="text.secondary">
+                {t('app.zeroBalanceHelp')}
+              </Typography>
+              <LoadingButton type="submit" variant="contained" loading={busy}>
+                {t('wallet.create.save')}
               </LoadingButton>
             </Stack>
-          </Grid>
+          </Box>
         </Card>
       </Container>
     </>

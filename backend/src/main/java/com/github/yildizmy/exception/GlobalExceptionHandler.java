@@ -31,6 +31,67 @@ import static com.github.yildizmy.common.MessageKeys.*;
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    @ExceptionHandler(AuthenticationRateLimitException.class)
+    public ResponseEntity<Object> handleAuthenticationRateLimit() {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(java.util.Map.of("code", "AUTH_RATE_LIMIT"));
+    }
+
+    @ExceptionHandler(AskRateLimitException.class)
+    public ResponseEntity<Object> handleAskRateLimit() {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(java.util.Map.of("code", "ASK_RATE_LIMIT"));
+    }
+
+    @ExceptionHandler(InsightRateLimitException.class)
+    public ResponseEntity<Object> handleInsightRateLimit() {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(java.util.Map.of("code", "INSIGHT_RATE_LIMIT"));
+    }
+
+    @ExceptionHandler(OpenFinanceUnavailableException.class)
+    public ResponseEntity<Object> handleOpenFinanceUnavailable() {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(java.util.Map.of("code", "OPEN_FINANCE_UNAVAILABLE"));
+    }
+
+    @ExceptionHandler(CodedException.class)
+    public ResponseEntity<Object> handleOpenFinanceVerification(CodedException exception) {
+        var response = ResponseEntity.status(exception.getStatus());
+        if (exception.getRetryAfterSeconds() > 0) {
+            response.header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.getRetryAfterSeconds()));
+        }
+        return response.body(java.util.Map.of("code", exception.getCode()));
+    }
+    @ExceptionHandler(WalletRuleException.class)
+    public ResponseEntity<Object> handleWalletRule(WalletRuleException ex) {
+        return ResponseEntity.status(statusOf(ex.getMessage())).body(java.util.Map.of("code", ex.getMessage()));
+    }
+
+    /**
+     * The status says what kind of problem it is; the code in the body says which one (the UI translates the code).
+     * Missing resource 404, state conflict 409, malformed input 400, well-formed but breaks a rule 422.
+     */
+    static HttpStatus statusOf(String code) {
+        if (code == null) return HttpStatus.BAD_REQUEST;
+        if (code.endsWith("_NOT_FOUND")) return HttpStatus.NOT_FOUND;
+        if (code.endsWith("_LIMIT") || code.equals("IDEMPOTENCY_CONFLICT") || code.equals("OPEN_FINANCE_READ_ONLY")
+                || code.equals("IMMUTABLE_WALLET")) return HttpStatus.CONFLICT;
+        if (code.endsWith("_UNAVAILABLE")) return HttpStatus.SERVICE_UNAVAILABLE;
+        if (code.startsWith("INVALID_")) return HttpStatus.BAD_REQUEST;
+        return HttpStatus.UNPROCESSABLE_ENTITY;
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(java.util.Map.of("code", "FORBIDDEN"));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Object> handleConflict() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of("code", "CONFLICT"));
+    }
+
 
     private final MessageSourceConfig messageConfig;
 
@@ -60,7 +121,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errorResponse.addValidationError(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        log.error(messageConfig.getMessage(ERROR_METHOD_ARGUMENT, ex));
+        log.warn("Request validation failed");
         return ResponseEntity.unprocessableEntity().body(errorResponse);
     }
 
@@ -100,10 +161,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * @return ResponseEntity<Object> with detailed information related to the error
      */
     @ExceptionHandler(InsufficientFundsException.class)
-    @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     public ResponseEntity<Object> handleInsufficientFundsException(InsufficientFundsException ex, WebRequest request) {
-        log.error(messageConfig.getMessage(ERROR_METHOD_ARGUMENT, ex));
-        return buildErrorResponse(ex, HttpStatus.PRECONDITION_FAILED, request);
+        log.warn("Request validation failed");
+        return buildErrorResponse(ex, HttpStatus.UNPROCESSABLE_ENTITY, request);
     }
 
     /**
@@ -116,8 +177,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
-        log.error(messageConfig.getMessage(ERROR_UNAUTHORIZED_DETAILS, ex));
-        return buildErrorResponse(ex, HttpStatus.UNAUTHORIZED, request);
+        log.warn(messageConfig.getMessage(ERROR_UNAUTHORIZED_DETAILS, "credentials rejected"));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(java.util.Map.of("code", "UNAUTHORIZED"));
     }
 
     /**
@@ -144,8 +206,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<Object> handleAllUncaughtException(Exception ex, WebRequest request) {
-        log.error(messageConfig.getMessage(ex.getMessage(), ex));
-        return buildErrorResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR, request);
+        log.error("Unhandled request error: {}", ex.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(java.util.Map.of("code", "INTERNAL_ERROR"));
     }
 
     /**
@@ -166,7 +229,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatusCode statusCode,
             WebRequest request) {
 
-        return buildErrorResponse(ex, statusCode, request);
+        if (statusCode.is5xxServerError()) {
+            return ResponseEntity.status(statusCode)
+                    .body(java.util.Map.of("code", "INTERNAL_ERROR"));
+        }
+        return super.handleExceptionInternal(ex, body, headers, statusCode, request);
     }
 
     /**

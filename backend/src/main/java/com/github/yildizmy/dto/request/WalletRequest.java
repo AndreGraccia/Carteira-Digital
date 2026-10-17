@@ -21,7 +21,6 @@ public class WalletRequest {
     private Long id;
 
     @ValidIban(message = "{validation.iban.format}")
-    @NotBlank(message = "{validation.iban.required}")
     private String iban;
 
     @Size(min = 3, max = 50, message = "{validation.field.name.length}")
@@ -29,6 +28,8 @@ public class WalletRequest {
     private String name;
 
     @NotNull(message = "{validation.field.balance.required}")
+    @jakarta.validation.constraints.PositiveOrZero
+    @jakarta.validation.constraints.Digits(integer = 10, fraction = 2)
     private BigDecimal balance;
 
     @NotNull(message = "{validation.field.user.required}")

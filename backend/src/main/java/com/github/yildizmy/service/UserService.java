@@ -25,4 +25,9 @@ public class UserService {
     public User getReferenceById(long id) {
         return userRepository.getReferenceById(id);
     }
+
+    /** Row lock on the user until the transaction ends, so "count, then insert" limits hold under parallel requests. */
+    public void lockForUpdate(long id) {
+        userRepository.findByIdForUpdate(id);
+    }
 }

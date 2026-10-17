@@ -22,11 +22,14 @@ public interface TransactionResponseMapper {
     Transaction toTransaction(TransactionResponse dto);
 
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "fromWallet.balance", ignore = true)
+    @Mapping(target = "fromWallet.user", ignore = true)
+    @Mapping(target = "toWallet.balance", ignore = true)
+    @Mapping(target = "toWallet.user", ignore = true)
     TransactionResponse toTransactionResponse(Transaction entity);
 
     @AfterMapping
     default void formatCreatedAt(@MappingTarget TransactionResponse dto, Transaction entity) {
-        LocalDateTime datetime = LocalDateTime.ofInstant(entity.getCreatedAt(), ZoneOffset.UTC);
-        dto.setCreatedAt(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT).format(datetime));
+        dto.setCreatedAt(entity.getCreatedAt().toString());
     }
 }

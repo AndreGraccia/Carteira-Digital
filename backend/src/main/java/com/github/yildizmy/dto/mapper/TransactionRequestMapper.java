@@ -32,7 +32,8 @@ public abstract class TransactionRequestMapper {
     // set default value of the status field as Status.SUCCESS
     @Mapping(target = "status", expression = "java(com.github.yildizmy.domain.enums.Status.SUCCESS)")
     @Mapping(target = "referenceNumber", expression = "java(java.util.UUID.randomUUID())")
-    @Mapping(source = "createdAt", target = "createdAt", defaultExpression = "java(java.time.Instant.now())")
+    @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "fromWallet", ignore = true)
     @Mapping(target = "toWallet", ignore = true)
     @Mapping(target = "type", ignore = true)
